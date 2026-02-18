@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relic Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; zoom: 1.0625; }
+    .mono { font-family: 'SF Mono', 'Cascadia Mono', 'Courier New', monospace; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+    .num-wrap { display: inline-flex; align-items: center; gap: 0; }
+    .num-btn { width: 32px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; font-size: 16px; font-weight: 600; line-height: 1; color: rgba(150,150,150,0.8); transition: all 0.15s; flex-shrink: 0; }
+    .num-btn:hover { color: rgba(180,180,180,1); }
+    .num-btn:active { transform: scale(0.9); }
+    .num-btn.minus { border-radius: 8px 0 0 8px; border: 1px solid; border-right: none; }
+    .num-btn.plus { border-radius: 0 8px 8px 0; border: 1px solid; border-left: none; }
+    .num-wrap input { border-radius: 0 !important; border-left: none !important; border-right: none !important; text-align: center; }
+    .thin-scroll::-webkit-scrollbar { width: 4px; }
+    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.3); border-radius: 4px; }
+    .thin-scroll::-webkit-scrollbar-thumb:hover { background: rgba(150,150,150,0.5); }
+    .thin-scroll { scrollbar-width: thin; scrollbar-color: rgba(150,150,150,0.3) transparent; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+  <div class="max-w-6xl mx-auto px-5 py-8">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">&larr; Timer</a>
+        <h1 class="text-lg font-semibold tracking-tight">Relic Calculator</h1>
+        <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 leading-none">Beta</span>
+        <a href="potion.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Potion Calc &rarr;</a>
+      </div>
+      <button id="toggle-theme" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Toggle theme">
+        <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg id="icon-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+    </div>
+
+    <!-- Temporal Piece ↔ PHP rate -->
+    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4 mb-5">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Temporal Rate:</span>
+        <div class="flex items-center gap-1.5">
+          <div class="num-wrap">
+            <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
+            <input id="rate-temporal" type="number" min="1" value="1000" class="w-20 h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
+            <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
+          </div>
+          <span class="text-sm text-gray-400">=</span>
+          <div class="num-wrap">
+            <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
+            <input id="rate-php" type="number" min="0.01" step="0.01" value="25" class="w-20 h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
+            <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
+          </div>
+          <span class="text-sm text-gray-400">PHP</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Relic Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5" id="relic-grid">
+      <!-- Cards generated by JS -->
+    </div>
+
+    <!-- Grand Total -->
+    <div id="grand-total" class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 mb-5">
+      <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Grand Total (All Relics)</div>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">Temporal Pieces</div>
+          <div id="grand-temporal" class="text-3xl font-bold mono">0</div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">PHP Cost</div>
+          <div id="grand-php" class="text-3xl font-bold mono text-emerald-600 dark:text-emerald-400">₱0.00</div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">Combat Power</div>
+          <div id="grand-cp" class="text-3xl font-bold mono text-yellow-600 dark:text-yellow-400">+0</div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">Total Upgrades</div>
+          <div id="grand-upgrades" class="text-3xl font-bold mono">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cost Breakdown -->
+    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 mb-5">
+      <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Cost Breakdown</div>
+      <div id="bar-graph" class="space-y-4"></div>
+    </div>
+
+    <!-- Cost reference -->
+    <details class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4">
+      <summary class="text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none">Full Cost Table (1 → 100)</summary>
+      <div id="full-table" class="mt-3 max-h-[300px] overflow-y-auto">
+        <table class="w-full text-xs">
+          <thead class="sticky top-0 bg-white dark:bg-neutral-900">
+            <tr>
+              <th class="text-left px-2 py-1 text-gray-400">Lvl</th>
+              <th class="text-right px-2 py-1 text-gray-400">Cost</th>
+              <th class="text-left px-2 py-1 text-gray-400 pl-6">Lvl</th>
+              <th class="text-right px-2 py-1 text-gray-400">Cost</th>
+            </tr>
+          </thead>
+          <tbody id="full-table-body"></tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    // ── Cost table: COSTS[n] = temporal pieces to upgrade from level n to n+1 ──
+    const COSTS = [
+      0,     // 0 (unused)
+      15,    // 1→2   ✓
+      25,    // 2→3   ✓
+      36,    // 3→4   ✓
+      48,    // 4→5   ✓
+      62,    // 5→6   ✓
+      78,    // 6→7   ✓
+      96,    // 7→8   ✓
+      116,   // 8→9   ✓
+      138,   // 9→10  ✓
+      163,   // 10→11 ✓
+      192,   // 11→12 ✓
+      225,   // 12→13 ✓
+      263,   // 13→14 ✓
+      306,   // 14→15 ✓
+      355,   // 15→16 ✓
+      410,   // 16→17 ✓
+      471,   // 17→18 ✓
+      539,   // 18→19 ✓
+      614,   // 19→20 ✓
+      697,   // 20→21 ✓
+      790,   // 21→22 ✓
+      890,   // 22→23 ✓
+      990,   // 23→24 ✓
+      1090,  // 24→25 ✓
+      1190,  // 25→26 ✓
+      1340,  // 26→27 ✓
+      1490,  // 27→28 ✓
+      1760,  // 28→29 ✓
+      1964,  // 29→30 ✓
+    ];
+    for (let n = 30; n <= 99; n++) {
+      COSTS[n] = Math.round((n * n * n - 60 * n * n + 1553 * n - 13074) / 3);
+    }
+
+    // ── Magic Storm costs (separate table) ──
+    const STORM_COSTS = [0,
+      5000,5104,5219,5346,5485,5637,5802,5981,6174,6382,       // 1-10 ✓
+      6610,6860,7134,7434,7762,8120,8510,8934,9394,9892,       // 11-20 (11,15,20 ✓)
+      10430,11010,11634,12304,13022,13790,14610,15484,16414,17402, // 21-30 (25,30 ✓)
+      18450,19560,20734,21974,23282,24660,26110,27634,29234,30912, // 31-40 (35,40 ✓)
+      32670,34510,36434,38444,40542,42730,45010,47384,49854,52422, // 41-50 (50 ✓)
+      55090,57860,60734,63714,66802,70000,73310,76734,80274,83932, // 51-60 (60 ✓)
+      87710,91610,95634,99784,104062,108470,113010,117684,122494,127442, // 61-70 (70 ✓)
+      132530,137760,143134,148654,154322,160140,166110,172234,178514,184952, // 71-80 (80 ✓)
+      191550,198310,205234,212324,219582,227010,234610,242384,250334,258462, // 81-90 (90 ✓)
+      266770,275260,283934,292794,301842,311080,320510,330134,339954  // 91-99 (95 ✓)
+    ];
+
+    // ── Relic stat milestones (every 2 levels starting at lv 10, cycle of 5) ──
+    const RELIC_STATS = {
+      destruction: [
+        'Defense Penetration + 10',
+        'Accuracy + 10',
+        'Melee Critical Hit Resistance + 10',
+        'Damage to Boss Monsters Increase + 2%',
+        'Max MP + 20',
+      ],
+      protection: [
+        'Defense Penetration + 10',
+        'Evasion + 10',
+        'Ranged Critical Hit Resistance + 10',
+        'Damage to Elite Monsters Increase + 2%',
+        'Max MP + 20',
+      ],
+      life: [
+        'Defense Penetration + 10',
+        'Potion Recovery + 3',
+        'Magic Critical Hit Resistance + 10',
+        'Damage to Normal Monsters Increase + 2%',
+        'Max MP + 20',
+      ],
+      storm: [
+        'Basic Attack Damage Received Decrease in PvP + 1%',
+        'MP Recovery in Battle + 9',
+        'Critical Hit + 10',
+        'Potion Recovery + 3',
+        'Global Cooldown Decrease + 0.03 sec',
+      ],
+    };
+
+    // ── Combat Power per stat milestone ──
+    // Based on: STAT amount = CP
+    const STAT_CP = {
+      'Defense Penetration + 10': 100,      // 10 × 10 CP/pt
+      'Accuracy + 10': 60,                  // 10 × 6 CP/pt
+      'Melee Critical Hit Resistance + 10': 20,  // 10 × 2 CP/pt
+      'Ranged Critical Hit Resistance + 10': 20, // 10 × 2 CP/pt
+      'Magic Critical Hit Resistance + 10': 20,  // 10 × 2 CP/pt
+      'Damage to Boss Monsters Increase + 2%': 40,   // 2 × 20 CP/1%
+      'Damage to Elite Monsters Increase + 2%': 44,  // ≈ 2/0.18 × 4
+      'Damage to Normal Monsters Increase + 2%': 44, // ≈ 2/0.18 × 4
+      'Max MP + 20': 2,                      // 20/10 × 1 CP
+      'Evasion + 10': 40,                    // 10 × 4 CP/pt
+      'Potion Recovery + 3': 30,             // 3 × 10 CP/pt
+      'MP Recovery in Battle + 9': 90,       // 9 × 10 CP/pt
+      'Critical Hit + 10': 80,               // 10 × 8 CP/pt
+      'Basic Attack Damage Received Decrease in PvP + 1%': 44, // ≈ 1/0.18 × 8
+      'Global Cooldown Decrease + 0.03 sec': 0, // no direct CP mapping
+    };
+
+    function getStatMilestones(relicId, from, to) {
+      const stats = RELIC_STATS[relicId];
+      if (!stats || stats.length === 0) return [];
+      const milestones = [];
+      // milestones at even levels: 10, 12, 14, 16, 18, 20, 22, ...
+      for (let lv = 10; lv <= 100; lv += 2) {
+        if (lv > from && lv <= to) {
+          const idx = ((lv - 10) / 2) % stats.length;
+          milestones.push({ level: lv, stat: stats[idx] });
+        }
+      }
+      return milestones;
+    }
+
+    // ── Relic definitions ──
+    const RELICS = [
+      { id: 'destruction', name: 'Origin of Destruction', color: 'red' },
+      { id: 'protection',  name: 'Barrier of Protection', color: 'blue' },
+      { id: 'life',        name: 'Crystal of Life',       color: 'green' },
+      { id: 'storm',       name: 'Magic Storm',           color: 'amber' },
+    ];
+
+    const COLORS = {
+      red:    { border: 'border-red-200 dark:border-red-900/40', accent: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30' },
+      blue:   { border: 'border-blue-200 dark:border-blue-900/40', accent: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+      green:  { border: 'border-green-200 dark:border-green-900/40', accent: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/30' },
+      amber: { border: 'border-amber-200 dark:border-amber-900/40', accent: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+    };
+
+    // ── Build relic cards ──
+    function buildCards() {
+      const grid = $('relic-grid');
+      for (const relic of RELICS) {
+        const c = COLORS[relic.color];
+        const card = document.createElement('div');
+        card.className = `bg-white dark:bg-neutral-900 border ${c.border} rounded-xl p-5`;
+        card.innerHTML = `
+          <div class="text-base font-semibold ${c.accent} mb-3">${relic.name}</div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Current</label>
+              <div class="num-wrap w-full">
+                <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
+                <input id="${relic.id}-current" type="number" min="1" max="100" value="1"
+                  class="w-full h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
+                <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Target</label>
+              <div class="num-wrap w-full">
+                <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
+                <input id="${relic.id}-target" type="number" min="1" max="100" value="1"
+                  class="w-full h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
+                <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
+              </div>
+            </div>
+          </div>
+          <div id="${relic.id}-result" class="rounded-lg ${c.bg} p-3 min-h-[60px]">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Set levels to calculate</div>
+          </div>
+        `;
+        grid.appendChild(card);
+
+        // Listen for changes
+        $(`${relic.id}-current`).addEventListener('input', recalcAll);
+        $(`${relic.id}-target`).addEventListener('input', recalcAll);
+      }
+    }
+
+    // ── Calculate cost for a level range ──
+    function getCost(from, to, relicId) {
+      if (from >= to || from < 1 || to > 100) return 0;
+      const table = relicId === 'storm' ? STORM_COSTS : COSTS;
+      let total = 0;
+      for (let n = from; n < to; n++) total += table[n] || 0;
+      return total;
+    }
+
+    // ── PHP conversion ──
+    function toPhp(temporal) {
+      const rateTemporal = parseFloat($('rate-temporal').value) || 1000;
+      const ratePhp = parseFloat($('rate-php').value) || 25;
+      return temporal * (ratePhp / rateTemporal);
+    }
+
+    // ── Recalculate everything ──
+    function recalcAll() {
+      let grandTemporal = 0;
+      let grandUpgrades = 0;
+      let grandCP = 0;
+
+      for (const relic of RELICS) {
+        const from = parseInt($(`${relic.id}-current`).value) || 1;
+        const to = parseInt($(`${relic.id}-target`).value) || 1;
+        const resultEl = $(`${relic.id}-result`);
+        const c = COLORS[relic.color];
+
+        if (from >= to || from < 1 || to > 100) {
+          resultEl.innerHTML = `<div class="text-sm text-gray-500 dark:text-gray-400">Set levels to calculate</div>`;
+          continue;
+        }
+
+        const cost = getCost(from, to, relic.id);
+        const php = toPhp(cost);
+        const upgrades = to - from;
+        const milestones = getStatMilestones(relic.id, from, to);
+        let relicCP = 0;
+        for (const m of milestones) relicCP += STAT_CP[m.stat] || 0;
+        grandTemporal += cost;
+        grandUpgrades += upgrades;
+        grandCP += relicCP;
+
+        resultEl.innerHTML = `
+          <div class="flex items-baseline justify-between gap-2 mb-2">
+            <div>
+              <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">${upgrades} upgrade${upgrades === 1 ? '' : 's'} · Lv ${from} → ${to}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+              <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">${relicCP > 0 ? '+' + relicCP.toLocaleString() + ' CP' : ''}</div>
+            </div>
+          </div>
+        `;
+
+        // Show stat milestones
+        if (milestones.length > 0) {
+          // Sum up totals per stat
+          const totals = {};
+          for (const m of milestones) {
+            // Parse stat name and value
+            const match = m.stat.match(/^(.+?)\s*([+\-])\s*(.+)$/);
+            if (match) {
+              const name = match[1].trim();
+              const val = parseFloat(match[3].replace('%',''));
+              const isPercent = match[3].includes('%');
+              if (!totals[name]) totals[name] = { val: 0, isPercent };
+              totals[name].val += val;
+            }
+          }
+
+          // Totals summary
+          let html = `<div class="border-t border-gray-200/50 dark:border-neutral-700/50 pt-2 mt-1">
+            <div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Total Stat Gains</div>`;
+          for (const [name, info] of Object.entries(totals)) {
+            // find CP for this stat by matching name back to full stat string
+            let cpForStat = 0;
+            for (const m of milestones) {
+              const mm = m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
+              if (mm && mm[1].trim() === name) cpForStat += STAT_CP[m.stat] || 0;
+            }
+            html += `<div class="flex justify-between text-xs py-0.5">
+              <span class="text-gray-600 dark:text-gray-300">${name}</span>
+              <span class="flex gap-2">
+                <span class="font-semibold ${c.accent}">+ ${info.val}${info.isPercent ? '%' : ''}</span>
+                ${cpForStat > 0 ? `<span class="text-yellow-600 dark:text-yellow-400 font-medium">${cpForStat} CP</span>` : ''}
+              </span>
+            </div>`;
+          }
+
+          // Per-level breakdown (scrollable, max 5 visible)
+          html += `<div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mt-2 mb-1">Per Level (${milestones.length})</div>
+            <div class="max-h-[120px] overflow-y-auto thin-scroll pr-1">`;
+          for (const m of milestones) {
+            html += `<div class="flex justify-between text-xs py-0.5">
+              <span class="text-gray-500 dark:text-gray-400">Lv. ${m.level}</span>
+              <span class="text-gray-600 dark:text-gray-300">${m.stat}</span>
+            </div>`;
+          }
+          html += `</div></div>`;
+          resultEl.innerHTML += html;
+        }
+      }
+
+      // Grand total
+      const grandPhp = toPhp(grandTemporal);
+      $('grand-temporal').textContent = grandTemporal.toLocaleString();
+      $('grand-php').textContent = `₱${grandPhp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      $('grand-cp').textContent = `+${grandCP.toLocaleString()}`;
+      $('grand-upgrades').textContent = grandUpgrades;
+
+      // Update cost breakdown graph
+      updateBarGraph();
+    }
+
+    // ── Full reference table (2-column layout) ──
+    function buildFullTable() {
+      const tbody = $('full-table-body');
+      const half = 50;
+      for (let i = 1; i <= half; i++) {
+        const j = i + half;
+        const tr = document.createElement('tr');
+        tr.className = 'border-t border-gray-50 dark:border-neutral-800/50';
+        tr.innerHTML = `
+          <td class="px-2 py-0.5 text-gray-500">${i}→${i + 1}</td>
+          <td class="px-2 py-0.5 text-right mono text-gray-600 dark:text-gray-300">${(COSTS[i] || 0).toLocaleString()}</td>
+          <td class="px-2 py-0.5 text-gray-500 pl-6">${j <= 99 ? j + '→' + (j + 1) : ''}</td>
+          <td class="px-2 py-0.5 text-right mono text-gray-600 dark:text-gray-300">${j <= 99 ? (COSTS[j] || 0).toLocaleString() : ''}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // ── Cost Breakdown Bar Graph ──
+    const BAR_COLORS = {
+      red:   { bar: 'bg-red-500', hover: 'hover:bg-red-400' },
+      blue:  { bar: 'bg-blue-500', hover: 'hover:bg-blue-400' },
+      green: { bar: 'bg-green-500', hover: 'hover:bg-green-400' },
+      amber: { bar: 'bg-amber-500', hover: 'hover:bg-amber-400' },
+    };
+
+    function updateBarGraph() {
+      const container = $('bar-graph');
+      const entries = [];
+      for (const relic of RELICS) {
+        const from = parseInt($(`${relic.id}-current`)?.value) || 1;
+        const to = parseInt($(`${relic.id}-target`)?.value) || 1;
+        const cost = from < to ? getCost(from, to, relic.id) : 0;
+        entries.push({ name: relic.name, cost, color: relic.color, from, to });
+      }
+      const maxVal = Math.max(...entries.map(e => e.cost), 1);
+
+      let html = '';
+      for (const e of entries) {
+        const bc = BAR_COLORS[e.color];
+        const pct = (e.cost / maxVal * 100).toFixed(1);
+        const php = toPhp(e.cost);
+        const label = e.cost > 0 ? `Lv ${e.from} → ${e.to}` : 'Not set';
+        html += `<div>`;
+        html += `<div class="flex items-baseline justify-between mb-1">`;
+        html += `<span class="text-sm font-medium ${COLORS[e.color].accent}">${e.name}</span>`;
+        html += `<span class="text-xs text-gray-500 dark:text-gray-400">${label}</span>`;
+        html += `</div>`;
+        html += `<div class="flex items-center gap-3">`;
+        html += `<div class="flex-1 h-8 rounded-md bg-gray-100 dark:bg-neutral-800 overflow-hidden">`;
+        if (e.cost > 0) {
+          html += `<div class="h-full ${bc.bar} ${bc.hover} transition-all rounded-md flex items-center" style="width:${pct}%; min-width: ${e.cost > 0 ? '2rem' : '0'}">`;
+          html += `<span class="text-xs mono font-semibold text-white px-2 truncate">${e.cost.toLocaleString()}</span>`;
+          html += `</div>`;
+        }
+        html += `</div>`;
+        html += `<span class="text-sm mono font-medium text-gray-600 dark:text-gray-300 w-28 text-right shrink-0">`;
+        html += e.cost > 0 ? `₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '—';
+        html += `</span>`;
+        html += `</div>`;
+        html += `</div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    // ── Rate change listeners ──
+    $('rate-temporal').addEventListener('input', recalcAll);
+    $('rate-php').addEventListener('input', recalcAll);
+
+    // ── Custom spinner buttons ──
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.num-btn');
+      if (!btn) return;
+      const input = btn.closest('.num-wrap').querySelector('input');
+      const step = parseFloat(input.step) || 1;
+      const min = parseFloat(input.min) ?? -Infinity;
+      const max = parseFloat(input.max) ?? Infinity;
+      let val = parseFloat(input.value) || 0;
+      val = btn.dataset.dir === 'up' ? val + step : val - step;
+      val = Math.min(max, Math.max(min, Math.round(val * 100) / 100));
+      input.value = val;
+      input.dispatchEvent(new Event('input'));
+    });
+
+    // ── Clamp typed values to min/max on change ──
+    document.addEventListener('change', e => {
+      if (e.target.type !== 'number') return;
+      const input = e.target;
+      const min = parseFloat(input.min);
+      const max = parseFloat(input.max);
+      let val = parseFloat(input.value) || 0;
+      if (!isNaN(max) && val > max) val = max;
+      if (!isNaN(min) && val < min) val = min;
+      input.value = Math.round(val * 100) / 100;
+      input.dispatchEvent(new Event('input'));
+    });
+
+    // ── Theme ──
+    function applyTheme(mode) {
+      document.documentElement.classList.toggle('dark', mode === 'dark');
+      $('icon-sun').classList.toggle('hidden', mode !== 'dark');
+      $('icon-moon').classList.toggle('hidden', mode === 'dark');
+      localStorage.setItem('theme', mode);
+    }
+    $('toggle-theme').addEventListener('click', () => {
+      applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+    });
+    applyTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+    // Init
+    buildCards();
+    buildFullTable();
+    recalcAll();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniCorp — Boss Timer</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0a0a">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif; zoom: 1.0625; }
+    /* remove avatar squares from cards */
+    .boss-img, .deck-img { display: none !important; }
+    .countdown-mono { font-variant-numeric: tabular-nums; }
+    textarea { resize: none; }
+    textarea::-webkit-scrollbar { width: 6px; }
+    textarea::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .dark textarea::-webkit-scrollbar-thumb { background: #475569; }
+    .boss-card { transition: transform 80ms ease, box-shadow 80ms ease; padding: 8px !important; }
+    .boss-card:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); z-index: 2; }
+    .dark .boss-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .boss-img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; background: #e5e7eb; flex-shrink: 0; }
+    .dark .boss-img { background: #374151; }
+    /* Deck card */
+    .deck-card {
+      width: 180px; min-height: 240px; border-radius: 12px; flex-shrink: 0;
+      background: white; border: 1px solid #d1d5db;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 14px 10px; gap: 6px; cursor: default; position: relative;
+    }
+    .dark .deck-card { background: #171717; border-color: #333; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .deck-card:hover { transform: translateY(-8px); box-shadow: 0 12px 28px rgba(0,0,0,0.15); z-index: 10; }
+    .dark .deck-card:hover { box-shadow: 0 12px 28px rgba(0,0,0,0.5); }
+    .deck-card.urgent { border-color: #f87171; }
+    .deck-card.soon-card { border-color: #60a5fa; }
+    .deck-img { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; background: #f3f4f6; }
+    .kill-btn {
+      font-size: 11px; padding: 4px 10px; border-radius: 6px;
+      background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;
+      cursor: pointer; transition: background 120ms; font-weight: 500;
+    }
+    .kill-btn:hover { background: #fecaca; }
+    .dark .kill-btn { background: #371717; color: #fca5a5; border-color: #7f1d1d; }
+    .dark .kill-btn:hover { background: #4c1d1d; }
+    .set-btn {
+      font-size: 11px; padding: 4px 10px; border-radius: 6px;
+      background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd;
+      cursor: pointer; transition: background 120ms; font-weight: 500;
+    }
+    .set-btn:hover { background: #bfdbfe; }
+    .dark .set-btn { background: #172554; color: #93c5fd; border-color: #1e3a5f; }
+    .dark .set-btn:hover { background: #1e3a5f; }
+    .manual-time-input {
+      font-size: 11px; padding: 2px 6px; border-radius: 5px; height: 26px;
+      border: 1px solid #d1d5db; background: white; color: #374151; outline: none;
+    }
+    .dark .manual-time-input { border-color: #404040; background: #262626; color: #d1d5db; }
+    .dark .deck-img { background: #262626; }
+    .deck-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 8px 2px 12px; scroll-snap-type: x proximity; }
+    .deck-scroll.dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+    /* Disable hover/hover-effects while dragging to avoid size/scale jumps */
+    .deck-scroll.dragging .deck-card:hover { transform: none !important; box-shadow: none !important; z-index: 0 !important; }
+    .deck-scroll.dragging .deck-card { transition: none !important; }
+    .deck-scroll > * { scroll-snap-align: start; }
+    .deck-scroll::-webkit-scrollbar { height: 4px; }
+    .deck-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+    .dark .deck-scroll::-webkit-scrollbar-thumb { background: #404040; }
+
+    /* Admin modal */
+    .admin-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; }
+    .admin-modal { background: white; border-radius: 12px; padding: 24px; width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .dark .admin-modal { background: #1a1a1a; border: 1px solid #333; }
+    .admin-input { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #111; }
+    .dark .admin-input { border-color: #404040; background: #262626; color: #e5e5e5; }
+    .admin-input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+    .admin-submit { width: 100%; padding: 8px; border-radius: 8px; background: #4f46e5; color: white; font-weight: 600; font-size: 14px; cursor: pointer; border: none; margin-top: 12px; }
+    .admin-submit:hover { background: #4338ca; }
+    .admin-error { color: #ef4444; font-size: 12px; margin-top: 6px; display: none; }
+
+    /* Admin badge */
+    .admin-badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #4f46e5; font-weight: 600; }
+    .dark .admin-badge { background: #312e81; color: #a5b4fc; }
+
+    /* Image upload overlay */
+    /* image-upload UI removed — using unified initials instead */
+
+    /* Spawn countdown overlay */
+    .spawn-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.85);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 200ms;
+    }
+    .spawn-overlay.active { opacity: 1; pointer-events: auto; }
+    .spawn-overlay .spawn-boss-name {
+      font-size: 1.2rem; font-weight: 600; color: #94a3b8; margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .spawn-overlay .spawn-number {
+      font-size: 8rem; font-weight: 900; color: white;
+      font-variant-numeric: tabular-nums;
+      animation: spawn-pulse 1s ease-out;
+      line-height: 1;
+    }
+    .spawn-overlay .spawn-number.spawned {
+      font-size: 3.5rem; color: #f87171;
+      animation: spawn-flash 0.6s ease-out;
+    }
+    .spawn-overlay .spawn-sub {
+      font-size: 0.9rem; color: #64748b; margin-top: 12px;
+    }
+    @keyframes spawn-pulse {
+      0% { transform: scale(1.6); opacity: 0.3; }
+      50% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.9; }
+    }
+    @keyframes spawn-flash {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Filter bar */
+    .filter-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .filter-bar input {
+      height: 32px; padding: 0 10px; border-radius: 8px; font-size: 12px;
+      border: 1px solid #d1d5db; background: white; color: #374151; outline: none; width: 180px;
+    }
+    .dark .filter-bar input { border-color: #404040; background: #171717; color: #d1d5db; }
+    .filter-bar input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+
+    /* Pin star */
+    .pin-star {
+      cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.3; transition: opacity 120ms;
+      background: none; border: none; padding: 0 2px;
+    }
+    .pin-star:hover { opacity: 0.7; }
+    .pin-star.pinned { opacity: 1; color: #f59e0b; }
+    .dark .pin-star.pinned { color: #fbbf24; }
+
+    /* Timeline */
+    .timeline-wrap { position: relative; padding: 12px 0 20px; overflow-x: auto; }
+    .timeline-bar {
+      position: relative; height: 4px; background: #e5e7eb; border-radius: 2px; min-width: 100%;
+    }
+    .dark .timeline-bar { background: #333; }
+    .timeline-marker {
+      position: absolute; top: -8px; width: 20px; height: 20px; border-radius: 50%;
+      background: #6366f1; border: 2px solid white; transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700; color: white; cursor: default;
+      transition: transform 120ms;
+    }
+    .dark .timeline-marker { border-color: #171717; }
+    .timeline-marker:hover { transform: translateX(-50%) scale(1.3); z-index: 5; }
+    .timeline-marker.urgent-marker { background: #ef4444; }
+    .timeline-marker.soon-marker { background: #3b82f6; }
+    .timeline-label {
+      position: absolute; top: 18px; transform: translateX(-50%); white-space: nowrap;
+      font-size: 9px; color: #9ca3af; pointer-events: none;
+    }
+    .dark .timeline-label { color: #6b7280; }
+    .timeline-now {
+      position: absolute; top: -10px; width: 2px; height: 24px;
+      background: #f59e0b; transform: translateX(-50%);
+    }
+    .timeline-now-label {
+      position: absolute; top: 16px; transform: translateX(-50%); font-size: 8px;
+      color: #f59e0b; font-weight: 600; white-space: nowrap;
+    }
+
+    /* Mute button */
+    .mute-btn svg { width: 16px; height: 16px; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+  <div class="max-w-6xl mx-auto px-5 py-8">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <h1 class="text-lg font-semibold tracking-tight">Boss Timer</h1>
+        <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 leading-none">Beta</span>
+        <a href="relic.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Relic Calc &rarr;</a>
+        <a href="potion.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Potion Calc &rarr;</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-200">MiniCorp</span>
+        <span id="status-pill" class="text-xs text-gray-400 dark:text-gray-500">Waiting for input</span>
+        <span id="admin-badge" class="admin-badge hidden">Admin</span>
+        <button id="toggle-admin" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Admin login">
+          <svg id="icon-lock" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <svg id="icon-unlock" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>
+        </button>
+        <button id="toggle-theme" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Toggle theme">
+          <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg id="icon-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Input (admin only) -->
+    <div class="mb-4 admin-only">
+      <textarea id="input" rows="6" placeholder="Paste the bot schedule message here..." class="w-full rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3.5 py-3 text-sm leading-relaxed placeholder:text-gray-400 dark:placeholder:text-gray-600 outline-none focus:border-gray-300 dark:focus:border-neutral-700 transition"></textarea>
+    </div>
+
+    <!-- Actions (admin only) -->
+    <div class="flex flex-wrap items-center gap-2 mb-4 admin-only">
+      <button id="parse" class="h-8 rounded-md bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium px-3 hover:bg-gray-800 dark:hover:bg-gray-200 transition">Parse</button>
+      <button id="test-alarm" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-300 px-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition">Test alarm</button>
+      <button id="test-spawn" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-300 px-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition">Test spawn (5s)</button>
+      <button id="copy-json" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-300 px-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition">Copy JSON</button>
+      <button id="download-ics" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-300 px-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition">Download ICS</button>
+      <button id="toggle-layout" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-300 px-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition" title="Switch layout">Deck</button>
+      <button id="toggle-timeline" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-300 px-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition" title="Toggle timeline">Timeline</button>
+      <button id="toggle-mute" class="mute-btn w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Mute/Unmute sounds">
+        <svg id="icon-unmuted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+        <svg id="icon-muted" class="hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+      <span id="toast" class="ml-auto text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px]"></span>
+    </div>
+
+    <!-- Filter bar (admin only) -->
+    <div class="filter-bar mb-4 admin-only">
+      <input id="boss-filter" type="text" placeholder="Filter bosses..." autocomplete="off">
+    </div>
+
+    <!-- Timeline -->
+    <div id="timeline-section" class="mb-5 hidden"></div>
+
+    <!-- Summary -->
+    <div id="summary" class="flex flex-wrap gap-2 mb-5"></div>
+
+    <!-- Sections -->
+    <div id="sections"></div>
+  </div>
+
+  <!-- Admin Login Modal -->
+  <div id="admin-modal" class="admin-overlay hidden">
+    <div class="admin-modal">
+      <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Admin Login</h3>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">Enter the admin password to unlock boss management.</p>
+      <input id="admin-pw" type="password" class="admin-input" placeholder="Password" autocomplete="off">
+      <div id="admin-error" class="admin-error">Incorrect password</div>
+      <button id="admin-submit" class="admin-submit">Unlock</button>
+      <button id="admin-cancel" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mt-3 w-full text-center cursor-pointer bg-transparent border-none">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Image upload removed -->
+
+  <!-- Spawn countdown overlay -->
+  <div id="spawn-overlay" class="spawn-overlay">
+    <div class="spawn-boss-name" id="spawn-boss-name"></div>
+    <div class="spawn-number" id="spawn-number"></div>
+    <div class="spawn-sub" id="spawn-sub"></div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const input     = $('input');
+    const parseBtn  = $('parse');
+    const copyBtn   = $('copy-json');
+    const icsBtn    = $('download-ics');
+    const testBtn   = $('test-alarm');
+    const sectionsEl = $('sections');
+    const summaryEl = $('summary');
+    const toastEl   = $('toast');
+    const pillEl    = $('status-pill');
+    const themeBtn  = $('toggle-theme');
+    const layoutBtn = $('toggle-layout');
+    const adminBtn  = $('toggle-admin');
+    const adminModal = $('admin-modal');
+    const adminPwInput = $('admin-pw');
+    const adminSubmit = $('admin-submit');
+    const adminCancel = $('admin-cancel');
+    const adminError = $('admin-error');
+    const adminBadge = $('admin-badge');
+    // image upload element removed
+    const bossFilter = $('boss-filter');
+    const timelineSec = $('timeline-section');
+    const muteBtn = $('toggle-mute');
+    const timelineBtn = $('toggle-timeline');
+
+    let eventsState = [];
+    let layout = localStorage.getItem('layout') || 'compact'; // 'compact' or 'deck'
+    let tickerId = null;
+    let isMuted = localStorage.getItem('muted') === 'true';
+    let showTimeline = localStorage.getItem('timeline') === 'true';
+    let filterText = '';
+    const pinnedBosses = new Set(JSON.parse(localStorage.getItem('pinnedBosses') || '[]'));
+    const triggered = new Set();
+    const completed = new Set();
+
+    // --- Admin system ---
+    const ADMIN_PASS = 'boss123';  // Change this password
+    let isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    // uploadTarget removed (no image uploads)
+
+    function updateAdminUI() {
+      $('icon-lock').classList.toggle('hidden', isAdmin);
+      $('icon-unlock').classList.toggle('hidden', !isAdmin);
+      adminBadge.classList.toggle('hidden', !isAdmin);
+      adminBtn.title = isAdmin ? 'Logged in as Admin — click to logout' : 'Admin login';
+      // Show/hide admin-only elements
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = isAdmin ? '' : 'none';
+      });
+      // image upload UI removed
+    }
+
+    adminBtn.addEventListener('click', () => {
+      if (isAdmin) {
+        isAdmin = false;
+        sessionStorage.removeItem('isAdmin');
+        updateAdminUI();
+        if (eventsState.length) render(eventsState);
+        showToast('Logged out');
+        return;
+      }
+      adminModal.classList.remove('hidden');
+      adminPwInput.value = '';
+      adminError.style.display = 'none';
+      setTimeout(() => adminPwInput.focus(), 100);
+    });
+
+    adminSubmit.addEventListener('click', () => {
+      if (adminPwInput.value === ADMIN_PASS) {
+        isAdmin = true;
+        sessionStorage.setItem('isAdmin', 'true');
+        adminModal.classList.add('hidden');
+        updateAdminUI();
+        if (eventsState.length) render(eventsState);
+        showToast('Admin mode activated');
+      } else {
+        adminError.style.display = 'block';
+        adminPwInput.select();
+      }
+    });
+
+    adminPwInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') adminSubmit.click();
+      if (e.key === 'Escape') adminCancel.click();
+    });
+
+    adminCancel.addEventListener('click', () => {
+      adminModal.classList.add('hidden');
+    });
+
+    // image upload/store functions removed — images not used in UI
+
+    const showToast = msg => { toastEl.textContent = msg; };
+
+    // BOSS_IMAGES removed — images are not displayed in the UI
+
+    // Boss spawn locations
+    const BOSS_LOCATION = {
+      'Venatus':          'Corrupted Basin',
+      'Clemantis':        'Corrupted Basin',
+      'Livera':           'Protector Ruins',
+      'Undomiel':         'Secret Laboratory',
+      'Araneo':           'Tomb of Tyriosa 1F',
+      'General Aquleus':  'Tomb of Tyriosa 2F',
+      'Milavy':           'Tomb of Tyriosa 3F',
+      'Baron Braudmore':  'Battle Field of Templar',
+      'Ringor':           'Battle Field of Templar',
+      'Amentis':          'Land of Glory',
+      'Viorent':          'Crescent Lake',
+      'Saphirus':         'Crescent Lake',
+      'Thymele':          'Twilight Hill',
+      'Lady Dalia':       'Twilight Hill',
+      'Ego':              'Ulan Canyon',
+      'Neutro':           'Desert of the Screaming',
+      'Wannitas':         'Plateau of Revolution',
+      'Metus':            'Plateau of Revolution',
+      'Duplican':         'Plateau of Revolution',
+      'Shuliar':          'Ruins of War',
+      'Larba':            'Ruins of War',
+      'Asta':             'Silvergrass Field',
+      'Ordo':             'Silvergrass Field',
+      'Secreta':          'Silvergrass Field',
+      'Supore':           'Silvergrass Field',
+      'Chaiflock':        'Silvergrass Field',
+      'Benji':            'Barbas',
+      'Gareth':           "Deadman's Land District 1F",
+      'Titore':           "Deadman's Land District 2F",
+      'Catena':           "Deadman's Land District 1F",
+      'Roderick':         'Garbana Underground Waterway 1F',
+      'Auraq':            'Garbana Underground Waterway 2F',
+      'Tumier':           'Garbana Underground Waterway 3F',
+      // KRANSIA server bosses
+      'Icaruthia':        'Kransia - Central Arena',
+      'Motti':            'Kransia - Ruined Bastion',
+      'Nevaeh':           'Kransia - Skyspire Summit',
+    };
+
+    function getBossLocation(name) {
+      return BOSS_LOCATION[name] || Object.entries(BOSS_LOCATION).find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1] || '';
+    }
+
+    // Respawn time in ms after killed — only hour-based bosses (no fixed-schedule ones)
+    const h = 3600000;
+    const RESPAWN_TIME = {
+      'Venatus':          10 * h,
+      'Viorent':          10 * h,
+      'Lady Dalia':       18 * h,
+      'Ego':              21 * h,
+      'Livera':           24 * h,
+      'Araneo':           24 * h,
+      'Undomiel':         24 * h,
+      'General Aquleus':  29 * h,
+      'Amentis':          29 * h,
+      'Baron Braudmore':  32 * h,
+      'Gareth':           32 * h,
+      'Shuliar':          35 * h,
+      'Larba':            35 * h,
+      'Catena':           35 * h,
+      'Titore':           37 * h,
+      'Wannitas':         48 * h,
+      'Metus':            48 * h,
+      'Duplican':         48 * h,
+      'Secreta':          62 * h,
+      'Ordo':             62 * h,
+      'Asta':             62 * h,
+      'Supore':           62 * h,
+    };
+    // Fixed-schedule bosses (NO killed button):
+    // Clemantis: Mon 11:30, Thu 19:00
+    // Saphirus: Sun 17:00, Tue 11:30
+    // Neutro: Tue 19:00, Thu 11:30
+    // Thymele: Mon 19:00, Wed 11:30
+    // Milavy: Sat 15:00
+    // Ringor: Sat 17:00
+    // Roderick: Fri 19:00
+    // Auraq: Fri 22:00, Wed 21:00
+    // Benji: Sun 21:00
+    // Chaiflock: Sat 22:00
+    // Tumier: Sun 19:00
+    // Server Boss KRANSIA:
+    // Icaruthia: Tue 21:00, Fri 21:00
+    // Motti: Wed 19:00, Sat 19:00
+    // Nevaeh: Sun 22:00
+    // World Boss (daily 11AM-12PM & 7PM-8PM): Ratan, Parto, Nedra
+    const WORLD_BOSSES = ['Ratan', 'Parto', 'Nedra'];
+    const WORLD_BOSS_HOURS = [11, 20]; // 11 AM and 8 PM server time
+
+    // Fixed schedule map: boss -> array of { dow: 0..6 (Sun..Sat), hh:MM }
+    const FIXED_SCHEDULE_MAP = {
+      'Icaruthia': [ { dow: 2, time: '21:00' }, { dow: 5, time: '21:00' } ], // Tue, Fri
+      'Motti':     [ { dow: 3, time: '19:00' }, { dow: 6, time: '19:00' } ], // Wed, Sat
+      'Nevaeh':    [ { dow: 0, time: '22:00' } ], // Sun
+      // Add other fixed bosses here as needed
+    };
+
+    function generateFixedScheduleEvents(daysAhead = 7) {
+      const events = [];
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      for (let d = 0; d < daysAhead; d++) {
+        const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + d);
+        const dow = day.getDay();
+        for (const [boss, slots] of Object.entries(FIXED_SCHEDULE_MAP)) {
+          for (const slot of slots) {
+            if (slot.dow !== dow) continue;
+            const [hh, mm] = slot.time.split(':').map(Number);
+            const dt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm, 0, 0);
+            if (dt.getTime() < Date.now()) continue; // only future
+            events.push({
+              boss,
+              start: dt.toISOString(),
+              date: dt.toISOString().slice(0,10),
+              time: dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+              dur: '00:30:00',
+              worldBoss: false,
+            });
+          }
+        }
+      }
+      return events;
+    }
+
+    // Fixed schedule bosses (these have set spawn times and shouldn't show manual "Set time")
+    const FIXED_SCHEDULE_BOSSES = new Set([
+      'Clemantis','Saphirus','Neutro','Thymele','Milavy','Ringor','Roderick','Auraq','Benji','Chaiflock','Tumier',
+      'Icaruthia','Motti','Nevaeh'
+    ]);
+
+    function isFixedSchedule(name) {
+      if (!name) return false;
+      return FIXED_SCHEDULE_BOSSES.has(name) || [...FIXED_SCHEDULE_BOSSES].some(k => k.toLowerCase() === name.toLowerCase());
+    }
+
+    // Generate upcoming world boss events for the next 2 days (one card per time window)
+    function generateWorldBossEvents() {
+      const events = [];
+      const now = Date.now();
+      for (let dayOffset = 0; dayOffset < 2; dayOffset++) {
+        const base = new Date(now + dayOffset * 864e5);
+        for (const hour of WORLD_BOSS_HOURS) {
+          const dt = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hour, 0, 0);
+          if (dt.getTime() <= now) continue;
+          events.push({
+            boss: 'World Boss',
+            bosses: [...WORLD_BOSSES],
+            date: dt.toISOString().slice(0, 10),
+            time: dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            dur: '01:00:00',
+            start: dt.toISOString(),
+            worldBoss: true,
+          });
+        }
+      }
+      return events;
+    }
+
+    function evId(ev) { return ev.start + '-' + ev.boss; }
+
+    function getRespawnMs(name) {
+      return RESPAWN_TIME[name] || Object.entries(RESPAWN_TIME).find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1] || null;
+    }
+
+    function killBoss(bossName) {
+      const respawnMs = getRespawnMs(bossName);
+      if (!respawnMs) return;
+      const newStart = new Date(Date.now() + respawnMs).toISOString();
+      // Find the event and reset its start time
+      const ev = eventsState.find(e => e.boss === bossName);
+      if (ev) {
+        ev.start = newStart;
+        // Clear triggered so alarm can fire again
+        triggered.delete(`${ev.start}-${ev.boss}`);
+      } else {
+        // Boss was pruned — re-add it
+        eventsState.push({ boss: bossName, date: newStart.slice(0,10), time: '', dur: '', start: newStart });
+      }
+      eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+      parseBtn.dataset.events = JSON.stringify(eventsState);
+      showToast(`${bossName} killed — respawns in ${Math.round(respawnMs/3600000)}h`);
+      render(eventsState);
+    }
+
+    function getBossImg(name) {
+      // Images are stored for admin upload but not displayed — return empty to use unified initials design
+      return '';
+    }
+
+    function getInitial(name) {
+      return name.charAt(0).toUpperCase();
+    }
+
+    function setPill(text, variant) {
+      pillEl.textContent = text;
+      pillEl.className = 'text-xs';
+      if (variant === 'positive') pillEl.classList.add('text-emerald-500');
+      else if (variant === 'negative') pillEl.classList.add('text-rose-500');
+      else pillEl.classList.add('text-gray-400', 'dark:text-gray-500');
+    }
+
+    function localDateKey(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function parseSchedule(raw) {
+      const tokens = raw.split(/:t_rex:\s*/i).map(t => t.trim()).filter(Boolean);
+      const out = [];
+      const re = /^(.+?)\s+—\s+(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))\s*\((\d{2,3}:\d{2}:\d{2})\)/i;
+      for (const t of tokens) {
+        const m = t.match(re);
+        if (!m) continue;
+        const [, boss, date, time, dur] = m;
+        const ts = new Date(`${date} ${time}`);
+        if (isNaN(ts)) continue;
+        out.push({ boss: boss.trim(), date, time: time.trim(), dur, start: ts.toISOString() });
+      }
+      return out;
+    }
+
+    function fmtCountdown(iso) {
+      const d = Math.max(0, new Date(iso).getTime() - Date.now());
+      const h = Math.floor(d / 3.6e6);
+      const m = Math.floor((d % 3.6e6) / 6e4);
+      const s = Math.floor((d % 6e4) / 1e3);
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function fmtTime(iso) {
+      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    function manualSetTime(bossName) {
+      const ev = eventsState.find(e => e.boss === bossName);
+      if (!ev) return;
+      // Toggle: if there's already a visible input for this boss, apply its value
+      const existing = document.querySelector(`.manual-row[data-boss="${bossName}"]`);
+      if (existing) {
+        const inp = existing.querySelector('input');
+        const ts = new Date(inp.value);
+        if (!inp.value || isNaN(ts)) { existing.remove(); return showToast('Cancelled'); }
+        if (ts.getTime() <= Date.now()) return showToast('Time must be in the future');
+        ev.start = ts.toISOString();
+        triggered.delete(`${ev.start}-${ev.boss}`);
+        eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+        parseBtn.dataset.events = JSON.stringify(eventsState);
+        showToast(`${bossName} set to ${fmtTime(ev.start)}`);
+        render(eventsState);
+        return;
+      }
+      // Show inline datetime input
+      const card = document.querySelector(`.manual-trigger[data-boss="${bossName}"]`)?.closest('.boss-card, .deck-card');
+      if (!card) return;
+      const row = document.createElement('div');
+      row.className = 'manual-row flex items-center gap-1 mt-1';
+      row.dataset.boss = bossName;
+      row.innerHTML = `<input type="datetime-local" class="manual-time-input" step="60">
+        <button class="set-btn" style="padding:2px 6px;font-size:10px;">OK</button>`;
+      card.appendChild(row);
+      row.querySelector('button').addEventListener('click', () => manualSetTime(bossName));
+    }
+
+    function isPinned(name) { return pinnedBosses.has(name); }
+    function togglePin(name) {
+      if (pinnedBosses.has(name)) pinnedBosses.delete(name);
+      else pinnedBosses.add(name);
+      localStorage.setItem('pinnedBosses', JSON.stringify([...pinnedBosses]));
+      render(eventsState);
+    }
+
+    function buildCompactCard(ev, label) {
+      if (ev.worldBoss) return buildCompactWorldBossCard(ev, label);
+      // Render fixed-schedule bosses with the world-boss style
+      if (!ev.worldBoss && isFixedSchedule(ev.boss)) return buildCompactWorldBossCard(Object.assign({}, ev, { bosses: [ev.boss] }), label);
+      const dt = new Date(ev.start);
+      const delta = dt.getTime() - Date.now();
+      const urgent = delta <= 5 * 60 * 1000 && delta > 0;
+      const soon = delta <= 15 * 60 * 1000 && delta > 0;
+      const cdColor = urgent ? 'text-rose-500' : soon ? 'text-blue-500' : 'text-gray-600 dark:text-gray-400';
+      const ringClass = urgent ? 'ring-1 ring-rose-200 dark:ring-rose-800' : soon ? 'ring-1 ring-blue-200 dark:ring-blue-900' : '';
+      const dateTag = label === 'Later' ? `<span class="text-[11px] text-gray-400 dark:text-gray-500">${fmtDate(ev.start)}</span>` : '';
+      const imgHtml = getBossImg(ev.boss);
+      const fallback = `<div class="boss-img flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-gray-400">${getInitial(ev.boss)}</div>`;
+      const card = document.createElement('div');
+      card.className = `boss-card flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${ringClass}`;
+      const killBtn = (isAdmin && getRespawnMs(ev.boss)) ? `<button class="kill-btn admin-only" data-boss="${ev.boss}">Killed</button>` : '';
+      const setBtn = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger admin-only" data-boss="${ev.boss}">Set time</button>` : '';
+      // images/upload removed
+      const pinClass = isPinned(ev.boss) ? 'pin-star pinned' : 'pin-star';
+      card.innerHTML = `
+        <button class="${pinClass}" data-pin="${ev.boss}" title="Pin boss">★</button>
+        <div class="relative">${fallback}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">${ev.boss}</span>
+            ${dateTag}
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</span>
+            ${getBossLocation(ev.boss) ? `<span class="text-[12px] text-gray-400 dark:text-gray-500">· ${getBossLocation(ev.boss)}</span>` : ''}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          ${killBtn}
+          ${setBtn}
+          <span class="countdown-mono tabular-nums text-sm font-semibold ${cdColor} whitespace-nowrap" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</span>
+        </div>
+      `;
+      card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss));
+      card.querySelector('.manual-trigger')?.addEventListener('click', () => manualSetTime(ev.boss));
+      // image upload removed — no click handler
+      card.querySelector('[data-pin]')?.addEventListener('click', () => togglePin(ev.boss));
+      return card;
+    }
+
+    function buildCompactWorldBossCard(ev, label) {
+      const dt = new Date(ev.start);
+      const delta = dt.getTime() - Date.now();
+      const urgent = delta <= 5 * 60 * 1000 && delta > 0;
+      const soon = delta <= 15 * 60 * 1000 && delta > 0;
+      const cdColor = urgent ? 'text-rose-500' : soon ? 'text-blue-500' : 'text-gray-600 dark:text-gray-400';
+      const ringClass = urgent ? 'ring-1 ring-rose-200 dark:ring-rose-800' : soon ? 'ring-1 ring-blue-200 dark:ring-blue-900' : '';
+      const dateTag = label === 'Later' ? `<span class="text-[11px] text-gray-400 dark:text-gray-500">${fmtDate(ev.start)}</span>` : '';
+      const names = ev.bosses || WORLD_BOSSES;
+      const card = document.createElement('div');
+      card.className = `boss-card flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${ringClass}`;
+      const singleLoc = (names.length === 1) ? getBossLocation(names[0]) : '';
+      card.innerHTML = `
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">${names.join(', ')}</span>
+            ${dateTag}
+          </div>
+          ${singleLoc ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${singleLoc}</div>` : ''}
+          <span class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="countdown-mono tabular-nums text-sm font-semibold ${cdColor} whitespace-nowrap" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</span>
+        </div>
+      `;
+      return card;
+    }
+
+    function buildDeckCard(ev, label) {
+      if (ev.worldBoss) return buildDeckWorldBossCard(ev, label);
+      // Render fixed-schedule bosses with the world-boss style
+      if (!ev.worldBoss && isFixedSchedule(ev.boss)) return buildDeckWorldBossCard(Object.assign({}, ev, { bosses: [ev.boss] }), label);
+      const dt = new Date(ev.start);
+      const delta = dt.getTime() - Date.now();
+      const urgent = delta <= 5 * 60 * 1000 && delta > 0;
+      const soon = delta <= 15 * 60 * 1000 && delta > 0;
+      const cdColor = urgent ? 'text-rose-500' : soon ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400';
+      const stateClass = urgent ? 'urgent' : soon ? 'soon-card' : '';
+      const dateTag = label === 'Later' ? `<div class="text-[10px] text-gray-400 dark:text-gray-500">${fmtDate(ev.start)}</div>` : '';
+
+      // Use unified initial fallback only
+      const fallback = `<div class="deck-img flex items-center justify-center text-2xl font-bold text-gray-400 dark:text-gray-500">${getInitial(ev.boss)}</div>`;
+
+      const card = document.createElement('div');
+      card.className = `deck-card ${stateClass}`;
+      // image upload removed
+      const pinClass = isPinned(ev.boss) ? 'pin-star pinned' : 'pin-star';
+      card.innerHTML = `
+        <button class="${pinClass}" data-pin="${ev.boss}" title="Pin boss" style="position:absolute;top:8px;right:8px;">★</button>
+        <div class="relative">${fallback}</div>
+        <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center leading-tight truncate w-full px-1">${ev.boss}</div>
+        ${getBossLocation(ev.boss) ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${getBossLocation(ev.boss)}</div>` : ''}
+        ${dateTag}
+        <div class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</div>
+        <div class="countdown-mono tabular-nums text-base font-bold ${cdColor}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
+        <div class="flex items-center gap-1.5 flex-wrap justify-center">
+          ${(isAdmin && getRespawnMs(ev.boss)) ? `<button class="kill-btn admin-only" data-boss="${ev.boss}">Killed</button>` : ''}
+          ${(isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger admin-only" data-boss="${ev.boss}">Set time</button>` : ''}
+        </div>
+      `;
+      card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss));
+      card.querySelector('.manual-trigger')?.addEventListener('click', () => manualSetTime(ev.boss));
+      // image upload removed — no click handler
+      card.querySelector('[data-pin]')?.addEventListener('click', () => togglePin(ev.boss));
+      return card;
+    }
+
+    function buildDeckWorldBossCard(ev, label) {
+      const dt = new Date(ev.start);
+      const delta = dt.getTime() - Date.now();
+      const urgent = delta <= 5 * 60 * 1000 && delta > 0;
+      const soon = delta <= 15 * 60 * 1000 && delta > 0;
+      const cdColor = urgent ? 'text-rose-500' : soon ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400';
+      const stateClass = urgent ? 'urgent' : soon ? 'soon-card' : '';
+      const dateTag = label === 'Later' ? `<div class="text-[10px] text-gray-400 dark:text-gray-500">${fmtDate(ev.start)}</div>` : '';
+      const names = ev.bosses || WORLD_BOSSES;
+      const card = document.createElement('div');
+      card.className = `deck-card ${stateClass}`;
+      const singleLocDeck = (names.length === 1) ? getBossLocation(names[0]) : '';
+      card.innerHTML = `
+        <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center leading-tight w-full px-1">${names.join(', ')}</div>
+        ${singleLocDeck ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${singleLocDeck}</div>` : ''}
+        ${dateTag}
+        <div class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</div>
+        <div class="countdown-mono tabular-nums text-base font-bold ${cdColor}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
+      `;
+      return card;
+    }
+
+    function getDisplayName(ev) {
+      return ev.bosses ? ev.bosses.join(', ') : ev.boss;
+    }
+
+    function matchesFilter(ev) {
+      if (!filterText) return true;
+      const q = filterText.toLowerCase();
+      const name = getDisplayName(ev).toLowerCase();
+      const loc = (ev.boss ? getBossLocation(ev.boss) : '').toLowerCase();
+      return name.includes(q) || loc.includes(q);
+    }
+
+    function sortWithPins(items) {
+      return [...items].sort((a, b) => {
+        const aPinned = isPinned(a.boss) || (a.bosses && a.bosses.some(n => isPinned(n)));
+        const bPinned = isPinned(b.boss) || (b.bosses && b.bosses.some(n => isPinned(n)));
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        return new Date(a.start) - new Date(b.start);
+      });
+    }
+
+    function render(events) {
+      sectionsEl.innerHTML = '';
+      summaryEl.innerHTML = '';
+      if (!events.length) { setPill('No events', 'negative'); return; }
+
+      // Filter
+      const filtered = events.filter(matchesFilter);
+      if (!filtered.length) {
+        setPill('No matches', 'negative');
+        renderTimeline(events); // still show timeline with all events
+        return;
+      }
+
+      const todayKey = localDateKey(new Date());
+      const tmrwKey  = localDateKey(new Date(Date.now() + 864e5));
+      const buckets = { Today: [], Tomorrow: [], Later: [] };
+
+      for (const ev of filtered) {
+        const k = localDateKey(new Date(ev.start));
+        if (k === todayKey) buckets.Today.push(ev);
+        else if (k === tmrwKey) buckets.Tomorrow.push(ev);
+        else buckets.Later.push(ev);
+      }
+
+      for (const [label, unsorted] of Object.entries(buckets)) {
+        const items = sortWithPins(unsorted);
+        if (!items.length) continue;
+        const section = document.createElement('div');
+        section.className = 'mb-5';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-baseline justify-between mb-2 px-1';
+        header.innerHTML = `
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">${label}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-600">${items.length}</span>
+        `;
+        section.appendChild(header);
+
+        if (layout === 'deck') {
+          const scroll = document.createElement('div');
+          scroll.className = 'deck-scroll';
+          for (const ev of items) scroll.appendChild(buildDeckCard(ev, label));
+          section.appendChild(scroll);
+        } else {
+          const grid = document.createElement('div');
+          grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
+          for (const ev of items) grid.appendChild(buildCompactCard(ev, label));
+          section.appendChild(grid);
+        }
+
+        sectionsEl.appendChild(section);
+      }
+
+      const upcoming = events.filter(ev => new Date(ev.start).getTime() > Date.now());
+      const next = upcoming.length ? upcoming[0] : null;
+      const nextName = next ? (next.bosses ? next.bosses.join(', ') : next.boss) : '';
+      summaryEl.innerHTML = `
+        <span class="text-xs text-gray-400 dark:text-gray-500">${filtered.length} event${filtered.length===1?'':'s'}${filterText ? ' (filtered)' : ''}</span>
+        ${next ? `<span class="text-xs text-gray-400 dark:text-gray-500">· Next: <span class="text-gray-600 dark:text-gray-300 font-medium">${nextName}</span> in ${fmtCountdown(next.start)}</span>` : ''}
+      `;
+      setPill(filtered.length + ' active', 'positive');
+
+      // Render timeline
+      renderTimeline(events);
+    }
+
+    // --- Timeline view ---
+    function renderTimeline(events) {
+      timelineSec.innerHTML = '';
+      if (!showTimeline || !events.length) { timelineSec.classList.add('hidden'); return; }
+      timelineSec.classList.remove('hidden');
+
+      const now = Date.now();
+      const upcoming = events.filter(ev => new Date(ev.start).getTime() > now);
+      if (!upcoming.length) return;
+
+      // Span: now to last event
+      const startMs = now;
+      const endMs = Math.max(...upcoming.map(ev => new Date(ev.start).getTime()));
+      const rangeMs = endMs - startMs;
+      if (rangeMs <= 0) return;
+
+      const header = document.createElement('div');
+      header.className = 'flex items-baseline justify-between mb-2 px-1';
+      header.innerHTML = `<span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Timeline</span>`;
+      timelineSec.appendChild(header);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'timeline-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'timeline-bar';
+      bar.style.width = '100%';
+
+      // "Now" marker
+      const nowMarker = document.createElement('div');
+      nowMarker.className = 'timeline-now';
+      nowMarker.style.left = '0%';
+      bar.appendChild(nowMarker);
+      const nowLabel = document.createElement('div');
+      nowLabel.className = 'timeline-now-label';
+      nowLabel.style.left = '0%';
+      nowLabel.textContent = 'Now';
+      bar.appendChild(nowLabel);
+
+      for (const ev of upcoming) {
+        const evMs = new Date(ev.start).getTime();
+        const pct = ((evMs - startMs) / rangeMs) * 100;
+        const delta = evMs - now;
+        const urgent = delta <= 5 * 60 * 1000 && delta > 0;
+        const soon = delta <= 15 * 60 * 1000 && delta > 0;
+        const name = getDisplayName(ev);
+
+        const marker = document.createElement('div');
+        marker.className = `timeline-marker${urgent ? ' urgent-marker' : soon ? ' soon-marker' : ''}`;
+        marker.style.left = pct + '%';
+        marker.textContent = name.charAt(0);
+        marker.title = `${name} — ${fmtTime(ev.start)} (${fmtCountdown(ev.start)})`;
+        bar.appendChild(marker);
+
+        const label = document.createElement('div');
+        label.className = 'timeline-label';
+        label.style.left = pct + '%';
+        label.textContent = name.length > 10 ? name.slice(0, 9) + '…' : name;
+        bar.appendChild(label);
+      }
+
+      wrap.appendChild(bar);
+      timelineSec.appendChild(wrap);
+    }
+
+    function updateCountdowns() {
+      // Update countdown text + colors in-place without rebuilding DOM
+      for (const ev of eventsState) {
+        const els = document.querySelectorAll(`[data-cd="${evId(ev)}"]`);
+        const cd = fmtCountdown(ev.start);
+        const delta = new Date(ev.start).getTime() - Date.now();
+        const urgent = delta <= 5 * 60 * 1000 && delta > 0;
+        const soon = delta <= 15 * 60 * 1000 && delta > 0;
+        for (const el of els) {
+          el.textContent = cd;
+          // Update color classes
+          el.classList.remove('text-rose-500','text-blue-500','text-gray-600','text-gray-500');
+          if (urgent) el.classList.add('text-rose-500');
+          else if (soon) el.classList.add('text-blue-500');
+          else el.classList.add('text-gray-600');
+        }
+      }
+      // Update summary countdown
+      const upcoming = eventsState.filter(ev => new Date(ev.start).getTime() > Date.now());
+      const next = upcoming.length ? upcoming[0] : null;
+      if (next) {
+        summaryEl.innerHTML = `
+          <span class="text-xs text-gray-400 dark:text-gray-500">${eventsState.length} event${eventsState.length===1?'':'s'}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500">\u00b7 Next: <span class="text-gray-600 dark:text-gray-300 font-medium">${next.bosses ? next.bosses.join(', ') : next.boss}</span> in ${fmtCountdown(next.start)}</span>
+        `;
+      }
+    }
+
+    function ensureNotificationPermission() {
+      if (!('Notification' in window)) return false;
+      if (Notification.permission === 'granted') return true;
+      if (Notification.permission === 'denied') return false;
+      Notification.requestPermission();
+      return false;
+    }
+
+    function playBeep(repeats = 3) {
+      if (isMuted) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        for (let i = 0; i < repeats; i++) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const t = ctx.currentTime + i * 0.5;
+          osc.type = 'square';
+          osc.frequency.value = 1200;
+          gain.gain.setValueAtTime(0.5, t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.45);
+        }
+      } catch (e) {}
+    }
+
+    function triggerAlarm(ev) {
+      const name = ev.bosses ? ev.bosses.join(', ') : ev.boss;
+      const msg = `${name} in 5 min (${fmtTime(ev.start)})`;
+      showToast(msg);
+      setPill('Alarm: ' + name, 'negative');
+      playBeep();
+      if (Notification.permission === 'granted') {
+        new Notification('Boss Timer', { body: msg });
+      }
+    }
+
+    function checkAlarms() {
+      const now = Date.now();
+      for (const ev of eventsState) {
+        const id = `${ev.start}-${ev.boss}`;
+        if (triggered.has(id)) continue;
+        const delta = new Date(ev.start).getTime() - now;
+        if (delta <= 5 * 60 * 1000 && delta > 0) { triggered.add(id); triggerAlarm(ev); }
+      }
+      // Spawn countdown (final 5 seconds)
+      checkSpawnCountdown();
+    }
+
+    // --- Spawn countdown overlay logic ---
+    let spawnCountdownActive = null; // event being counted down
+    let spawnedEvent = null; // event that just spawned (held briefly)
+    let lastSpawnSecond = -1;
+    const spawnOverlay = $('spawn-overlay');
+    const spawnBossNameEl = $('spawn-boss-name');
+    const spawnSubEl = $('spawn-sub');
+
+    function playTick() {
+      if (isMuted) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.2);
+      } catch (e) {}
+    }
+
+    function playSpawnSound() {
+      if (isMuted) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.12, 0.24].forEach((offset, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const t = ctx.currentTime + offset;
+          osc.type = 'square';
+          osc.frequency.value = 1200 + i * 200;
+          gain.gain.setValueAtTime(0.5, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(t); osc.stop(t + 0.3);
+        });
+      } catch (e) {}
+    }
+
+    function checkSpawnCountdown() {
+      const now = Date.now();
+      // Find the nearest event within 6 seconds (before or after spawn)
+      let nearest = null;
+      let nearestDelta = Infinity;
+      for (const ev of eventsState) {
+        const delta = new Date(ev.start).getTime() - now;
+        if (delta > -3000 && delta < 6000 && Math.abs(delta) < nearestDelta) {
+          nearest = ev;
+          nearestDelta = Math.abs(delta);
+        }
+      }
+
+      // If we had a spawned event, keep showing it
+      if (!nearest && spawnedEvent) {
+        const elapsed = now - new Date(spawnedEvent.start).getTime();
+        if (elapsed < 3000) {
+          nearest = spawnedEvent;
+        } else {
+          // Done showing SPAWNED
+          spawnOverlay.classList.remove('active');
+          spawnedEvent = null;
+          spawnCountdownActive = null;
+          lastSpawnSecond = -1;
+          return;
+        }
+      }
+
+      if (!nearest) {
+        if (spawnCountdownActive) {
+          spawnOverlay.classList.remove('active');
+          spawnCountdownActive = null;
+          lastSpawnSecond = -1;
+        }
+        return;
+      }
+
+      const delta = new Date(nearest.start).getTime() - now;
+      const sec = Math.ceil(delta / 1000);
+      const name = nearest.bosses ? nearest.bosses.join(', ') : nearest.boss;
+
+      if (!spawnOverlay.classList.contains('active')) {
+        spawnOverlay.classList.add('active');
+      }
+      spawnCountdownActive = nearest;
+      spawnBossNameEl.textContent = name;
+
+      if (sec <= 0) {
+        if (lastSpawnSecond !== 0) {
+          spawnedEvent = nearest; // hold reference so prune doesn't lose it
+          const numEl = spawnOverlay.querySelector('.spawn-number');
+          numEl.className = 'spawn-number spawned';
+          numEl.textContent = 'SPAWNED!';
+          spawnSubEl.textContent = 'Go go go!';
+          playSpawnSound();
+          lastSpawnSecond = 0;
+        }
+      } else if (sec !== lastSpawnSecond && sec <= 5) {
+        const numEl = spawnOverlay.querySelector('.spawn-number');
+        // Re-trigger animation by cloning
+        const clone = numEl.cloneNode(false);
+        clone.className = 'spawn-number';
+        clone.textContent = sec;
+        numEl.replaceWith(clone);
+        spawnSubEl.textContent = sec === 1 ? 'Get ready!' : 'Spawning soon...';
+        playTick();
+        lastSpawnSecond = sec;
+      }
+    }
+
+    function prunePastEvents() {
+      const now = Date.now();
+      const remaining = [];
+      let changed = false;
+      for (const ev of eventsState) {
+        if (new Date(ev.start).getTime() <= now) { completed.add(ev.boss); changed = true; continue; }
+        remaining.push(ev);
+      }
+      if (changed) {
+        eventsState = remaining;
+        parseBtn.dataset.events = JSON.stringify(eventsState);
+      }
+      return changed;
+    }
+
+    function startTicker() {
+      if (tickerId) clearInterval(tickerId);
+      tickerId = setInterval(() => {
+        checkSpawnCountdown(); // must run before prune removes the event
+        const pruned = prunePastEvents();
+        if (pruned) render(eventsState);
+        else updateCountdowns();
+        checkAlarms();
+      }, 1000);
+    }
+
+    function toICS(events) {
+      const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Boss Timer//EN'];
+      for (const ev of events) {
+        const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+        const start = new Date(ev.start).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+        lines.push('BEGIN:VEVENT', `UID:${start}-${ev.boss.replace(/\s+/g,'-')}`, `DTSTAMP:${stamp}`, `DTSTART:${start}`, `DTEND:${start}`, `SUMMARY:${ev.boss}`, 'END:VEVENT');
+      }
+      lines.push('END:VCALENDAR');
+      return lines.join('\r\n');
+    }
+
+    // --- Events ---
+    parseBtn.addEventListener('click', () => {
+      const now = Date.now();
+      // parse new events from input
+      const parsed = parseSchedule(input.value)
+        .filter(ev => new Date(ev.start).getTime() > now && !completed.has(ev.boss))
+        .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      // Merge parsed events into the current state, preserving generated world/destroyer events
+      const existing = new Set(eventsState.map(e => `${e.start}-${e.boss}`));
+      for (const ev of parsed) {
+        const id = `${ev.start}-${ev.boss}`;
+        if (!existing.has(id)) {
+          eventsState.push(ev);
+          existing.add(id);
+        }
+      }
+      // If there were no pre-existing events, adopt parsed as initial state
+      if (!eventsState.length) eventsState = parsed.slice();
+
+      // Normalize ordering and clear triggers
+      eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+      triggered.clear();
+      render(eventsState);
+      // hide the raw input box after parsing to reduce clutter
+      try { input.parentElement.style.display = 'none'; } catch (e) {}
+      showToast(eventsState.length ? 'Alarms armed (5 min before)' : 'Nothing parsed – check format');
+      parseBtn.dataset.events = JSON.stringify(eventsState);
+      ensureNotificationPermission();
+      startTicker();
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const ev = JSON.parse(parseBtn.dataset.events || '[]');
+      if (!ev.length) return showToast('Parse first');
+      await navigator.clipboard.writeText(JSON.stringify(ev, null, 2));
+      showToast('Copied');
+    });
+
+    icsBtn.addEventListener('click', () => {
+      const ev = JSON.parse(parseBtn.dataset.events || '[]');
+      if (!ev.length) return showToast('Parse first');
+      const blob = new Blob([toICS(ev)], { type: 'text/calendar' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'boss-timers.ics';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('Downloaded');
+    });
+
+    testBtn.addEventListener('click', () => { ensureNotificationPermission(); playBeep(); showToast('Test played'); });
+
+    $('test-spawn').addEventListener('click', () => {
+      const spawnAt = new Date(Date.now() + 5000);
+      const testEv = {
+        boss: 'World Boss',
+        bosses: ['Ratan', 'Parto', 'Nedra'],
+        date: spawnAt.toISOString().slice(0, 10),
+        time: spawnAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        dur: '01:00:00',
+        start: spawnAt.toISOString(),
+        worldBoss: true,
+      };
+      eventsState.push(testEv);
+      eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+      parseBtn.dataset.events = JSON.stringify(eventsState);
+      render(eventsState);
+      startTicker();
+      showToast('Test boss spawning in 5 seconds...');
+    });
+
+    // --- Layout toggle ---
+    function setLayout(mode) {
+      layout = mode;
+      localStorage.setItem('layout', mode);
+      layoutBtn.textContent = mode === 'deck' ? 'Compact' : 'Deck';
+      if (eventsState.length) render(eventsState);
+    }
+    layoutBtn.addEventListener('click', () => setLayout(layout === 'deck' ? 'compact' : 'deck'));
+    setLayout(layout);
+
+    // --- Mute toggle ---
+    function updateMuteUI() {
+      $('icon-unmuted').classList.toggle('hidden', isMuted);
+      $('icon-muted').classList.toggle('hidden', !isMuted);
+      muteBtn.title = isMuted ? 'Unmute sounds' : 'Mute sounds';
+    }
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      localStorage.setItem('muted', isMuted);
+      updateMuteUI();
+      showToast(isMuted ? 'Sounds muted' : 'Sounds unmuted');
+    });
+    updateMuteUI();
+
+    // --- Filter ---
+    bossFilter.addEventListener('input', () => {
+      filterText = bossFilter.value.trim();
+      if (eventsState.length) render(eventsState);
+    });
+
+    // --- Timeline toggle ---
+    function updateTimelineUI() {
+      timelineBtn.textContent = showTimeline ? 'Hide Timeline' : 'Timeline';
+      if (eventsState.length) render(eventsState);
+    }
+    timelineBtn.addEventListener('click', () => {
+      showTimeline = !showTimeline;
+      localStorage.setItem('timeline', showTimeline);
+      updateTimelineUI();
+    });
+    updateTimelineUI();
+
+    // image storage removed
+
+    // --- Initialize admin UI ---
+    updateAdminUI();
+
+    // --- Auto-load world boss alarms ---
+    (function initWorldBosses() {
+      const wb = generateWorldBossEvents();
+      // also add fixed schedule events (KRANSIA and others)
+      const fixed = generateFixedScheduleEvents(7);
+      if (wb.length) {
+        // Merge with any existing events, avoiding duplicates
+        const existing = new Set(eventsState.map(e => `${e.start}-${e.boss}`));
+        for (const ev of wb) {
+          const id = `${ev.start}-${ev.boss}`;
+          if (!existing.has(id)) { eventsState.push(ev); existing.add(id); }
+        }
+        // merge fixed events
+        for (const ev of fixed) {
+          const id = `${ev.start}-${ev.boss}`;
+          if (!existing.has(id)) { eventsState.push(ev); existing.add(id); }
+        }
+        eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+        parseBtn.dataset.events = JSON.stringify(eventsState);
+        render(eventsState);
+        ensureNotificationPermission();
+        startTicker();
+        showToast(`${wb.length} world boss alarms armed; ${fixed.length} fixed alarms added`);
+      }
+    })();
+
+    // --- Theme ---
+    function applyTheme(mode) {
+      document.documentElement.classList.toggle('dark', mode === 'dark');
+      $('icon-sun').classList.toggle('hidden', mode !== 'dark');
+      $('icon-moon').classList.toggle('hidden', mode === 'dark');
+      localStorage.setItem('theme', mode);
+    }
+
+    themeBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+    });
+
+    applyTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+    // Prevent text selection during deck drag and add helpers for drag UX
+    (function() {
+      let dragActive = false;
+      document.addEventListener('mousedown', e => {
+        const el = e.target.closest && e.target.closest('.deck-scroll');
+        if (!el || e.button !== 0) return;
+        dragActive = true;
+        document.body.style.userSelect = 'none';
+        el.classList.add('dragging');
+      });
+      document.addEventListener('mouseup', () => {
+        if (!dragActive) return;
+        dragActive = false;
+        document.body.style.userSelect = '';
+        document.querySelectorAll('.deck-scroll.dragging').forEach(x => x.classList.remove('dragging'));
+      });
+      document.addEventListener('mouseleave', () => {
+        if (!dragActive) return;
+        dragActive = false;
+        document.body.style.userSelect = '';
+        document.querySelectorAll('.deck-scroll.dragging').forEach(x => x.classList.remove('dragging'));
+      });
+      // Prevent selectionstart while dragging
+      document.addEventListener('selectstart', e => { if (dragActive) e.preventDefault(); });
+    })();
+
+    // Pointer-based deck drag handlers (prevents selection while dragging)
+    (function attachDeckPointerDrag() {
+      function initFor(el) {
+        if (el._deckPointerInit) return;
+        el._deckPointerInit = true;
+        let isDown = false, startX = 0, scrollLeft = 0;
+        // For momentum calculation
+        let lastPositions = [];
+        let rafId = null;
+        el.addEventListener('pointerdown', function(e) {
+          if (e.button !== 0) return;
+          // If the pointerdown originated on an interactive child (upload overlay, buttons, pins, links, inputs),
+          // don't start a drag so the normal click/interaction can proceed.
+          const interactive = e.target && (e.target.closest && (
+            e.target.closest('.pin-star') ||
+            e.target.closest('button') ||
+            e.target.closest('input') ||
+            e.target.closest('a')
+          ));
+          if (interactive) return;
+          // cancel any running momentum animation
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          isDown = true;
+          startX = e.clientX;
+          scrollLeft = el.scrollLeft;
+          lastPositions = [{ t: performance.now(), x: startX }];
+          try { el.setPointerCapture(e.pointerId); } catch (err) {}
+          el.classList.add('dragging');
+          // prefer instant scroll while dragging
+          el.style.scrollBehavior = 'auto';
+          document.body.style.userSelect = 'none';
+          e.preventDefault();
+        });
+        el.addEventListener('pointermove', function(e) {
+          if (!isDown) return;
+          const x = e.clientX;
+          const dx = x - startX;
+          el.scrollLeft = scrollLeft - dx;
+          const now = performance.now();
+          lastPositions.push({ t: now, x });
+          // keep only recent samples
+          while (lastPositions.length > 5) lastPositions.shift();
+        });
+        const up = function(e) {
+          if (!isDown) return;
+          isDown = false;
+          try { el.releasePointerCapture && el.releasePointerCapture(e.pointerId); } catch (err) {}
+          el.classList.remove('dragging');
+          document.body.style.userSelect = '';
+          // compute velocity
+          if (lastPositions.length >= 2) {
+            const last = lastPositions[lastPositions.length - 1];
+            // find sample ~50ms earlier
+            let i = lastPositions.length - 2;
+            while (i > 0 && last.t - lastPositions[i].t < 50) i--;
+            const first = lastPositions[i];
+            const dt = (last.t - first.t) || 1;
+            const dx = last.x - first.x;
+            let v = dx / dt; // px per ms
+            if (Math.abs(v) > 0.02) {
+              // animate momentum (convert to px/ms)
+              const deceleration = 0.0006; // lower = longer glide
+              const startTime = performance.now();
+              const initialScroll = el.scrollLeft;
+              const direction = -Math.sign(v);
+              const initialV = v;
+              const step = (now) => {
+                const elapsed = now - startTime;
+                // s = v0 * t + 0.5 * a * t^2  (a negative to decelerate)
+                const displacement = (initialV * elapsed) + (direction * -0.5 * deceleration * elapsed * elapsed);
+                el.scrollLeft = initialScroll + (-displacement);
+                // stop when velocity crosses zero
+                const currentV = initialV + (direction * -deceleration * elapsed);
+                if (Math.sign(currentV) !== Math.sign(initialV) || Math.abs(currentV) < 0.01) {
+                  cancelAnimationFrame(rafId);
+                  rafId = null;
+                  el.style.scrollBehavior = '';
+                  return;
+                }
+                rafId = requestAnimationFrame(step);
+              };
+              rafId = requestAnimationFrame(step);
+            } else {
+              // no momentum; re-enable default scroll behavior
+              el.style.scrollBehavior = '';
+            }
+          }
+        };
+        el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
+        el.addEventListener('lostpointercapture', up);
+      }
+
+      document.querySelectorAll('.deck-scroll').forEach(initFor);
+      // Keep attaching to new decks created after render
+      const mo = new MutationObserver(() => {
+        document.querySelectorAll('.deck-scroll').forEach(initFor);
+      });
+      mo.observe(document.body, { childList: true, subtree: true });
+
+      // Prevent selectstart if any deck is being dragged
+      document.addEventListener('selectstart', e => {
+        if (document.querySelector('.deck-scroll.dragging')) e.preventDefault();
+      });
+    })();
+
+    // --- PWA ---
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
