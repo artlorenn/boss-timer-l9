@@ -132,14 +132,7 @@
     .dark .filter-bar input { border-color: #404040; background: #171717; color: #d1d5db; }
     .filter-bar input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
 
-    /* Pin star */
-    .pin-star {
-      cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.3; transition: opacity 120ms;
-      background: none; border: none; padding: 0 2px;
-    }
-    .pin-star:hover { opacity: 0.7; }
-    .pin-star.pinned { opacity: 1; color: #f59e0b; }
-    .dark .pin-star.pinned { color: #fbbf24; }
+    /* Favorite/pin removed */
 
     /* Timeline */
     .timeline-wrap { position: relative; padding: 12px 0 20px; overflow-x: auto; }
@@ -179,26 +172,43 @@
 <body class="min-h-screen bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
   <div class="max-w-6xl mx-auto px-5 py-8">
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-3">
-        <h1 class="text-lg font-semibold tracking-tight">Boss Timer</h1>
-        <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 leading-none">Beta</span>
-        <a href="relic.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Relic Calc &rarr;</a>
-        <a href="potion.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Potion Calc &rarr;</a>
+    <!-- Header + Minimal Options -->
+    <div class="flex flex-col gap-2 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold tracking-tight">Boss Timer</h1>
+          <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 leading-none">Beta</span>
+          <a href="relic.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Relic Calc &rarr;</a>
+          <a href="potion.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Potion Calc &rarr;</a>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-200">MiniCorp</span>
+          <span id="status-pill" class="text-xs text-gray-400 dark:text-gray-500">Waiting for input</span>
+          <span id="admin-badge" class="admin-badge hidden">Admin</span>
+          <button id="toggle-admin" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Admin login">
+            <svg id="icon-lock" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <svg id="icon-unlock" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>
+          </button>
+          <button id="toggle-theme" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Toggle theme">
+            <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <svg id="icon-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-200">MiniCorp</span>
-        <span id="status-pill" class="text-xs text-gray-400 dark:text-gray-500">Waiting for input</span>
-        <span id="admin-badge" class="admin-badge hidden">Admin</span>
-        <button id="toggle-admin" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Admin login">
-          <svg id="icon-lock" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          <svg id="icon-unlock" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>
-        </button>
-        <button id="toggle-theme" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Toggle theme">
-          <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          <svg id="icon-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-        </button>
+      <!-- Minimal options row -->
+      <div class="flex items-center gap-3 text-xs">
+        <label for="layout-mode" class="text-gray-500 dark:text-gray-400">Layout:</label>
+        <select id="layout-mode" class="border border-gray-200 dark:border-neutral-700 rounded px-1 py-0.5 bg-white dark:bg-neutral-900">
+          <option value="compact">Compact</option>
+          <option value="deck">Deck</option>
+        </select>
+        <label for="alarm-lead" class="ml-4 text-gray-500 dark:text-gray-400">Alarm:</label>
+        <select id="alarm-lead" class="border border-gray-200 dark:border-neutral-700 rounded px-1 py-0.5 bg-white dark:bg-neutral-900">
+          <option value="3">3 min</option>
+          <option value="5" selected>5 min</option>
+          <option value="10">10 min</option>
+          <option value="15">15 min</option>
+        </select>
       </div>
     </div>
 
@@ -286,7 +296,48 @@
     const timelineBtn = $('toggle-timeline');
 
     let eventsState = [];
+    function saveEvents() {
+      try {
+        localStorage.setItem('eventsState', JSON.stringify(eventsState));
+        parseBtn.dataset.events = JSON.stringify(eventsState);
+      } catch (e) { }
+    }
+
+    function loadSavedEvents() {
+      try {
+        const raw = localStorage.getItem('eventsState');
+        if (!raw) return false;
+        const parsed = JSON.parse(raw || '[]');
+        if (parsed && parsed.length) {
+          eventsState = parsed;
+          eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+          parseBtn.dataset.events = JSON.stringify(eventsState);
+          return true;
+        }
+      } catch (e) { }
+      return false;
+    }
     let layout = localStorage.getItem('layout') || 'compact'; // 'compact' or 'deck'
+    let alarmLeadMin = parseInt(localStorage.getItem('alarmLeadMin') || '5', 10); // alarm lead time in minutes
+        // Minimal layout/alarm controls
+        const layoutModeSel = document.getElementById('layout-mode');
+        const alarmLeadSel = document.getElementById('alarm-lead');
+
+        if (layoutModeSel) {
+          layoutModeSel.value = layout;
+          layoutModeSel.addEventListener('change', e => {
+            layout = layoutModeSel.value;
+            localStorage.setItem('layout', layout);
+            setLayout(layout);
+          });
+        }
+        if (alarmLeadSel) {
+          alarmLeadSel.value = String(alarmLeadMin);
+          alarmLeadSel.addEventListener('change', e => {
+            alarmLeadMin = parseInt(alarmLeadSel.value, 10);
+            localStorage.setItem('alarmLeadMin', String(alarmLeadMin));
+          });
+        }
     let tickerId = null;
     let isMuted = localStorage.getItem('muted') === 'true';
     let showTimeline = localStorage.getItem('timeline') === 'true';
@@ -537,7 +588,7 @@
         eventsState.push({ boss: bossName, date: newStart.slice(0,10), time: '', dur: '', start: newStart });
       }
       eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
-      parseBtn.dataset.events = JSON.stringify(eventsState);
+      saveEvents();
       showToast(`${bossName} killed — respawns in ${Math.round(respawnMs/3600000)}h`);
       render(eventsState);
     }
@@ -566,14 +617,107 @@
     function parseSchedule(raw) {
       const tokens = raw.split(/:t_rex:\s*/i).map(t => t.trim()).filter(Boolean);
       const out = [];
-      const re = /^(.+?)\s+—\s+(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))\s*\((\d{2,3}:\d{2}:\d{2})\)/i;
+      const primary = /^(.+?)\s+—\s+(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))\s*\((\d{2,3}:\d{2}:\d{2})\)/i;
+      const pipeNoDate = /^(.+?)\s*\|\s*([0-9: ]+(?:AM|PM))(?:\s*\((\d{2,3}:\d{2}:\d{2})\))?/i;
+      const timeOnlyRe = /([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM))/i;
+
+      const now = Date.now();
+
       for (const t of tokens) {
-        const m = t.match(re);
-        if (!m) continue;
-        const [, boss, date, time, dur] = m;
-        const ts = new Date(`${date} ${time}`);
-        if (isNaN(ts)) continue;
-        out.push({ boss: boss.trim(), date, time: time.trim(), dur, start: ts.toISOString() });
+        // Try strict primary format first
+        let m = t.match(primary);
+        if (m) {
+          const [, boss, date, time, dur] = m;
+          const ts = new Date(`${date} ${time}`);
+          if (isNaN(ts)) continue;
+          out.push({ boss: boss.trim(), date, time: time.trim(), dur, start: ts.toISOString() });
+          continue;
+        }
+
+        // Fallback: split into lines and try to detect a time line
+        const lines = t.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (!lines.length) continue;
+
+        // Find a line that contains a time (e.g., "11:00 AM" or "YYYY-MM-DD | 11:00 AM")
+        let timeLineIndex = lines.findIndex(l => timeOnlyRe.test(l) || /\|/.test(l));
+        let bossPart = null;
+        let timePart = null;
+        if (timeLineIndex >= 0) {
+          bossPart = lines.slice(0, timeLineIndex).join(', ');
+          timePart = lines[timeLineIndex];
+        } else if (lines.length === 1) {
+          // Single-line token — try to split boss names from trailing time
+          const single = lines[0];
+          const tm = single.match(/(.+?)\s+([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM))(?:\s*\((\d{2,3}:\d{2}:\d{2})\))?/i);
+          if (tm) {
+            bossPart = tm[1];
+            timePart = tm[2] + (tm[3] ? ' (' + tm[3] + ')' : '');
+          } else {
+            // Could be a comma-separated list ending with a time like "Ratan, Parto, Nedra 11:00 AM"
+            const lastSpace = single.lastIndexOf(' ');
+            if (lastSpace > 0) {
+              const maybeTime = single.slice(lastSpace + 1);
+              if (timeOnlyRe.test(maybeTime)) {
+                bossPart = single.slice(0, lastSpace);
+                timePart = single.slice(lastSpace + 1);
+              }
+            }
+          }
+        } else {
+          // If multiple lines and none matched, assume last line is time
+          bossPart = lines.slice(0, -1).join(', ');
+          timePart = lines[lines.length - 1];
+        }
+
+        if (!bossPart || !timePart) continue;
+
+        // Try parsing timePart for optional date, time and duration
+        let dateStr = null;
+        let timeStr = null;
+        let dur = null;
+        const m2 = timePart.match(/(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))(?:\s*\((\d{2,3}:\d{2}:\d{2})\))?/i);
+        if (m2) {
+          dateStr = m2[1];
+          timeStr = m2[2];
+          dur = m2[3] || null;
+        } else {
+          const m3 = timePart.match(/([0-9: ]+(?:AM|PM))(?:\s*\((\d{2,3}:\d{2}:\d{2})\))?/i);
+          if (m3) {
+            timeStr = m3[1];
+            dur = m3[2] || null;
+          }
+        }
+        if (!timeStr) continue;
+
+        // Parse boss names (comma/newline separated)
+        const names = bossPart.split(/[,/\n·]+/).map(s => s.trim()).filter(Boolean);
+        // Determine if this is a world-boss group (contains known world boss names)
+        const lcWorld = WORLD_BOSSES.map(x => x.toLowerCase());
+        const isWorldGroup = names.some(n => lcWorld.includes(n.toLowerCase()));
+
+        // Determine date if missing: assume today or tomorrow if time already passed
+        let startDt = null;
+        if (dateStr) {
+          startDt = new Date(`${dateStr} ${timeStr}`);
+        } else {
+          // Build a Date with today's date and the parsed time
+          const today = new Date();
+          const tm = new Date(`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')} ${timeStr}`);
+          if (isNaN(tm)) continue;
+          if (tm.getTime() <= now) {
+            // time already passed today — schedule for tomorrow
+            tm.setDate(tm.getDate() + 1);
+          }
+          startDt = tm;
+        }
+
+        if (!startDt || isNaN(startDt)) continue;
+
+        if (isWorldGroup) {
+          out.push({ boss: 'World Boss', bosses: names, date: startDt.toISOString().slice(0,10), time: startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dur: dur || '01:00:00', start: startDt.toISOString(), worldBoss: true });
+        } else {
+          out.push({ boss: names.join(', '), date: startDt.toISOString().slice(0,10), time: startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dur: dur || '00:30:00', start: startDt.toISOString() });
+        }
       }
       return out;
     }
@@ -607,7 +751,7 @@
         ev.start = ts.toISOString();
         triggered.delete(`${ev.start}-${ev.boss}`);
         eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
-        parseBtn.dataset.events = JSON.stringify(eventsState);
+        saveEvents();
         showToast(`${bossName} set to ${fmtTime(ev.start)}`);
         render(eventsState);
         return;
@@ -632,6 +776,19 @@
       render(eventsState);
     }
 
+    // Toggle pin for a group of boss names (used for world-boss events)
+    function togglePinGroup(names) {
+      // If all names are pinned, unpin them; otherwise pin all
+      const allPinned = names.every(n => pinnedBosses.has(n));
+      if (allPinned) {
+        names.forEach(n => pinnedBosses.delete(n));
+      } else {
+        names.forEach(n => pinnedBosses.add(n));
+      }
+      localStorage.setItem('pinnedBosses', JSON.stringify([...pinnedBosses]));
+      render(eventsState);
+    }
+
     function buildCompactCard(ev, label) {
       if (ev.worldBoss) return buildCompactWorldBossCard(ev, label);
       // Render fixed-schedule bosses with the world-boss style
@@ -647,33 +804,37 @@
       const fallback = `<div class="boss-img flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-gray-400">${getInitial(ev.boss)}</div>`;
       const card = document.createElement('div');
       card.className = `boss-card flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${ringClass}`;
+      // allow absolute-positioned top-right favorite button
+      card.style.position = 'relative';
       const killBtn = (isAdmin && getRespawnMs(ev.boss)) ? `<button class="kill-btn admin-only" data-boss="${ev.boss}">Killed</button>` : '';
       const setBtn = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger admin-only" data-boss="${ev.boss}">Set time</button>` : '';
       // images/upload removed
       const pinClass = isPinned(ev.boss) ? 'pin-star pinned' : 'pin-star';
       card.innerHTML = `
-        <button class="${pinClass}" data-pin="${ev.boss}" title="Pin boss">★</button>
-        <div class="relative">${fallback}</div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1.5">
-            <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">${ev.boss}</span>
-            ${dateTag}
+        <div class="flex items-center gap-3 w-full">
+          <div class="relative flex-shrink-0">${fallback}</div>
+          <div class="flex-1 min-w-0 flex flex-col">
+            <div class="flex items-center justify-between">
+              <div class="min-w-0">
+                <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">${ev.boss}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">${fmtTime(ev.start)}${getBossLocation(ev.boss) ? ` · ${getBossLocation(ev.boss)}` : ''}</div>
+                <div class="mt-0">
+                  <span class="countdown-mono tabular-nums text-sm font-semibold ${cdColor} whitespace-nowrap" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</span>
+                </div>
+              </div>
+              <div class="ml-3 text-[11px] text-gray-400 dark:text-gray-500">${dateTag}</div>
+            </div>
           </div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</span>
-            ${getBossLocation(ev.boss) ? `<span class="text-[12px] text-gray-400 dark:text-gray-500">· ${getBossLocation(ev.boss)}</span>` : ''}
+          <div class="flex flex-col items-end justify-center gap-2">
+            ${killBtn}
+            ${setBtn}
           </div>
-        </div>
-        <div class="flex items-center gap-2">
-          ${killBtn}
-          ${setBtn}
-          <span class="countdown-mono tabular-nums text-sm font-semibold ${cdColor} whitespace-nowrap" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</span>
         </div>
       `;
       card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss));
       card.querySelector('.manual-trigger')?.addEventListener('click', () => manualSetTime(ev.boss));
       // image upload removed — no click handler
-      card.querySelector('[data-pin]')?.addEventListener('click', () => togglePin(ev.boss));
+      // favorite removed
       return card;
     }
 
@@ -688,20 +849,35 @@
       const names = ev.bosses || WORLD_BOSSES;
       const card = document.createElement('div');
       card.className = `boss-card flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${ringClass}`;
+      // left avatar using initial of first name
+      const title = names.join(', ');
+      const fallback = `<div class="boss-img flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-gray-400">${getInitial(names[0])}</div>`;
       const singleLoc = (names.length === 1) ? getBossLocation(names[0]) : '';
+      // position for top-right group favorite
+      card.style.position = 'relative';
+      const groupPinned = names.some(n => isPinned(n));
+      const groupPinClass = groupPinned ? 'pin-star pinned' : 'pin-star';
       card.innerHTML = `
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1.5">
-            <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">${names.join(', ')}</span>
-            ${dateTag}
+        <div class="flex items-center gap-3 w-full">
+          <div class="relative flex-shrink-0">${fallback}</div>
+          <div class="flex-1 min-w-0 flex flex-col">
+            <div class="flex items-center justify-between">
+              <div class="min-w-0">
+                <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate whitespace-nowrap">${title}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">${fmtTime(ev.start)}${singleLoc ? ` · ${singleLoc}` : ''}</div>
+                <div class="mt-0">
+                  <span class="countdown-mono tabular-nums text-sm font-semibold ${cdColor} whitespace-nowrap" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</span>
+                </div>
+              </div>
+              <div class="ml-3 text-[11px] text-gray-400 dark:text-gray-500">${dateTag}</div>
+            </div>
           </div>
-          ${singleLoc ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${singleLoc}</div>` : ''}
-          <span class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="countdown-mono tabular-nums text-sm font-semibold ${cdColor} whitespace-nowrap" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</span>
+          <div class="flex flex-col items-end justify-center gap-2">
+          </div>
         </div>
       `;
+
+      // favorite removed
       return card;
     }
 
@@ -725,7 +901,6 @@
       // image upload removed
       const pinClass = isPinned(ev.boss) ? 'pin-star pinned' : 'pin-star';
       card.innerHTML = `
-        <button class="${pinClass}" data-pin="${ev.boss}" title="Pin boss" style="position:absolute;top:8px;right:8px;">★</button>
         <div class="relative">${fallback}</div>
         <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center leading-tight truncate w-full px-1">${ev.boss}</div>
         ${getBossLocation(ev.boss) ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${getBossLocation(ev.boss)}</div>` : ''}
@@ -740,7 +915,7 @@
       card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss));
       card.querySelector('.manual-trigger')?.addEventListener('click', () => manualSetTime(ev.boss));
       // image upload removed — no click handler
-      card.querySelector('[data-pin]')?.addEventListener('click', () => togglePin(ev.boss));
+      // favorite removed
       return card;
     }
 
@@ -756,13 +931,20 @@
       const card = document.createElement('div');
       card.className = `deck-card ${stateClass}`;
       const singleLocDeck = (names.length === 1) ? getBossLocation(names[0]) : '';
+      const title = names.join(', ');
+      const fallback = `<div class="deck-img flex items-center justify-center text-2xl font-bold text-gray-400 dark:text-gray-500">${getInitial(names[0])}</div>`;
+      const groupPinnedDeck = names.some(n => isPinned(n));
+      const groupPinClassDeck = groupPinnedDeck ? 'pin-star pinned' : 'pin-star';
       card.innerHTML = `
-        <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center leading-tight w-full px-1">${names.join(', ')}</div>
+        <div class="relative">${fallback}</div>
+        <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center leading-tight truncate w-full px-1 whitespace-nowrap">${title}</div>
         ${singleLocDeck ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${singleLocDeck}</div>` : ''}
         ${dateTag}
         <div class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</div>
         <div class="countdown-mono tabular-nums text-base font-bold ${cdColor}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
       `;
+
+      // favorite removed
       return card;
     }
 
@@ -990,7 +1172,7 @@
         const id = `${ev.start}-${ev.boss}`;
         if (triggered.has(id)) continue;
         const delta = new Date(ev.start).getTime() - now;
-        if (delta <= 5 * 60 * 1000 && delta > 0) { triggered.add(id); triggerAlarm(ev); }
+        if (delta <= alarmLeadMin * 60 * 1000 && delta > 0) { triggered.add(id); triggerAlarm(ev); }
       }
       // Spawn countdown (final 5 seconds)
       checkSpawnCountdown();
@@ -1117,7 +1299,7 @@
       }
       if (changed) {
         eventsState = remaining;
-        parseBtn.dataset.events = JSON.stringify(eventsState);
+        saveEvents();
       }
       return changed;
     }
@@ -1171,7 +1353,7 @@
       // hide the raw input box after parsing to reduce clutter
       try { input.parentElement.style.display = 'none'; } catch (e) {}
       showToast(eventsState.length ? 'Alarms armed (5 min before)' : 'Nothing parsed – check format');
-      parseBtn.dataset.events = JSON.stringify(eventsState);
+      saveEvents();
       ensureNotificationPermission();
       startTicker();
     });
@@ -1210,7 +1392,7 @@
       };
       eventsState.push(testEv);
       eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
-      parseBtn.dataset.events = JSON.stringify(eventsState);
+      saveEvents();
       render(eventsState);
       startTicker();
       showToast('Test boss spawning in 5 seconds...');
@@ -1263,6 +1445,14 @@
     // --- Initialize admin UI ---
     updateAdminUI();
 
+    // Try to restore previously parsed schedule from localStorage
+    if (loadSavedEvents()) {
+      render(eventsState);
+      ensureNotificationPermission();
+      startTicker();
+      showToast('Loaded saved schedule');
+    }
+
     // --- Auto-load world boss alarms ---
     (function initWorldBosses() {
       const wb = generateWorldBossEvents();
@@ -1281,7 +1471,7 @@
           if (!existing.has(id)) { eventsState.push(ev); existing.add(id); }
         }
         eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
-        parseBtn.dataset.events = JSON.stringify(eventsState);
+        saveEvents();
         render(eventsState);
         ensureNotificationPermission();
         startTicker();
