@@ -1493,137 +1493,15 @@
 
     applyTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 
-    // Prevent text selection during deck drag and add helpers for drag UX
-    (function() {
-      let dragActive = false;
-      document.addEventListener('mousedown', e => {
-        const el = e.target.closest && e.target.closest('.deck-scroll');
-        if (!el || e.button !== 0) return;
-        dragActive = true;
-        document.body.style.userSelect = 'none';
-        el.classList.add('dragging');
-      });
-      document.addEventListener('mouseup', () => {
-        if (!dragActive) return;
-        dragActive = false;
-        document.body.style.userSelect = '';
-        document.querySelectorAll('.deck-scroll.dragging').forEach(x => x.classList.remove('dragging'));
-      });
-      document.addEventListener('mouseleave', () => {
-        if (!dragActive) return;
-        dragActive = false;
-        document.body.style.userSelect = '';
-        document.querySelectorAll('.deck-scroll.dragging').forEach(x => x.classList.remove('dragging'));
-      });
-      // Prevent selectionstart while dragging
-      document.addEventListener('selectstart', e => { if (dragActive) e.preventDefault(); });
-    })();
 
-    // Pointer-based deck drag handlers (prevents selection while dragging)
-    (function attachDeckPointerDrag() {
-      function initFor(el) {
-        if (el._deckPointerInit) return;
-        el._deckPointerInit = true;
-        let isDown = false, startX = 0, scrollLeft = 0;
-        // For momentum calculation
-        let lastPositions = [];
-        let rafId = null;
-        el.addEventListener('pointerdown', function(e) {
-          if (e.button !== 0) return;
-          // If the pointerdown originated on an interactive child (upload overlay, buttons, pins, links, inputs),
-          // don't start a drag so the normal click/interaction can proceed.
-          const interactive = e.target && (e.target.closest && (
-            e.target.closest('.pin-star') ||
-            e.target.closest('button') ||
-            e.target.closest('input') ||
-            e.target.closest('a')
-          ));
-          if (interactive) return;
-          // cancel any running momentum animation
-          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-          isDown = true;
-          startX = e.clientX;
-          scrollLeft = el.scrollLeft;
-          lastPositions = [{ t: performance.now(), x: startX }];
-          try { el.setPointerCapture(e.pointerId); } catch (err) {}
-          el.classList.add('dragging');
-          // prefer instant scroll while dragging
-          el.style.scrollBehavior = 'auto';
-          document.body.style.userSelect = 'none';
-          e.preventDefault();
-        });
-        el.addEventListener('pointermove', function(e) {
-          if (!isDown) return;
-          const x = e.clientX;
-          const dx = x - startX;
-          el.scrollLeft = scrollLeft - dx;
-          const now = performance.now();
-          lastPositions.push({ t: now, x });
-          // keep only recent samples
-          while (lastPositions.length > 5) lastPositions.shift();
-        });
-        const up = function(e) {
-          if (!isDown) return;
-          isDown = false;
-          try { el.releasePointerCapture && el.releasePointerCapture(e.pointerId); } catch (err) {}
-          el.classList.remove('dragging');
-          document.body.style.userSelect = '';
-          // compute velocity
-          if (lastPositions.length >= 2) {
-            const last = lastPositions[lastPositions.length - 1];
-            // find sample ~50ms earlier
-            let i = lastPositions.length - 2;
-            while (i > 0 && last.t - lastPositions[i].t < 50) i--;
-            const first = lastPositions[i];
-            const dt = (last.t - first.t) || 1;
-            const dx = last.x - first.x;
-            let v = dx / dt; // px per ms
-            if (Math.abs(v) > 0.02) {
-              // animate momentum (convert to px/ms)
-              const deceleration = 0.0006; // lower = longer glide
-              const startTime = performance.now();
-              const initialScroll = el.scrollLeft;
-              const direction = -Math.sign(v);
-              const initialV = v;
-              const step = (now) => {
-                const elapsed = now - startTime;
-                // s = v0 * t + 0.5 * a * t^2  (a negative to decelerate)
-                const displacement = (initialV * elapsed) + (direction * -0.5 * deceleration * elapsed * elapsed);
-                el.scrollLeft = initialScroll + (-displacement);
-                // stop when velocity crosses zero
-                const currentV = initialV + (direction * -deceleration * elapsed);
-                if (Math.sign(currentV) !== Math.sign(initialV) || Math.abs(currentV) < 0.01) {
-                  cancelAnimationFrame(rafId);
-                  rafId = null;
-                  el.style.scrollBehavior = '';
-                  return;
-                }
-                rafId = requestAnimationFrame(step);
-              };
-              rafId = requestAnimationFrame(step);
-            } else {
-              // no momentum; re-enable default scroll behavior
-              el.style.scrollBehavior = '';
-            }
-          }
-        };
-        el.addEventListener('pointerup', up);
-        el.addEventListener('pointercancel', up);
-        el.addEventListener('lostpointercapture', up);
-      }
-
-      document.querySelectorAll('.deck-scroll').forEach(initFor);
-      // Keep attaching to new decks created after render
-      const mo = new MutationObserver(() => {
-        document.querySelectorAll('.deck-scroll').forEach(initFor);
-      });
-      mo.observe(document.body, { childList: true, subtree: true });
-
-      // Prevent selectstart if any deck is being dragged
-      document.addEventListener('selectstart', e => {
-        if (document.querySelector('.deck-scroll.dragging')) e.preventDefault();
-      });
-    })();
+    // Enable horizontal scrolling with mouse wheel on deck-scroll
+    document.addEventListener('wheel', function(e) {
+      const el = e.target.closest && e.target.closest('.deck-scroll');
+      if (!el) return;
+      if (e.deltaY === 0) return;
+      el.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
 
     // --- PWA ---
     if ('serviceWorker' in navigator) {
