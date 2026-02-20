@@ -331,23 +331,44 @@
         const upgrades = to - from;
         const milestones = getStatMilestones(relic.id, from, to);
         let relicCP = 0;
-        for (const m of milestones) relicCP += STAT_CP[m.stat] || 0;
-        grandTemporal += cost;
-        grandUpgrades += upgrades;
-        grandCP += relicCP;
-
-        resultEl.innerHTML = `
-          <div class="flex items-baseline justify-between gap-2 mb-2">
-            <div>
-              <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">${upgrades} upgrade${upgrades === 1 ? '' : 's'} · Lv ${from} → ${to}</div>
+        if (relic.id === 'destruction') {
+          // Custom Origin Destruction CP calculation (matches provided mapping)
+          let atkTotal = 0;
+          for (let lvl = from; lvl < to; lvl++) {
+            let atk = 3 + Math.floor((lvl - 1) / 5);
+            if (lvl % 5 === 0) atk += 1; // bump at each 5th level (5, 10, ...)
+            atkTotal += atk;
+          }
+          relicCP = atkTotal * 10;
+          grandCP += relicCP;
+          resultEl.innerHTML = `
+            <div class="flex items-baseline justify-between gap-2 mb-2">
+              <div>
+                <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">${upgrades} upgrade${upgrades === 1 ? '' : 's'} · Lv ${from} → ${to}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">+${relicCP.toLocaleString()} CP</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">ATK: ${atkTotal}</div>
+              </div>
+            </div>`;
+        } else {
+          for (const m of milestones) relicCP += STAT_CP[m.stat] || 0;
+          grandCP += relicCP;
+          resultEl.innerHTML = `
+            <div class="flex items-baseline justify-between gap-2 mb-2">
+              <div>
+                <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">${upgrades} upgrade${upgrades === 1 ? '' : 's'} · Lv ${from} → ${to}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">${relicCP > 0 ? '+' + relicCP.toLocaleString() + ' CP' : ''}</div>
+              </div>
             </div>
-            <div class="text-right">
-              <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-              <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">${relicCP > 0 ? '+' + relicCP.toLocaleString() + ' CP' : ''}</div>
-            </div>
-          </div>
-        `;
+          `;
+        }
 
         // Show stat milestones
         if (milestones.length > 0) {

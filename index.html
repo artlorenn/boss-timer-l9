@@ -198,17 +198,31 @@
       <!-- Minimal options row -->
       <div class="flex items-center gap-3 text-xs">
         <label for="layout-mode" class="text-gray-500 dark:text-gray-400">Layout:</label>
-        <select id="layout-mode" class="border border-gray-200 dark:border-neutral-700 rounded px-1 py-0.5 bg-white dark:bg-neutral-900">
+        <select id="layout-mode" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs px-3">
           <option value="compact">Compact</option>
           <option value="deck">Deck</option>
         </select>
         <label for="alarm-lead" class="ml-4 text-gray-500 dark:text-gray-400">Alarm:</label>
-        <select id="alarm-lead" class="border border-gray-200 dark:border-neutral-700 rounded px-1 py-0.5 bg-white dark:bg-neutral-900">
+        <select id="alarm-lead" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs px-3">
           <option value="3">3 min</option>
           <option value="5" selected>5 min</option>
           <option value="10">10 min</option>
           <option value="15">15 min</option>
         </select>
+        <label for="alarm-volume" class="ml-4 text-gray-500 dark:text-gray-400">Volume:</label>
+        <div class="flex items-center gap-1">
+          <input id="alarm-volume" type="range" min="0" max="100" value="80" style="width:80px; vertical-align:middle;">
+          <span id="alarm-volume-label" class="text-gray-500 dark:text-gray-400">80%</span>
+        </div>
+        <label for="sound-preset" class="ml-4 text-gray-500 dark:text-gray-400">Sound:</label>
+        <select id="sound-preset" class="h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs px-3">
+          <option value="classic">Classic</option>
+          <option value="chimes">Chimes</option>
+          <option value="retro">Retro</option>
+          <option value="pulse">Pulse</option>
+        </select>
+        <button id="user-test-alarm" class="ml-4 h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-300 px-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition">Test alarm</button>
+        <span class="text-xs text-gray-400 dark:text-gray-500">Adjust volume and test alarm sound</span>
       </div>
     </div>
 
@@ -340,11 +354,69 @@
         }
     let tickerId = null;
     let isMuted = localStorage.getItem('muted') === 'true';
+    let alarmVolume = parseInt(localStorage.getItem('alarmVolume') || '80', 10) / 100;
     let showTimeline = localStorage.getItem('timeline') === 'true';
     let filterText = '';
     const pinnedBosses = new Set(JSON.parse(localStorage.getItem('pinnedBosses') || '[]'));
     const triggered = new Set();
     const completed = new Set();
+    // --- Alarm volume control ---
+    const alarmVolumeSlider = document.getElementById('alarm-volume');
+    const alarmVolumeLabel = document.getElementById('alarm-volume-label');
+    if (alarmVolumeSlider && alarmVolumeLabel) {
+      alarmVolumeSlider.value = Math.round(alarmVolume * 100);
+      alarmVolumeLabel.textContent = Math.round(alarmVolume * 100) + '%';
+      alarmVolumeSlider.addEventListener('input', () => {
+        alarmVolume = parseInt(alarmVolumeSlider.value, 10) / 100;
+        alarmVolumeLabel.textContent = Math.round(alarmVolume * 100) + '%';
+        localStorage.setItem('alarmVolume', Math.round(alarmVolume * 100));
+      });
+    }
+
+    // --- Sound presets ---
+    const SOUND_PRESETS = {
+      classic: {
+        beep: { repeats: 3, type: 'square', freq: 1200, interval: 0.5, duration: 0.45 },
+        tick: { type: 'sine', freq: 880, duration: 0.15, gain: 0.4 },
+        spawn: { freqs: [1200, 1400, 1600], type: 'square', interval: 0.12, duration: 0.25 }
+      },
+      chimes: {
+        beep: { repeats: 3, type: 'sine', freq: 900, interval: 0.6, duration: 0.7 },
+        tick: { type: 'sine', freq: 660, duration: 0.18, gain: 0.25 },
+        spawn: { freqs: [880, 1320, 1760], type: 'sine', interval: 0.16, duration: 0.5 }
+      },
+      retro: {
+        beep: { repeats: 3, type: 'sawtooth', freq: 1000, interval: 0.35, duration: 0.32 },
+        tick: { type: 'square', freq: 740, duration: 0.12, gain: 0.45 },
+        spawn: { freqs: [1000, 1200, 1400], type: 'sawtooth', interval: 0.1, duration: 0.28 }
+      },
+      pulse: {
+        beep: { repeats: 3, type: 'sine', freq: 1500, interval: 0.4, duration: 0.45 },
+        tick: { type: 'sine', freq: 1200, duration: 0.08, gain: 0.35 },
+        spawn: { freqs: [1500, 1500, 1500], type: 'sine', interval: 0.08, duration: 0.12 }
+      }
+    };
+
+    const presetSel = document.getElementById('sound-preset');
+    let currentPreset = localStorage.getItem('soundPreset') || 'classic';
+    if (presetSel) {
+      presetSel.value = currentPreset;
+      presetSel.addEventListener('change', () => {
+        currentPreset = presetSel.value;
+        localStorage.setItem('soundPreset', currentPreset);
+        showToast('Sound preset: ' + presetSel.options[presetSel.selectedIndex].text);
+      });
+    }
+
+    // --- User test alarm button ---
+    const userTestAlarmBtn = document.getElementById('user-test-alarm');
+    if (userTestAlarmBtn) {
+      userTestAlarmBtn.addEventListener('click', () => {
+        ensureNotificationPermission();
+        playBeep();
+        showToast('Test alarm played');
+      });
+    }
 
     // --- Admin system ---
     const ADMIN_PASS = 'boss123';  // Change this password
@@ -1115,6 +1187,19 @@
           if (urgent) el.classList.add('text-rose-500');
           else if (soon) el.classList.add('text-blue-500');
           else el.classList.add('text-gray-600');
+          // Also update surrounding card border/ring so urgency shows immediately
+          const card = el.closest('.boss-card') || el.closest('.deck-card');
+          if (card) {
+            // remove any urgent/soon markers
+            card.classList.remove('ring-1','ring-rose-200','dark:ring-rose-800','ring-blue-200','dark:ring-blue-900','urgent','soon-card');
+            if (card.classList.contains('deck-card')) {
+              if (urgent) card.classList.add('urgent');
+              else if (soon) card.classList.add('soon-card');
+            } else {
+              if (urgent) card.classList.add('ring-1','ring-rose-200','dark:ring-rose-800');
+              else if (soon) card.classList.add('ring-1','ring-blue-200','dark:ring-blue-900');
+            }
+          }
         }
       }
       // Update summary countdown
@@ -1139,18 +1224,20 @@
     function playBeep(repeats = 3) {
       if (isMuted) return;
       try {
+        const preset = SOUND_PRESETS[currentPreset] || SOUND_PRESETS.classic;
+        const cfg = Object.assign({}, preset.beep);
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        for (let i = 0; i < repeats; i++) {
+        for (let i = 0; i < (cfg.repeats || repeats); i++) {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          const t = ctx.currentTime + i * 0.5;
-          osc.type = 'square';
-          osc.frequency.value = 1200;
-          gain.gain.setValueAtTime(0.5, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+          const t = ctx.currentTime + i * (cfg.interval || 0.5);
+          osc.type = cfg.type || 'square';
+          osc.frequency.value = cfg.freq || 1200;
+          gain.gain.setValueAtTime(alarmVolume * (cfg.gain || 1), t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + (cfg.duration || 0.45));
           osc.connect(gain).connect(ctx.destination);
           osc.start(t);
-          osc.stop(t + 0.45);
+          osc.stop(t + (cfg.duration || 0.45));
         }
       } catch (e) {}
     }
@@ -1189,32 +1276,36 @@
     function playTick() {
       if (isMuted) return;
       try {
+        const preset = SOUND_PRESETS[currentPreset] || SOUND_PRESETS.classic;
+        const cfg = preset.tick || { type: 'sine', freq: 880, duration: 0.15, gain: 0.4 };
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.type = cfg.type || 'sine';
+        osc.frequency.value = cfg.freq || 880;
+        gain.gain.setValueAtTime((cfg.gain || 0.4) * alarmVolume, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (cfg.duration || 0.15));
         osc.connect(gain).connect(ctx.destination);
-        osc.start(); osc.stop(ctx.currentTime + 0.2);
+        osc.start(); osc.stop(ctx.currentTime + (cfg.duration || 0.2));
       } catch (e) {}
     }
 
     function playSpawnSound() {
       if (isMuted) return;
       try {
+        const preset = SOUND_PRESETS[currentPreset] || SOUND_PRESETS.classic;
+        const cfg = preset.spawn || { freqs: [1200,1400,1600], type: 'square', interval: 0.12, duration: 0.25 };
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        [0, 0.12, 0.24].forEach((offset, i) => {
+        (cfg.freqs || [1200,1400,1600]).forEach((f, i) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          const t = ctx.currentTime + offset;
-          osc.type = 'square';
-          osc.frequency.value = 1200 + i * 200;
-          gain.gain.setValueAtTime(0.5, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          const t = ctx.currentTime + i * (cfg.interval || 0.12);
+          osc.type = cfg.type || 'square';
+          osc.frequency.value = f;
+          gain.gain.setValueAtTime(alarmVolume * (cfg.gain || 1), t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + (cfg.duration || 0.25));
           osc.connect(gain).connect(ctx.destination);
-          osc.start(t); osc.stop(t + 0.3);
+          osc.start(t); osc.stop(t + (cfg.duration || 0.3));
         });
       } catch (e) {}
     }
