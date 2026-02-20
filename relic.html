@@ -392,32 +392,18 @@
           // Totals summary
           let html = `<div class="border-t border-gray-200/50 dark:border-neutral-700/50 pt-2 mt-1">
             <div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Total Stat Gains</div>`;
-          // Patch: For each stat, sum its own CP and the CP from its paired stat (next in milestone cycle)
-          const statNames = Object.keys(totals);
-          for (let i = 0; i < statNames.length; i++) {
-            const name = statNames[i];
-            const info = totals[name];
-            // Find CP for this stat
+          // Show each stat's CP separately (not summed with paired stat)
+          for (const [name, info] of Object.entries(totals)) {
             let cpForStat = 0;
             for (const m of milestones) {
               const mm = m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
               if (mm && mm[1].trim() === name) cpForStat += STAT_CP[m.stat] || 0;
             }
-            // Find CP for paired stat (next in cycle, wrap around)
-            let cpPaired = 0;
-            if (statNames.length > 1) {
-              const pairedName = statNames[(i + 1) % statNames.length];
-              for (const m of milestones) {
-                const mm = m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
-                if (mm && mm[1].trim() === pairedName) cpPaired += STAT_CP[m.stat] || 0;
-              }
-            }
-            const cpSum = cpForStat + cpPaired;
             html += `<div class="flex justify-between text-xs py-0.5">
               <span class="text-gray-600 dark:text-gray-300">${name}</span>
               <span class="flex gap-2">
                 <span class="font-semibold ${c.accent}">+ ${info.val}${info.isPercent ? '%' : ''}</span>
-                ${cpSum > 0 ? `<span class="text-yellow-600 dark:text-yellow-400 font-medium">${cpSum} CP</span>` : ''}
+                ${cpForStat > 0 ? `<span class="text-yellow-600 dark:text-yellow-400 font-medium">${cpForStat} CP</span>` : ''}
               </span>
             </div>`;
           }
