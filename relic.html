@@ -331,6 +331,8 @@
         const upgrades = to - from;
         const milestones = getStatMilestones(relic.id, from, to);
         let relicCP = 0;
+        let milestoneCP = 0;
+        for (const m of milestones) milestoneCP += STAT_CP[m.stat] || 0;
         if (relic.id === 'destruction') {
           // Custom Origin Destruction CP calculation (matches provided mapping)
           let atkTotal = 0;
@@ -340,27 +342,28 @@
             atkTotal += atk;
           }
           relicCP = atkTotal * 10;
-          grandCP += relicCP;
+          let totalCP = relicCP + milestoneCP;
+          grandCP += totalCP;
           resultEl.innerHTML = `
             <div class="flex items-baseline justify-between gap-2 mb-2">
               <div>
                 <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">${upgrades} upgrade${upgrades === 1 ? '' : 's'} · Lv ${from} → ${to}</div>
+                <!-- Upgrades/level range line removed as requested -->
               </div>
               <div class="text-right">
                 <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">+${relicCP.toLocaleString()} CP</div>
+                <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">+${totalCP.toLocaleString()} CP</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">ATK: ${atkTotal}</div>
               </div>
             </div>`;
         } else {
-          for (const m of milestones) relicCP += STAT_CP[m.stat] || 0;
+          relicCP = milestoneCP;
           grandCP += relicCP;
           resultEl.innerHTML = `
             <div class="flex items-baseline justify-between gap-2 mb-2">
               <div>
                 <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">${upgrades} upgrade${upgrades === 1 ? '' : 's'} · Lv ${from} → ${to}</div>
+                <!-- Upgrades/level range line removed as requested -->
               </div>
               <div class="text-right">
                 <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
@@ -389,18 +392,32 @@
           // Totals summary
           let html = `<div class="border-t border-gray-200/50 dark:border-neutral-700/50 pt-2 mt-1">
             <div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Total Stat Gains</div>`;
-          for (const [name, info] of Object.entries(totals)) {
-            // find CP for this stat by matching name back to full stat string
+          // Patch: For each stat, sum its own CP and the CP from its paired stat (next in milestone cycle)
+          const statNames = Object.keys(totals);
+          for (let i = 0; i < statNames.length; i++) {
+            const name = statNames[i];
+            const info = totals[name];
+            // Find CP for this stat
             let cpForStat = 0;
             for (const m of milestones) {
               const mm = m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
               if (mm && mm[1].trim() === name) cpForStat += STAT_CP[m.stat] || 0;
             }
+            // Find CP for paired stat (next in cycle, wrap around)
+            let cpPaired = 0;
+            if (statNames.length > 1) {
+              const pairedName = statNames[(i + 1) % statNames.length];
+              for (const m of milestones) {
+                const mm = m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
+                if (mm && mm[1].trim() === pairedName) cpPaired += STAT_CP[m.stat] || 0;
+              }
+            }
+            const cpSum = cpForStat + cpPaired;
             html += `<div class="flex justify-between text-xs py-0.5">
               <span class="text-gray-600 dark:text-gray-300">${name}</span>
               <span class="flex gap-2">
                 <span class="font-semibold ${c.accent}">+ ${info.val}${info.isPercent ? '%' : ''}</span>
-                ${cpForStat > 0 ? `<span class="text-yellow-600 dark:text-yellow-400 font-medium">${cpForStat} CP</span>` : ''}
+                ${cpSum > 0 ? `<span class="text-yellow-600 dark:text-yellow-400 font-medium">${cpSum} CP</span>` : ''}
               </span>
             </div>`;
           }
