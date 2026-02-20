@@ -938,7 +938,7 @@
       card.innerHTML = `
         <div class="relative">${fallback}</div>
         <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center leading-tight truncate w-full px-1 whitespace-nowrap">${title}</div>
-        ${singleLocDeck ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${singleLocDeck}</div>` : ''}
+        ${singleLocDeck ? `<div class="text-[12px] text-gray-400 dark:text-gray-500 text-center w-full">${singleLocDeck}</div>` : ''}
         ${dateTag}
         <div class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</div>
         <div class="countdown-mono tabular-nums text-base font-bold ${cdColor}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
