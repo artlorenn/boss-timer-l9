@@ -310,6 +310,30 @@
     const timelineBtn = $('toggle-timeline');
 
     let eventsState = [];
+    // Fetch shared boss events from bosses.json
+    async function fetchBossesJson() {
+      try {
+        const res = await fetch('bosses.json');
+        if (!res.ok) throw new Error('Failed to fetch bosses.json');
+        const bosses = await res.json();
+        // Convert bosses.json format to eventsState format
+        eventsState = bosses.map(b => ({
+          boss: b.name,
+          date: b.date,
+          time: b.start_time,
+          dur: b.end_time,
+          start: new Date(`${b.date} ${b.start_time}`).toISOString()
+        }));
+        eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+        render(eventsState);
+        showToast('Loaded shared boss schedule');
+        startTicker();
+      } catch (e) {
+        showToast('Could not load bosses.json');
+      }
+    }
+    // Auto-load bosses.json for all users
+    fetchBossesJson();
     function saveEvents() {
       try {
         localStorage.setItem('eventsState', JSON.stringify(eventsState));
@@ -1418,33 +1442,39 @@
     }
 
     // --- Events ---
-    parseBtn.addEventListener('click', () => {
+    parseBtn.addEventListener('click', async () => {
       const now = Date.now();
       // parse new events from input
       const parsed = parseSchedule(input.value)
         .filter(ev => new Date(ev.start).getTime() > now && !completed.has(ev.boss))
         .sort((a, b) => new Date(a.start) - new Date(b.start));
 
-      // Merge parsed events into the current state, preserving generated world/destroyer events
-      const existing = new Set(eventsState.map(e => `${e.start}-${e.boss}`));
-      for (const ev of parsed) {
-        const id = `${ev.start}-${ev.boss}`;
-        if (!existing.has(id)) {
-          eventsState.push(ev);
-          existing.add(id);
-        }
-      }
-      // If there were no pre-existing events, adopt parsed as initial state
-      if (!eventsState.length) eventsState = parsed.slice();
+      // Convert parsed events to bosses.json format
+      const bossesJson = parsed.map(ev => ({
+        emoji: ':t_rex:',
+        name: ev.boss,
+        date: ev.date,
+        start_time: ev.time,
+        end_time: ev.dur || ''
+      }));
 
-      // Normalize ordering and clear triggers
-      eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
-      triggered.clear();
-      render(eventsState);
+      // Send to Netlify Function to update bosses.json
+      try {
+        const res = await fetch('/.netlify/functions/updateBosses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bossesJson)
+        });
+        if (!res.ok) throw new Error('Failed to update bosses.json');
+        showToast('Bosses updated for everyone');
+        // Optionally reload bosses.json
+        fetchBossesJson();
+      } catch (e) {
+        showToast('Failed to update shared bosses');
+      }
+
       // hide the raw input box after parsing to reduce clutter
       try { input.parentElement.style.display = 'none'; } catch (e) {}
-      showToast(eventsState.length ? 'Alarms armed (5 min before)' : 'Nothing parsed – check format');
-      saveEvents();
       ensureNotificationPermission();
       startTicker();
     });
