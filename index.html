@@ -277,11 +277,10 @@
     // JSONBIN CONFIG
     // =============================================
     const JSONBIN_BIN_ID   = '699a7d7343b1c97be9928d88';
-    const JSONBIN_API_KEY  = '$2a$10$cf7uw8DGUik5tPgqyFnLWO2Ms6k.n0VR4w8l6Q6BRiVRcRitqusMe'; // <-- REPLACE with your new key after regenerating
+    const JSONBIN_API_KEY  = '$2a$10$cf7uw8DGUik5tPgqyFnLWO2Ms6k.n0VR4w8l6Q6BRiVRcRitqusMe';
     const JSONBIN_BASE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
-    // Auto-refresh interval for non-admin users (ms)
-    const AUTO_REFRESH_MS = 60000; // every 60 seconds
+    const AUTO_REFRESH_MS = 60000;
 
     // =============================================
 
@@ -362,7 +361,6 @@
           })
           .filter(ev => new Date(ev.start).getTime() > now);
 
-        // Merge with world/fixed events, avoid duplication
         const existingIds = new Set(eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss)).map(e => evId(e)));
         eventsState = [...eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))];
         for (const ev of loaded) {
@@ -403,7 +401,6 @@
       }
     }
 
-    // Auto-refresh for non-admin users
     function startAutoRefresh() {
       if (autoRefreshId) clearInterval(autoRefreshId);
       autoRefreshId = setInterval(() => {
@@ -586,6 +583,7 @@
     };
 
     function getBossLocation(name) {
+      if (!name) return '';
       return BOSS_LOCATION[name] || Object.entries(BOSS_LOCATION).find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1] || '';
     }
 
@@ -688,6 +686,34 @@
       return RESPAWN_TIME[name] || Object.entries(RESPAWN_TIME).find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1] || null;
     }
 
+    // =============================================
+    // Strip emoji / decoration helpers
+    // =============================================
+    // Removes :t_rex:, :emoji_name:, and common Unicode emoji from a string
+    function stripEmoji(str) {
+      return str
+        // Remove :shortcode: style emoji (e.g. :t_rex:, :white_check_mark:)
+        .replace(/:[a-z0-9_+-]+:/gi, '')
+        // Remove Unicode emoji (broad range)
+        .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+        .replace(/[\u{2600}-\u{27BF}]/gu, '')
+        .replace(/[\u{FE00}-\u{FEFF}]/gu, '')
+        // Remove common dingbats / symbols that appear around boss names
+        .replace(/[🦖🦕🐉🐲🗡️⚔️🏆💀☠️👾🔥💥]/g, '')
+        .trim();
+    }
+
+    function cleanBossName(name) {
+      return stripEmoji(name)
+        // Remove leading/trailing dashes, pipes, underscores, dots
+        .replace(/^[\s\-–—|_.•*#>]+/, '')
+        .replace(/[\s\-–—|_.•*#>]+$/, '')
+        .trim();
+    }
+
+    // =============================================
+    // Kill Boss
+    // =============================================
     function killBoss(bossName) {
       const respawnMs = getRespawnMs(bossName);
       if (!respawnMs) return;
@@ -700,7 +726,6 @@
         eventsState.push({ boss: bossName, date: newStart.slice(0,10), time: '', dur: '', start: newStart });
       }
       eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
-      // Save updated schedule back to JSONBin
       const cloudBosses = eventsState
         .filter(e => !e.worldBoss && !isFixedSchedule(e.boss))
         .map(e => ({ name: e.boss, date: e.date, start_time: e.time, end_time: e.dur || '' }));
@@ -709,7 +734,7 @@
       render(eventsState);
     }
 
-    function getInitial(name) { return name.charAt(0).toUpperCase(); }
+    function getInitial(name) { return (name || '?').charAt(0).toUpperCase(); }
 
     function setPill(text, variant) {
       pillEl.textContent = text;
@@ -723,41 +748,99 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
+    function manualSetTime(bossName) {
+      const ev = eventsState.find(e => e.boss === bossName);
+      if (!ev) return;
+      const existing = document.querySelector(`.manual-row[data-boss="${bossName}"]`);
+      if (existing) {
+        const inp = existing.querySelector('input');
+        const ts = new Date(inp.value);
+        if (!inp.value || isNaN(ts)) { existing.remove(); return showToast('Cancelled'); }
+        if (ts.getTime() <= Date.now()) return showToast('Time must be in the future');
+        ev.start = ts.toISOString();
+        triggered.delete(`${ev.start}-${ev.boss}`);
+        eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
+        const cloudBosses = eventsState
+          .filter(e => !e.worldBoss && !isFixedSchedule(e.boss))
+          .map(e => ({ name: e.boss, date: e.date, start_time: e.time, end_time: e.dur || '' }));
+        saveBossesToCloud(cloudBosses);
+        showToast(`${bossName} set to ${fmtTime(ev.start)}`);
+        render(eventsState);
+        return;
+      }
+      const card = document.querySelector(`.manual-trigger[data-boss="${bossName}"]`)?.closest('.boss-card, .deck-card');
+      if (!card) return;
+      const row = document.createElement('div');
+      row.className = 'manual-row flex items-center gap-1 mt-1';
+      row.dataset.boss = bossName;
+      row.innerHTML = `<input type="datetime-local" class="manual-time-input" step="60"><button class="set-btn" style="padding:2px 6px;font-size:10px;">OK</button>`;
+      card.appendChild(row);
+      row.querySelector('button').addEventListener('click', () => manualSetTime(bossName));
+    }
+
+    function isPinned(name) { return pinnedBosses.has(name); }
+
     // =============================================
-    // Parse Schedule
+    // Countdown Helpers
+    // =============================================
+    function fmtCountdown(iso) {
+      const d = Math.max(0, new Date(iso).getTime() - Date.now());
+      const h = Math.floor(d / 3.6e6);
+      const m = Math.floor((d % 3.6e6) / 6e4);
+      const s = Math.floor((d % 6e4) / 1e3);
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+    function fmtTime(iso)  { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    function fmtDate(iso)  { return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' }); }
+
+    // =============================================
+    // Parse Schedule  ← FIXED: strips :t_rex: and all emoji from boss names
     // =============================================
     function parseSchedule(raw) {
-      const tokens = raw.split(/:t_rex:\s*/i).map(t => t.trim()).filter(Boolean);
+      // Pre-clean: remove all :shortcode: emoji and Unicode emoji from the entire input
+      // so they never contaminate boss names
+      const cleaned = raw
+        .replace(/:[a-z0-9_+-]+:/gi, ' ')
+        .replace(/[\u{1F000}-\u{1FFFF}]/gu, ' ')
+        .replace(/[\u{2600}-\u{27BF}]/gu, ' ')
+        .replace(/[\u{FE00}-\u{FEFF}]/gu, ' ')
+        .replace(/[🦖🦕🐉🐲🗡️⚔️🏆💀☠️👾🔥💥]/g, ' ');
+
       const out = [];
-      const primary = /^(.+?)\s+—\s+(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))\s*\((\d{2,3}:\d{2}:\d{2})\)/i;
-      const timeOnlyRe = /([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM))/i;
       const now = Date.now();
 
-      // Also try line-by-line for "Boss — date | time (dur)" format
-      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      // Line-by-line parser: handles "Boss — date | time (dur)" format
+      const lines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       for (const line of lines) {
-        const m = line.match(/^(.+?)\s+[—-]+\s+`?(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))`?\s*(?:\(?(\d{2,3}:\d{2}:\d{2})\)?)?/i);
+        const m = line.match(/^(.+?)\s+[—\-]+\s+`?(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))`?\s*(?:\(?(\d{2,3}:\d{2}:\d{2})\)?)?/i);
         if (m) {
-          const [, boss, date, time, dur] = m;
+          const boss = cleanBossName(m[1]);
+          const [, , date, time, dur] = m;
+          if (!boss) continue;
           const ts = new Date(`${date} ${time}`);
           if (!isNaN(ts) && ts.getTime() > now) {
-            out.push({ boss: boss.trim(), date, time: time.trim(), dur: dur || '00:30:00', start: ts.toISOString() });
+            out.push({ boss, date, time: time.trim(), dur: dur || '00:30:00', start: ts.toISOString() });
           }
-          continue;
         }
       }
 
       // If line-by-line got results, return them
       if (out.length) return out;
 
-      // Fallback to token-based parser
+      // Fallback: token-based parser (original logic, operates on pre-cleaned text)
+      const tokens = cleaned.split(/\s{2,}|\n{2,}/).map(t => t.trim()).filter(Boolean);
+      const primary = /^(.+?)\s+[—\-]+\s+(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))\s*\((\d{2,3}:\d{2}:\d{2})\)/i;
+      const timeOnlyRe = /([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM))/i;
+
       for (const t of tokens) {
         let m = t.match(primary);
         if (m) {
-          const [, boss, date, time, dur] = m;
+          const boss = cleanBossName(m[1]);
+          const [, , date, time, dur] = m;
+          if (!boss) continue;
           const ts = new Date(`${date} ${time}`);
           if (isNaN(ts)) continue;
-          out.push({ boss: boss.trim(), date, time: time.trim(), dur, start: ts.toISOString() });
+          out.push({ boss, date, time: time.trim(), dur, start: ts.toISOString() });
           continue;
         }
         const tlines = t.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -786,7 +869,7 @@
         }
         if (!timeStr) continue;
 
-        const names = bossPart.split(/[,/\n·]+/).map(s => s.trim()).filter(Boolean);
+        const names = bossPart.split(/[,/\n·]+/).map(s => cleanBossName(s)).filter(Boolean);
         const lcWorld = WORLD_BOSSES.map(x => x.toLowerCase());
         const isWorldGroup = names.some(n => lcWorld.includes(n.toLowerCase()));
 
@@ -812,52 +895,6 @@
     }
 
     // =============================================
-    // Countdown Helpers
-    // =============================================
-    function fmtCountdown(iso) {
-      const d = Math.max(0, new Date(iso).getTime() - Date.now());
-      const h = Math.floor(d / 3.6e6);
-      const m = Math.floor((d % 3.6e6) / 6e4);
-      const s = Math.floor((d % 6e4) / 1e3);
-      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    }
-    function fmtTime(iso)  { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-    function fmtDate(iso)  { return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' }); }
-
-    function manualSetTime(bossName) {
-      const ev = eventsState.find(e => e.boss === bossName);
-      if (!ev) return;
-      const existing = document.querySelector(`.manual-row[data-boss="${bossName}"]`);
-      if (existing) {
-        const inp = existing.querySelector('input');
-        const ts = new Date(inp.value);
-        if (!inp.value || isNaN(ts)) { existing.remove(); return showToast('Cancelled'); }
-        if (ts.getTime() <= Date.now()) return showToast('Time must be in the future');
-        ev.start = ts.toISOString();
-        triggered.delete(`${ev.start}-${ev.boss}`);
-        eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
-        // Save to cloud
-        const cloudBosses = eventsState
-          .filter(e => !e.worldBoss && !isFixedSchedule(e.boss))
-          .map(e => ({ name: e.boss, date: e.date, start_time: e.time, end_time: e.dur || '' }));
-        saveBossesToCloud(cloudBosses);
-        showToast(`${bossName} set to ${fmtTime(ev.start)}`);
-        render(eventsState);
-        return;
-      }
-      const card = document.querySelector(`.manual-trigger[data-boss="${bossName}"]`)?.closest('.boss-card, .deck-card');
-      if (!card) return;
-      const row = document.createElement('div');
-      row.className = 'manual-row flex items-center gap-1 mt-1';
-      row.dataset.boss = bossName;
-      row.innerHTML = `<input type="datetime-local" class="manual-time-input" step="60"><button class="set-btn" style="padding:2px 6px;font-size:10px;">OK</button>`;
-      card.appendChild(row);
-      row.querySelector('button').addEventListener('click', () => manualSetTime(bossName));
-    }
-
-    function isPinned(name) { return pinnedBosses.has(name); }
-
-    // =============================================
     // Card Builders
     // =============================================
     function buildCompactCard(ev, label) {
@@ -869,6 +906,7 @@
       const ringClass  = urgent ? 'ring-1 ring-rose-200 dark:ring-rose-800' : soon ? 'ring-1 ring-blue-200 dark:ring-blue-900' : '';
       const dateTag    = label === 'Later' ? `<span class="text-[11px] text-gray-400 dark:text-gray-500">${fmtDate(ev.start)}</span>` : '';
       const fallback   = `<div class="boss-img flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-gray-400">${getInitial(ev.boss)}</div>`;
+      const loc        = getBossLocation(ev.boss);
       const card = document.createElement('div');
       card.className = `boss-card flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${ringClass}`;
       card.style.position = 'relative';
@@ -881,7 +919,7 @@
             <div class="flex items-center justify-between">
               <div class="min-w-0">
                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">${ev.boss}</div>
-                <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">${fmtTime(ev.start)}${getBossLocation(ev.boss) ? ` · ${getBossLocation(ev.boss)}` : ''}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">${fmtTime(ev.start)}${loc ? ` · ${loc}` : ''}</div>
                 <div class="mt-0">
                   <span class="countdown-mono tabular-nums text-sm font-semibold ${cdColor} whitespace-nowrap" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</span>
                 </div>
@@ -938,12 +976,13 @@
       const stateClass = urgent ? 'urgent' : soon ? 'soon-card' : '';
       const dateTag    = label === 'Later' ? `<div class="text-[10px] text-gray-400 dark:text-gray-500">${fmtDate(ev.start)}</div>` : '';
       const fallback   = `<div class="deck-img flex items-center justify-center text-2xl font-bold text-gray-400 dark:text-gray-500">${getInitial(ev.boss)}</div>`;
+      const loc        = getBossLocation(ev.boss);
       const card = document.createElement('div');
       card.className = `deck-card ${stateClass}`;
       card.innerHTML = `
         <div class="relative">${fallback}</div>
         <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center leading-tight truncate w-full px-1">${ev.boss}</div>
-        ${getBossLocation(ev.boss) ? `<div class="text-[12px] text-gray-400 dark:text-gray-500">${getBossLocation(ev.boss)}</div>` : ''}
+        ${loc ? `<div class="text-[12px] text-gray-400 dark:text-gray-500 text-center">${loc}</div>` : ''}
         ${dateTag}
         <div class="text-xs text-gray-400 dark:text-gray-500">${fmtTime(ev.start)}</div>
         <div class="countdown-mono tabular-nums text-base font-bold ${cdColor}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
@@ -1301,7 +1340,6 @@
 
       showToast(`✓ Saved ${parsed.length} bosses for everyone!`);
 
-      // Merge parsed with world/fixed events
       const worldFixed = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss));
       eventsState = [...worldFixed, ...parsed];
       eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -1310,7 +1348,6 @@
       ensureNotificationPermission();
       startTicker();
 
-      // Hide input after parse
       try { input.parentElement.style.display = 'none'; } catch (e) {}
     });
 
@@ -1393,7 +1430,6 @@
     // =============================================
     updateAdminUI();
 
-    // Load world boss + fixed schedule events
     (function initStaticEvents() {
       const wb    = generateWorldBossEvents();
       const fixed = generateFixedScheduleEvents(7);
@@ -1404,21 +1440,18 @@
       eventsState.sort((a, b) => new Date(a.start) - new Date(b.start));
     })();
 
-    // Load from JSONBin on page open
     fetchBossesJson().then(() => {
       ensureNotificationPermission();
       startTicker();
       startAutoRefresh();
     });
 
-    // Mouse wheel horizontal scroll for deck
     document.addEventListener('wheel', e => {
       const el = e.target.closest && e.target.closest('.deck-scroll');
       if (!el || e.deltaY === 0) return;
       el.scrollLeft += e.deltaY; e.preventDefault();
     }, { passive: false });
 
-    // PWA
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   </script>
 </body>
