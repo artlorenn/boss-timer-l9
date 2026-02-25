@@ -580,8 +580,8 @@
       'Icaruthia':        'Kransia - Central Arena',
       'Motti':            'Kransia - Ruined Bastion',
       'Nevaeh':           'Kransia - Skyspire Summit',
-      'Libitina':         'Chapel of Eternal Vassalage',
-      'Rakajeth':         "Secreta's Punishment",
+      'Libitina':         'Volcano Dracas',
+      'Rakajeth':         'Volcano Dracas',
     };
 
     function getBossLocation(name) {
@@ -616,6 +616,18 @@
     };
 
     const FIXED_SCHEDULE_MAP = {
+      // dow: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+      'Clemantis': [ { dow: 1, time: '11:30' }, { dow: 4, time: '19:00' } ],
+      'Saphirus':  [ { dow: 0, time: '17:00' }, { dow: 2, time: '11:30' } ],
+      'Neutro':    [ { dow: 2, time: '19:00' }, { dow: 4, time: '11:30' } ],
+      'Thymele':   [ { dow: 1, time: '19:00' }, { dow: 3, time: '11:30' } ],
+      'Milavy':    [ { dow: 6, time: '15:00' } ],
+      'Ringor':    [ { dow: 6, time: '17:00' } ],
+      'Roderick':  [ { dow: 5, time: '19:00' } ],
+      'Auraq':     [ { dow: 5, time: '22:00' }, { dow: 3, time: '21:00' } ],
+      'Benji':     [ { dow: 0, time: '21:00' } ],
+      'Chaiflock': [ { dow: 6, time: '22:00' } ],
+      'Tumier':    [ { dow: 0, time: '19:00' } ],
       'Icaruthia': [ { dow: 2, time: '21:00' }, { dow: 5, time: '21:00' } ],
       'Motti':     [ { dow: 3, time: '19:00' }, { dow: 6, time: '19:00' } ],
       'Nevaeh':    [ { dow: 0, time: '22:00' } ],
@@ -623,7 +635,7 @@
       'Rakajeth':  [ { dow: 2, time: '22:00' }, { dow: 0, time: '19:00' } ],
     };
 
-    function generateFixedScheduleEvents(daysAhead = 7) {
+    function generateFixedScheduleEvents(daysAhead = 14) {
       const events = [];
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1524,7 +1536,7 @@
 
     (function initStaticEvents() {
       const wb    = generateWorldBossEvents();
-      const fixed = generateFixedScheduleEvents(7);
+      const fixed = generateFixedScheduleEvents(14);
       const existing = new Set(eventsState.map(evId));
       for (const ev of [...wb, ...fixed]) {
         if (!existing.has(evId(ev))) { eventsState.push(ev); existing.add(evId(ev)); }
