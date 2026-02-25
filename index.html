@@ -359,7 +359,7 @@
               start: start.toISOString()
             };
           })
-          .filter(ev => new Date(ev.start).getTime() > now);
+          .filter(ev => new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss));
 
         const existingIds = new Set(eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss)).map(e => evId(e)));
         eventsState = [...eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))];
@@ -580,6 +580,8 @@
       'Icaruthia':        'Kransia - Central Arena',
       'Motti':            'Kransia - Ruined Bastion',
       'Nevaeh':           'Kransia - Skyspire Summit',
+      'Libitina':         'Chapel of Eternal Vassalage',
+      'Rakajeth':         "Secreta's Punishment",
     };
 
     function getBossLocation(name) {
@@ -617,6 +619,8 @@
       'Icaruthia': [ { dow: 2, time: '21:00' }, { dow: 5, time: '21:00' } ],
       'Motti':     [ { dow: 3, time: '19:00' }, { dow: 6, time: '19:00' } ],
       'Nevaeh':    [ { dow: 0, time: '22:00' } ],
+      'Libitina':  [ { dow: 1, time: '21:00' }, { dow: 6, time: '21:00' } ],
+      'Rakajeth':  [ { dow: 2, time: '22:00' }, { dow: 0, time: '19:00' } ],
     };
 
     function generateFixedScheduleEvents(daysAhead = 7) {
@@ -648,7 +652,7 @@
 
     const FIXED_SCHEDULE_BOSSES = new Set([
       'Clemantis','Saphirus','Neutro','Thymele','Milavy','Ringor','Roderick','Auraq','Benji','Chaiflock','Tumier',
-      'Icaruthia','Motti','Nevaeh'
+      'Icaruthia','Motti','Nevaeh','Libitina','Rakajeth'
     ]);
 
     function isFixedSchedule(name) {
@@ -1411,7 +1415,7 @@
     parseBtn.addEventListener('click', async () => {
       const now = Date.now();
       const parsed = parseSchedule(input.value)
-        .filter(ev => new Date(ev.start).getTime() > now && !completed.has(ev.boss))
+        .filter(ev => new Date(ev.start).getTime() > now && !completed.has(ev.boss) && !isFixedSchedule(ev.boss))
         .sort((a, b) => new Date(a.start) - new Date(b.start));
 
       if (!parsed.length) return showToast('No valid events found — check your paste format');
