@@ -687,25 +687,50 @@
     }
 
     // =============================================
+    // Boss Name Aliases (abbreviations & variants)
+    // =============================================
+    const BOSS_ALIASES = {
+      // General Aquleus abbreviations
+      'Gen. Aquleus':   'General Aquleus',
+      'Gen Aquleus':    'General Aquleus',
+      'Gen.Aquleus':    'General Aquleus',
+      'Gen.  Aquleus':  'General Aquleus',
+      'Aquleus':        'General Aquleus',
+      // Baron Braudmore abbreviations
+      'Baron':          'Baron Braudmore',
+      // Lady Dalia abbreviations
+      'Lady D':         'Lady Dalia',
+      'Dalia':          'Lady Dalia',
+    };
+
+    function resolveBossAlias(name) {
+      if (!name) return name;
+      const trimmed = name.trim();
+      // Exact match
+      if (BOSS_ALIASES[trimmed]) return BOSS_ALIASES[trimmed];
+      // Case-insensitive match
+      const lower = trimmed.toLowerCase();
+      for (const [alias, canonical] of Object.entries(BOSS_ALIASES)) {
+        if (alias.toLowerCase() === lower) return canonical;
+      }
+      return trimmed;
+    }
+
+    // =============================================
     // Strip emoji / decoration helpers
     // =============================================
-    // Removes :t_rex:, :emoji_name:, and common Unicode emoji from a string
     function stripEmoji(str) {
       return str
-        // Remove :shortcode: style emoji (e.g. :t_rex:, :white_check_mark:)
         .replace(/:[a-z0-9_+-]+:/gi, '')
-        // Remove Unicode emoji (broad range)
         .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
         .replace(/[\u{2600}-\u{27BF}]/gu, '')
         .replace(/[\u{FE00}-\u{FEFF}]/gu, '')
-        // Remove common dingbats / symbols that appear around boss names
         .replace(/[🦖🦕🐉🐲🗡️⚔️🏆💀☠️👾🔥💥]/g, '')
         .trim();
     }
 
     function cleanBossName(name) {
       return stripEmoji(name)
-        // Remove leading/trailing dashes, pipes, underscores, dots
         .replace(/^[\s\-–—|_.•*#>]+/, '')
         .replace(/[\s\-–—|_.•*#>]+$/, '')
         .trim();
@@ -794,11 +819,10 @@
     function fmtDate(iso)  { return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' }); }
 
     // =============================================
-    // Parse Schedule  ← FIXED: strips :t_rex: and all emoji from boss names
+    // Parse Schedule
     // =============================================
     function parseSchedule(raw) {
-      // Pre-clean: remove all :shortcode: emoji and Unicode emoji from the entire input
-      // so they never contaminate boss names
+      // Pre-clean: remove all :shortcode: emoji and Unicode emoji
       const cleaned = raw
         .replace(/:[a-z0-9_+-]+:/gi, ' ')
         .replace(/[\u{1F000}-\u{1FFFF}]/gu, ' ')
@@ -809,12 +833,75 @@
       const out = [];
       const now = Date.now();
 
-      // Line-by-line parser: handles "Boss — date | time (dur)" format
+      // ─────────────────────────────────────────────
+      // FORMAT 1 (NEW): "M/D/YYYY Boss - HH:MM AM Boss2 - HH:MM PM ..."
+      // Date headers like "2/25/2026" followed by "BossName - HH:MM AM/PM" pairs.
+      // Separator between boss name and time can be - or =
+      // Multiple dates can appear in the same paste.
+      // ─────────────────────────────────────────────
+      (function parseNewDateFormat() {
+        // Find all M/D/YYYY date headers in the text
+        const dateHeaderRe = /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/g;
+        const positions = [];
+        let dMatch;
+        while ((dMatch = dateHeaderRe.exec(cleaned)) !== null) {
+          positions.push({ dateStr: dMatch[1], index: dMatch.index });
+        }
+        if (!positions.length) return;
+
+        for (let i = 0; i < positions.length; i++) {
+          const { dateStr, index } = positions[i];
+          const segStart = index + dateStr.length;
+          const segEnd   = i + 1 < positions.length ? positions[i + 1].index : cleaned.length;
+          const chunk    = cleaned.slice(segStart, segEnd).trim();
+
+          // Parse M/D/YYYY
+          const [mo, da, yr] = dateStr.split('/').map(Number);
+          if (!mo || !da || !yr) continue;
+
+          // Match boss-time pairs: "Boss Name - HH:MM AM/PM"
+          // The separator between name and time is - or =
+          // Non-greedy match on name so it stops at the separator
+          const entryRe = /(.+?)\s*[-=]\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/gi;
+          let em;
+          while ((em = entryRe.exec(chunk)) !== null) {
+            const rawName = em[1].trim();
+            const rawTime = em[2].trim();
+            if (!rawName || !rawTime) continue;
+
+            // Clean and resolve aliases
+            const bossName = resolveBossAlias(cleanBossName(rawName));
+            if (!bossName) continue;
+
+            // Build date string in a JS-parseable format
+            const dateForParsing = `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')} ${rawTime}`;
+            const dt = new Date(dateForParsing);
+            if (isNaN(dt.getTime())) continue;
+            // Only include future events (allow a small grace window)
+            if (dt.getTime() <= now - 60000) continue;
+
+            out.push({
+              boss:  bossName,
+              date:  dt.toISOString().slice(0, 10),
+              time:  dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              dur:   '00:30:00',
+              start: dt.toISOString(),
+            });
+          }
+        }
+      })();
+
+      // If new format found results, return them
+      if (out.length) return out;
+
+      // ─────────────────────────────────────────────
+      // FORMAT 2 (ORIGINAL): Line-by-line "Boss — date | time (dur)"
+      // ─────────────────────────────────────────────
       const lines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       for (const line of lines) {
         const m = line.match(/^(.+?)\s+[—\-]+\s+`?(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))`?\s*(?:\(?(\d{2,3}:\d{2}:\d{2})\)?)?/i);
         if (m) {
-          const boss = cleanBossName(m[1]);
+          const boss = resolveBossAlias(cleanBossName(m[1]));
           const [, , date, time, dur] = m;
           if (!boss) continue;
           const ts = new Date(`${date} ${time}`);
@@ -824,10 +911,11 @@
         }
       }
 
-      // If line-by-line got results, return them
       if (out.length) return out;
 
-      // Fallback: token-based parser (original logic, operates on pre-cleaned text)
+      // ─────────────────────────────────────────────
+      // FORMAT 3 (ORIGINAL): Token-based fallback
+      // ─────────────────────────────────────────────
       const tokens = cleaned.split(/\s{2,}|\n{2,}/).map(t => t.trim()).filter(Boolean);
       const primary = /^(.+?)\s+[—\-]+\s+(\d{4}-\d{2}-\d{2})\s*\|\s*([0-9: ]+(?:AM|PM))\s*\((\d{2,3}:\d{2}:\d{2})\)/i;
       const timeOnlyRe = /([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM))/i;
@@ -835,7 +923,7 @@
       for (const t of tokens) {
         let m = t.match(primary);
         if (m) {
-          const boss = cleanBossName(m[1]);
+          const boss = resolveBossAlias(cleanBossName(m[1]));
           const [, , date, time, dur] = m;
           if (!boss) continue;
           const ts = new Date(`${date} ${time}`);
@@ -869,7 +957,7 @@
         }
         if (!timeStr) continue;
 
-        const names = bossPart.split(/[,/\n·]+/).map(s => cleanBossName(s)).filter(Boolean);
+        const names = bossPart.split(/[,/\n·]+/).map(s => resolveBossAlias(cleanBossName(s))).filter(Boolean);
         const lcWorld = WORLD_BOSSES.map(x => x.toLowerCase());
         const isWorldGroup = names.some(n => lcWorld.includes(n.toLowerCase()));
 
