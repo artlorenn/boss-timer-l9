@@ -41,25 +41,24 @@ html, body {
 /* ── OUTER FRAME ── */
 #frame {
   position: fixed;
-  inset: 8px;
-  border-radius: 20px;
+  inset: 10px;
+  border-radius: 22px;
   background: var(--bg2);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.08);
   box-shadow:
     0 0 0 1px rgba(0,0,0,1),
-    0 32px 64px rgba(0,0,0,0.8),
-    0 8px 32px rgba(0,0,0,0.6),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+    0 40px 80px rgba(0,0,0,0.85),
+    inset 0 1px 0 rgba(255,255,255,0.05);
   overflow: hidden;
   display: grid;
-  grid-template-rows: 52px 1fr;
-  grid-template-columns: 1fr 580px; /* doubled from 360px */
+  grid-template-rows: 80px 1fr;
+  grid-template-columns: 1fr 580px;
 }
 
 /* ── TOP BAR ── */
 #topbar {
   grid-column: 1 / -1;
-  height: 68px;
+  height: 80px;
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -67,49 +66,52 @@ html, body {
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(var(--blur));
   -webkit-backdrop-filter: blur(var(--blur));
-  background: rgba(18,18,18,0.7);
+  background: rgba(14,14,16,0.85);
 }
 
 .nav-link {
-  font-size: 13px; font-weight: 400;
-  color: var(--blue);
+  font-size: 12px; font-weight: 400;
+  color: var(--text3);
   text-decoration: none;
   letter-spacing: -.01em;
+  transition: color .15s;
 }
-.nav-link:hover { opacity: .8; }
+.nav-link:hover { color: var(--blue); }
 
 .page-title {
-  font-size: 15px; font-weight: 600;
-  letter-spacing: -.03em;
+  font-size: 16px; font-weight: 600;
+  letter-spacing: -.04em;
   color: var(--text);
 }
 
 .beta-pill {
-  font-size: 10px; font-weight: 600;
+  font-size: 9px; font-weight: 700;
   padding: 2px 7px; border-radius: 20px;
-  background: rgba(255,214,10,0.15);
+  background: rgba(255,214,10,0.12);
   color: var(--amber);
-  letter-spacing: .02em;
+  letter-spacing: .05em;
+  text-transform: uppercase;
 }
 
 .spacer { flex: 1; }
 
 .tb-stat {
   display: flex; flex-direction: column;
-  align-items: flex-end; gap: 1px;
+  align-items: flex-end; gap: 0;
 }
 .tb-stat-label {
-  font-size: 10px; font-weight: 500;
-  color: var(--text3); letter-spacing: .02em;
+  font-size: 9px; font-weight: 600;
+  color: var(--text4); letter-spacing: .06em;
   text-transform: uppercase;
 }
 .tb-stat-val {
   font-size: 15px; font-weight: 600;
-  letter-spacing: -.02em;
+  letter-spacing: -.03em;
   font-variant-numeric: tabular-nums;
+  color: var(--text2);
 }
 
-.tb-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+.tb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 
 .cur-select {
   background: var(--surface2);
@@ -316,11 +318,6 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 .tier-row:hover { background: rgba(255,255,255,.04); }
 
-/* Chest select */
-.chest-select-wrap {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-}
-
 /* Spinner */
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin-anim { animation: spin .8s linear infinite; }
@@ -357,11 +354,11 @@ details summary::-webkit-details-marker { display: none; }
 
   <!-- TOP BAR -->
   <div id="topbar">
-    <a href="index.html" class="nav-link">← Timer</a>
-    <div style="width:1px;height:16px;background:var(--border);"></div>
+    <a href="/timer" class="nav-link">← Timer</a>
+    <div class="tb-sep"></div>
     <span class="page-title">Relic Calculator</span>
     <span class="beta-pill">Beta</span>
-    <a href="potion.html" class="nav-link">Potion →</a>
+    <div class="tb-sep"></div>
 
     <div class="spacer"></div>
 
@@ -656,7 +653,6 @@ function recalcAll() {
     const cv=toCur(cost);
     const hex=COLOR_HEX[r.color];
 
-    // Compact stat gains
     const totals={};
     for(const m of ms){
       const match=m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
@@ -782,7 +778,6 @@ async function fetchLivePrice(){
     const suf=currency==='PHP'?' PHP':' USDT';
     el.innerHTML=`<span class="live-badge"><span class="live-dot"></span>Live</span>
       <span style="font-size:12px;color:var(--text2);font-weight:500;font-variant-numeric:tabular-nums;">${sym}${price.toFixed(2)}${suf} / chest</span>`;
-    // Always make sure t1 is fetched for per-piece price
     if(!cache['t1']) await fetchPrice('t1');
     if(cache['t1']){phpPerPiece=cache['t1'].php/1000;usdtPerPiece=cache['t1'].usdt/1000;}
     recalcAll();

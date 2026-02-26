@@ -4,303 +4,507 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Potion Calculator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { darkMode: 'class' }</script>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif; zoom: 1.0625; }
-    .mono { font-family: 'SF Mono', 'Cascadia Mono', 'Courier New', monospace; }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type="number"] { -moz-appearance: textfield; }
-    .num-wrap { display: flex; align-items: center; border-radius: 10px; overflow: hidden; border: 1px solid #d1d5db; }
-    .dark .num-wrap { border-color: #404040; }
-    .num-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; font-size: 18px; font-weight: 600; line-height: 1; color: rgba(150,150,150,0.8); transition: all 0.15s; flex-shrink: 0; }
-    .num-btn:hover { color: rgba(220,220,220,1); background: rgba(150,150,150,0.1); }
-    .num-btn:active { transform: scale(0.9); }
-    .num-wrap input { border: none !important; border-radius: 0 !important; text-align: center; border-left: 1px solid #d1d5db !important; border-right: 1px solid #d1d5db !important; }
-    .dark .num-wrap input { border-left-color: #404040 !important; border-right-color: #404040 !important; }
-    .result-card { transition: transform 80ms ease; }
-    .result-card:hover { transform: translateY(-1px); }
-    .bar-fill { transition: width 0.4s ease; }
-  </style>
+<style>
+:root {
+  --bg:        #000000;
+  --bg2:       #0a0a0a;
+  --surface:   rgba(28,28,30,0.8);
+  --surface2:  rgba(44,44,46,0.6);
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.05);
+  --text:      #ffffff;
+  --text2:     rgba(255,255,255,0.6);
+  --text3:     rgba(255,255,255,0.3);
+  --text4:     rgba(255,255,255,0.12);
+  --red:       #ff453a;
+  --blue:      #0a84ff;
+  --green:     #30d158;
+  --amber:     #ffd60a;
+  --purple:    #bf5af2;
+  --radius:    14px;
+  --radius-sm: 10px;
+  --blur:      20px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── FRAME ── */
+#frame {
+  position: fixed;
+  inset: 10px;
+  border-radius: 22px;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,1),
+    0 40px 80px rgba(0,0,0,0.85),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOP BAR ── */
+#topbar {
+  flex-shrink: 0;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  background: rgba(14,14,16,0.85);
+}
+
+.nav-link {
+  font-size: 12px; font-weight: 400;
+  color: var(--text3);
+  text-decoration: none;
+  letter-spacing: -.01em;
+  transition: color .15s;
+}
+.nav-link:hover { color: var(--blue); }
+
+.page-title {
+  font-size: 16px; font-weight: 600;
+  letter-spacing: -.04em;
+  color: var(--text);
+}
+
+.beta-pill {
+  font-size: 9px; font-weight: 700;
+  padding: 2px 7px; border-radius: 20px;
+  background: rgba(255,214,10,0.12);
+  color: var(--amber);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.tb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.spacer { flex: 1; }
+
+/* ── MAIN SCROLL ── */
+#main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#main::-webkit-scrollbar { width: 2px; }
+#main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+
+.row { display: flex; gap: 8px; }
+.row .card { flex: 1; }
+
+/* ── GLASS CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.section-label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text4); margin-bottom: 14px;
+}
+
+/* ── STAT CELLS ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-cell {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  text-align: center;
+}
+.stat-cell-label {
+  font-size: 10px; font-weight: 500;
+  color: var(--text4); margin-bottom: 6px;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.stat-cell-val {
+  font-size: 30px; font-weight: 700;
+  letter-spacing: -.05em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.stat-cell-sub {
+  font-size: 11px; color: var(--text3);
+  margin-top: 4px; letter-spacing: -.01em;
+}
+
+/* ── INPUTS ── */
+.field-label {
+  font-size: 11px; font-weight: 500;
+  color: var(--text3); margin-bottom: 5px;
+  letter-spacing: -.01em;
+}
+
+.num-wrap { display: flex; align-items: center; }
+.num-btn {
+  width: 32px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  font-size: 16px; font-weight: 400;
+  color: var(--text3);
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.num-btn:hover { color: var(--text2); background: rgba(255,255,255,.07); }
+.num-btn:active { transform: scale(.93); }
+.num-btn.minus { border-radius: 8px 0 0 8px; border-right: none; }
+.num-btn.plus  { border-radius: 0 8px 8px 0; border-left: none; }
+.num-wrap input {
+  height: 36px;
+  border: 1px solid var(--border);
+  border-left: none; border-right: none;
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px; font-weight: 600;
+  text-align: center; outline: none;
+  letter-spacing: -.02em;
+  -moz-appearance: textfield;
+  font-variant-numeric: tabular-nums;
+  width: 80px;
+}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* ── INLINE SENTENCE ROW ── */
+.sentence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sentence-row span {
+  font-size: 13px;
+  color: var(--text3);
+}
+
+/* ── RATE BADGE ── */
+.rate-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(191,90,242,0.1);
+  border: 1px solid rgba(191,90,242,0.2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px; font-weight: 600;
+  color: var(--purple);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+  margin-left: auto;
+}
+.rate-label { font-size: 10px; font-weight: 500; color: rgba(191,90,242,0.6); }
+
+/* ── PRESET BUTTONS ── */
+.preset-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.preset-btn {
+  height: 30px; padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  transition: all .15s;
+  font-family: inherit;
+  letter-spacing: -.01em;
+}
+.preset-btn:hover { background: rgba(255,255,255,.08); color: var(--text2); border-color: rgba(255,255,255,.12); }
+.preset-btn.active {
+  background: rgba(191,90,242,0.12);
+  border-color: rgba(191,90,242,0.3);
+  color: var(--purple);
+}
+
+/* ── BAR ── */
+.bar-track {
+  height: 14px;
+  background: rgba(255,255,255,.04);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  margin: 10px 0 6px;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width .4s cubic-bezier(.25,.46,.45,.94), background .3s;
+}
+.bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* span full width - unused */
+</style>
 </head>
-<body class="min-h-screen bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
-  <div class="max-w-6xl mx-auto px-5 py-8">
+<body>
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-3">
-        <a href="index.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">&larr; Timer</a>
-        <h1 class="text-lg font-semibold tracking-tight">Potion Calculator</h1>
-        <a href="relic.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Relic Calc &rarr;</a>
-      </div>
-      <button id="toggle-theme" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Toggle theme">
-        <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg id="icon-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-      </button>
-    </div>
+<div id="frame">
 
-    <!-- Measure your rate -->
-    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 mb-5">
-      <div class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Measure your rate</div>
-      <div class="flex items-end gap-3 flex-wrap">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-500 dark:text-gray-400">I used</span>
-          <div class="num-wrap">
-            <span class="num-btn minus bg-gray-50 dark:bg-neutral-800" data-target="pots-used" data-dir="down">&minus;</span>
-            <input id="pots-used" type="number" min="1" step="1" value="42" class="w-20 h-10 bg-gray-50 dark:bg-neutral-800 text-lg px-2 outline-none transition text-center mono">
-            <span class="num-btn plus bg-gray-50 dark:bg-neutral-800" data-target="pots-used" data-dir="up">+</span>
-          </div>
-          <span class="text-sm text-gray-500 dark:text-gray-400">pots in</span>
-          <div class="num-wrap">
-            <span class="num-btn minus bg-gray-50 dark:bg-neutral-800" data-target="time-span" data-dir="down">&minus;</span>
-            <input id="time-span" type="number" min="1" step="1" value="6" class="w-20 h-10 bg-gray-50 dark:bg-neutral-800 text-lg px-2 outline-none transition text-center mono">
-            <span class="num-btn plus bg-gray-50 dark:bg-neutral-800" data-target="time-span" data-dir="up">+</span>
-          </div>
-          <span class="text-sm text-gray-500 dark:text-gray-400">minutes</span>
-        </div>
-        <div class="flex items-center gap-1 ml-auto">
-          <span class="text-xs text-gray-400 dark:text-gray-500">Rate:</span>
-          <span id="rate-display" class="text-sm font-semibold mono text-violet-500">7.0/min</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Inventory -->
-    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 mb-5">
-      <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-sm text-gray-500 dark:text-gray-400">I have</span>
-        <div class="num-wrap">
-          <span class="num-btn minus bg-gray-50 dark:bg-neutral-800" data-target="total-pots" data-dir="down">&minus;</span>
-          <input id="total-pots" type="number" min="0" step="10" value="500" class="w-28 h-10 bg-gray-50 dark:bg-neutral-800 text-lg px-2 outline-none transition text-center mono">
-          <span class="num-btn plus bg-gray-50 dark:bg-neutral-800" data-target="total-pots" data-dir="up">+</span>
-        </div>
-        <span class="text-sm text-gray-500 dark:text-gray-400">potions total</span>
-      </div>
-    </div>
-
-    <!-- Results -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-
-      <!-- Inventory lasts -->
-      <div class="result-card bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 text-center">
-        <div class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Inventory Lasts</div>
-        <div id="time-lasts" class="text-3xl font-bold mono text-blue-500">1h 11m</div>
-        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">at current rate</div>
-      </div>
-
-      <!-- Pots remaining after X min -->
-      <div class="result-card bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 text-center">
-        <div class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Pots Remaining</div>
-        <div id="pots-remaining" class="text-3xl font-bold mono text-emerald-500">208</div>
-        <div id="remaining-label" class="text-xs text-gray-400 dark:text-gray-500 mt-1">after session</div>
-      </div>
-
-      <!-- Pots used in session -->
-      <div class="result-card bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 text-center">
-        <div class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Session Cost</div>
-        <div id="session-cost" class="text-3xl font-bold mono text-amber-500">292</div>
-        <div id="session-label" class="text-xs text-gray-400 dark:text-gray-500 mt-1">pots needed</div>
-      </div>
-    </div>
-
-    <!-- Session duration to estimate -->
-    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4 mb-5">
-      <div class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Estimate for session of</div>
-      <div class="flex flex-wrap gap-2">
-        <button class="preset-btn h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-600 dark:text-gray-300 px-4 hover:bg-gray-100 dark:hover:bg-neutral-700 transition" data-mins="15">15 min</button>
-        <button class="preset-btn h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-600 dark:text-gray-300 px-4 hover:bg-gray-100 dark:hover:bg-neutral-700 transition" data-mins="30">30 min</button>
-        <button class="preset-btn h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-600 dark:text-gray-300 px-4 hover:bg-gray-100 dark:hover:bg-neutral-700 transition" data-mins="60">1 hour</button>
-        <button class="preset-btn h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-600 dark:text-gray-300 px-4 hover:bg-gray-100 dark:hover:bg-neutral-700 transition" data-mins="120">2 hours</button>
-        <button class="preset-btn h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-600 dark:text-gray-300 px-4 hover:bg-gray-100 dark:hover:bg-neutral-700 transition" data-mins="180">3 hours</button>
-        <button class="preset-btn h-8 rounded-md border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-600 dark:text-gray-300 px-4 hover:bg-gray-100 dark:hover:bg-neutral-700 transition" data-mins="360">6 hours</button>
-        <div class="flex items-center gap-2 ml-2">
-          <span class="text-xs text-gray-400 dark:text-gray-500">or</span>
-          <div class="num-wrap">
-            <span class="num-btn minus bg-gray-50 dark:bg-neutral-800" data-target="session-mins" data-dir="down" style="width:28px;height:28px;font-size:14px;">&minus;</span>
-            <input id="session-mins" type="number" min="1" step="1" value="60" class="w-14 h-7 bg-gray-50 dark:bg-neutral-800 text-sm px-1 outline-none transition text-center mono">
-            <span class="num-btn plus bg-gray-50 dark:bg-neutral-800" data-target="session-mins" data-dir="up" style="width:28px;height:28px;font-size:14px;">+</span>
-          </div>
-          <span class="text-xs text-gray-400 dark:text-gray-500">min</span>
-        </div>
-      </div>
-      <div id="active-preset" class="text-xs text-violet-500 font-medium mt-2 hidden"></div>
-    </div>
-
-    <!-- Visual bar -->
-    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Inventory Usage</span>
-        <span id="bar-pct" class="text-xs font-semibold mono text-gray-500 dark:text-gray-400">24%</span>
-      </div>
-      <div class="w-full h-6 bg-gray-100 dark:bg-neutral-800 rounded-full overflow-hidden relative">
-        <div id="bar-used" class="bar-fill h-full rounded-full absolute left-0 top-0" style="width: 24%; background: linear-gradient(90deg, #22c55e, #eab308);"></div>
-      </div>
-      <div class="flex justify-between mt-1.5">
-        <span class="text-[11px] text-gray-400 dark:text-gray-500">0</span>
-        <span id="bar-total-label" class="text-[11px] text-gray-400 dark:text-gray-500">500 pots</span>
-      </div>
-    </div>
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <a href="/timer" class="nav-link">← Timer</a>
+    <div class="tb-sep"></div>
+    <a href="/relic" class="nav-link">← Relic</a>
+    <div class="tb-sep"></div>
+    <span class="page-title">Potion Calculator</span>
+    <span class="beta-pill">Beta</span>
+    <div class="spacer"></div>
   </div>
 
-  <script>
-    const $ = id => document.getElementById(id);
+  <!-- MAIN -->
+  <div id="main">
 
-    const potsUsedEl   = $('pots-used');
-    const timeSpanEl   = $('time-span');
-    const totalPotsEl  = $('total-pots');
-    const sessionMinsEl = $('session-mins');
+    <!-- Stat cells -->
+    <div class="stat-grid">
+      <div class="stat-cell">
+        <div class="stat-cell-label">Inventory Lasts</div>
+        <div class="stat-cell-val" id="time-lasts" style="color:var(--blue);">—</div>
+        <div class="stat-cell-sub">at current rate</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-cell-label">Pots Remaining</div>
+        <div class="stat-cell-val" id="pots-remaining" style="color:var(--green);">—</div>
+        <div class="stat-cell-sub" id="remaining-label">after session</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-cell-label">Session Cost</div>
+        <div class="stat-cell-val" id="session-cost" style="color:var(--amber);">—</div>
+        <div class="stat-cell-sub" id="session-label">pots needed</div>
+      </div>
+    </div>
 
-    const rateEl       = $('rate-display');
-    const timeLastsEl  = $('time-lasts');
-    const remainingEl  = $('pots-remaining');
-    const remainLabel  = $('remaining-label');
-    const sessionCostEl = $('session-cost');
-    const sessionLabel = $('session-label');
-    const barUsedEl    = $('bar-used');
-    const barPctEl     = $('bar-pct');
-    const barTotalEl   = $('bar-total-label');
-    const activePreset = $('active-preset');
+    <!-- Measure + Inventory side by side -->
+    <div class="row">
+      <div class="card">
+        <div class="section-label">Measure Your Rate</div>
+        <div class="sentence-row" style="margin-bottom:12px;">
+          <span>I used</span>
+          <div class="num-wrap">
+            <span class="num-btn minus" data-target="pots-used" data-dir="down">−</span>
+            <input id="pots-used" type="number" min="1" step="1" value="42">
+            <span class="num-btn plus" data-target="pots-used" data-dir="up">+</span>
+          </div>
+          <span>pots in</span>
+          <div class="num-wrap">
+            <span class="num-btn minus" data-target="time-span" data-dir="down">−</span>
+            <input id="time-span" type="number" min="1" step="1" value="6">
+            <span class="num-btn plus" data-target="time-span" data-dir="up">+</span>
+          </div>
+          <span>minutes</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:11px;color:var(--text4);">Consumption rate</span>
+          <div class="rate-badge">
+            <span id="rate-display">7.0/min</span>
+            <span class="rate-label">/ min</span>
+          </div>
+        </div>
+      </div>
 
-    function calc() {
-      const used = parseFloat(potsUsedEl.value) || 0;
-      const span = parseFloat(timeSpanEl.value) || 1;
-      const inv  = parseFloat(totalPotsEl.value) || 0;
-      const sessMins = parseFloat(sessionMinsEl.value) || 0;
+      <div class="card">
+        <div class="section-label">Inventory</div>
+        <div class="sentence-row">
+          <span>I have</span>
+          <div class="num-wrap">
+            <span class="num-btn minus" data-target="total-pots" data-dir="down">−</span>
+            <input id="total-pots" type="number" min="0" step="10" value="500" style="width:100px;">
+            <span class="num-btn plus" data-target="total-pots" data-dir="up">+</span>
+          </div>
+          <span>potions total</span>
+        </div>
+      </div>
+    </div>
 
-      // Rate
-      const rate = used / span;
-      rateEl.textContent = rate % 1 === 0 ? `${rate}/min` : `${rate.toFixed(1)}/min`;
+    <!-- Session estimate -->
+    <div class="card">
+      <div class="section-label">Estimate for Session of</div>
+      <div class="preset-wrap">
+        <button class="preset-btn" data-mins="15">15 min</button>
+        <button class="preset-btn" data-mins="30">30 min</button>
+        <button class="preset-btn active" data-mins="60">1 hour</button>
+        <button class="preset-btn" data-mins="120">2 hours</button>
+        <button class="preset-btn" data-mins="180">3 hours</button>
+        <button class="preset-btn" data-mins="360">6 hours</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:4px;">
+          <span style="font-size:11px;color:var(--text4);">or</span>
+          <div class="num-wrap">
+            <span class="num-btn minus" data-target="session-mins" data-dir="down" style="width:26px;height:28px;font-size:13px;">−</span>
+            <input id="session-mins" type="number" min="1" step="1" value="60" style="width:60px;height:28px;font-size:13px;">
+            <span class="num-btn plus" data-target="session-mins" data-dir="up" style="width:26px;height:28px;font-size:13px;">+</span>
+          </div>
+          <span style="font-size:11px;color:var(--text4);">min</span>
+        </div>
+      </div>
+    </div>
 
-      // How long does inventory last
-      if (rate > 0) {
-        const totalMins = inv / rate;
-        const h = Math.floor(totalMins / 60);
-        const m = Math.floor(totalMins % 60);
-        if (h > 0) {
-          timeLastsEl.textContent = `${h}h ${m}m`;
-        } else {
-          timeLastsEl.textContent = `${m}m`;
-        }
-      } else {
-        timeLastsEl.textContent = '∞';
-      }
+    <!-- Bar -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="section-label" style="margin-bottom:0;">Inventory Usage</div>
+        <span id="bar-pct" style="font-size:12px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;">0%</span>
+      </div>
+      <div class="bar-track">
+        <div id="bar-fill" class="bar-fill" style="width:0%;background:var(--green);"></div>
+      </div>
+      <div class="bar-labels">
+        <span>0</span>
+        <span id="bar-total-label">500 pots</span>
+      </div>
+    </div>
 
-      // Session cost & remaining
-      const sessCost = Math.ceil(rate * sessMins);
-      const remaining = inv - sessCost;
+  </div>
+</div>
 
-      sessionCostEl.textContent = sessCost.toLocaleString();
+<script>
+const $ = id => document.getElementById(id);
 
-      remainingEl.textContent = remaining.toLocaleString();
-      if (remaining < 0) {
-        remainingEl.classList.remove('text-emerald-500');
-        remainingEl.classList.add('text-rose-500');
-        remainLabel.textContent = `short ${Math.abs(remaining).toLocaleString()} pots!`;
-        remainLabel.classList.add('text-rose-400');
-        remainLabel.classList.remove('text-gray-400');
-      } else {
-        remainingEl.classList.remove('text-rose-500');
-        remainingEl.classList.add('text-emerald-500');
-        remainLabel.textContent = `after ${fmtDuration(sessMins)} session`;
-        remainLabel.classList.remove('text-rose-400');
-        remainLabel.classList.add('text-gray-400');
-      }
+function calc() {
+  const used     = parseFloat($('pots-used').value)    || 0;
+  const span     = parseFloat($('time-span').value)    || 1;
+  const inv      = parseFloat($('total-pots').value)   || 0;
+  const sessMins = parseFloat($('session-mins').value) || 0;
 
-      const fmtSess = fmtDuration(sessMins);
-      sessionLabel.textContent = `for ${fmtSess}`;
+  // Rate
+  const rate = used / span;
+  const rateStr = rate % 1 === 0 ? `${rate}` : rate.toFixed(1);
+  $('rate-display').textContent = rateStr;
 
-      // Bar
-      const pct = inv > 0 ? Math.min(100, (sessCost / inv) * 100) : 0;
-      barUsedEl.style.width = pct + '%';
-      barPctEl.textContent = Math.round(pct) + '%';
-      barTotalEl.textContent = Math.round(inv).toLocaleString() + ' pots';
+  // Inventory lasts
+  if (rate > 0) {
+    const totalMins = inv / rate;
+    const h = Math.floor(totalMins / 60);
+    const m = Math.floor(totalMins % 60);
+    $('time-lasts').textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+  } else {
+    $('time-lasts').textContent = '∞';
+  }
 
-      if (pct > 99.9) {
-        barUsedEl.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
-      } else if (pct > 75) {
-        barUsedEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
-      } else if (pct > 50) {
-        barUsedEl.style.background = 'linear-gradient(90deg, #eab308, #f59e0b)';
-      } else {
-        barUsedEl.style.background = 'linear-gradient(90deg, #22c55e, #eab308)';
-      }
-    }
+  // Session cost & remaining
+  const sessCost  = Math.ceil(rate * sessMins);
+  const remaining = inv - sessCost;
 
-    function fmtDuration(mins) {
-      const h = Math.floor(mins / 60);
-      const m = Math.round(mins % 60);
-      if (h > 0 && m > 0) return `${h}h ${m}m`;
-      if (h > 0) return `${h}h`;
-      return `${m}m`;
-    }
+  $('session-cost').textContent    = sessCost.toLocaleString();
+  $('pots-remaining').textContent  = remaining.toLocaleString();
 
-    // --- Spinner buttons ---
-    document.querySelectorAll('.num-btn').forEach(btn => {
-      const targetId = btn.dataset.target;
-      btn.addEventListener('click', () => {
-        const inp = document.getElementById(targetId);
-        if (!inp) return;
-        const step = parseFloat(inp.step) || 1;
-        const min = parseFloat(inp.min);
-        const max = parseFloat(inp.max);
-        let val = parseFloat(inp.value) || 0;
-        if (btn.dataset.dir === 'up') val += step;
-        else val -= step;
-        if (!isNaN(min)) val = Math.max(min, val);
-        if (!isNaN(max)) val = Math.min(max, val);
-        inp.value = parseFloat(val.toFixed(2));
-        calc();
-      });
-    });
+  const sessLabel = fmtDuration(sessMins);
+  $('session-label').textContent = `for ${sessLabel}`;
 
-    // Recalculate on any input
-    [potsUsedEl, timeSpanEl, totalPotsEl, sessionMinsEl].forEach(el => {
-      el.addEventListener('input', calc);
-      el.addEventListener('change', () => {
-        const min = parseFloat(el.min);
-        if (!isNaN(min) && parseFloat(el.value) < min) el.value = min;
-        calc();
-      });
-    });
+  if (remaining < 0) {
+    $('pots-remaining').style.color = 'var(--red)';
+    $('remaining-label').textContent = `short ${Math.abs(remaining).toLocaleString()} pots!`;
+    $('remaining-label').style.color = 'var(--red)';
+  } else {
+    $('pots-remaining').style.color = 'var(--green)';
+    $('remaining-label').textContent = `after ${sessLabel} session`;
+    $('remaining-label').style.color = '';
+  }
 
-    // Presets set the session-mins input
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        sessionMinsEl.value = btn.dataset.mins;
-        // Highlight active
-        document.querySelectorAll('.preset-btn').forEach(b => {
-          b.classList.remove('ring-2', 'ring-violet-400', 'dark:ring-violet-600');
-        });
-        btn.classList.add('ring-2', 'ring-violet-400', 'dark:ring-violet-600');
-        activePreset.textContent = `Estimating for ${btn.textContent} session`;
-        activePreset.classList.remove('hidden');
-        calc();
-      });
-    });
+  // Bar
+  const pct = inv > 0 ? Math.min(100, (sessCost / inv) * 100) : 0;
+  $('bar-fill').style.width = pct + '%';
+  $('bar-pct').textContent  = Math.round(pct) + '%';
+  $('bar-total-label').textContent = Math.round(inv).toLocaleString() + ' pots';
 
-    sessionMinsEl.addEventListener('input', () => {
-      document.querySelectorAll('.preset-btn').forEach(b => {
-        b.classList.remove('ring-2', 'ring-violet-400', 'dark:ring-violet-600');
-      });
-      activePreset.classList.add('hidden');
-    });
+  if (pct > 100) {
+    $('bar-fill').style.background = 'var(--red)';
+  } else if (pct > 75) {
+    $('bar-fill').style.background = 'linear-gradient(90deg, var(--amber), var(--red))';
+  } else if (pct > 50) {
+    $('bar-fill').style.background = 'linear-gradient(90deg, var(--green), var(--amber))';
+  } else {
+    $('bar-fill').style.background = 'var(--green)';
+  }
+}
 
-    // --- Theme ---
-    const themeBtn = $('toggle-theme');
-    function applyTheme(mode) {
-      document.documentElement.classList.toggle('dark', mode === 'dark');
-      $('icon-sun').classList.toggle('hidden', mode !== 'dark');
-      $('icon-moon').classList.toggle('hidden', mode === 'dark');
-      localStorage.setItem('theme', mode);
-    }
-    themeBtn.addEventListener('click', () => {
-      applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
-    });
-    applyTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+function fmtDuration(mins) {
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+}
 
-    // Initial
+// Spinners
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.num-btn');
+  if (!btn) return;
+  const inp  = document.getElementById(btn.dataset.target);
+  if (!inp) return;
+  const step = parseFloat(inp.step) || 1;
+  const min  = parseFloat(inp.min);
+  const max  = parseFloat(inp.max);
+  let val    = parseFloat(inp.value) || 0;
+  val += btn.dataset.dir === 'up' ? step : -step;
+  if (!isNaN(min)) val = Math.max(min, val);
+  if (!isNaN(max)) val = Math.min(max, val);
+  inp.value = parseFloat(val.toFixed(2));
+  calc();
+});
+
+// Inputs
+['pots-used','time-span','total-pots','session-mins'].forEach(id => {
+  $(id).addEventListener('input', calc);
+  $(id).addEventListener('change', () => {
+    const el  = $(id);
+    const min = parseFloat(el.min);
+    if (!isNaN(min) && parseFloat(el.value) < min) el.value = min;
     calc();
-  </script>
+  });
+});
+
+// Presets
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $('session-mins').value = btn.dataset.mins;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    calc();
+  });
+});
+
+$('session-mins').addEventListener('input', () => {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+});
+
+calc();
+</script>
 </body>
 </html>

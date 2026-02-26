@@ -1,22 +1,45 @@
-# Boss Timer (boss-timer2)
+# Boss Timer
 
-Static PWA for tracking boss timers. This repository is intended to be published on **GitHub Pages** (free).
+## Project Structure
+```
+boss-timer/
+├── index.html          ← HTML only, no inline CSS/JS
+├── src/
+│   ├── main.js         ← App entry point
+│   ├── style.css       ← All styles
+│   ├── firebase.js     ← Firebase (reads from .env)
+│   ├── data.js         ← Boss data, schedules, aliases
+│   ├── parse.js        ← Schedule parsing logic
+│   └── audio.js        ← Sound effects
+├── public/
+│   ├── manifest.json
+│   └── sw.js
+├── .env                ← 🔒 DO NOT COMMIT (gitignored)
+├── .env.example        ← ✅ Safe to commit
+├── netlify.toml
+└── vite.config.js
+```
 
-## Quick deploy (recommended)
-1. Create a new **empty** repository on GitHub (Settings → New repository).
-2. In this folder run:
+## Local Development
+```bash
+npm install
+npm run dev
+```
 
-   ```bash
-   git remote add origin https://github.com/<YOUR-USERNAME>/<REPO>.git
-   git branch -M main
-   git push -u origin main
-   ```
+## Deploy to Netlify
+1. Push to GitHub (`.env` is gitignored — safe)
+2. In Netlify dashboard: **Site settings → Environment variables**
+3. Add each variable from `.env.example` with your values
+4. Deploy — Netlify runs `npm run build` automatically
 
-3. After pushing, open the repository on GitHub → **Actions** and confirm the "Deploy to GitHub Pages" workflow completes. The site will be available at `https://<YOUR-USERNAME>.github.io/<REPO>/`.
-
-Notes:
-- A GitHub Actions workflow is included (`.github/workflows/deploy-pages.yml`) so the site is published automatically from the repository root after push.
-- `index.html`, `sw.js`, and `manifest.json` are root-relative and already configured for Pages and PWA behavior.
-
-## Custom domain
-Add a `CNAME` file to the repo root with your domain, then configure DNS (CNAME to `<username>.github.io`).
+## Environment Variables (set in Netlify dashboard)
+```
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+VITE_FIREBASE_MEASUREMENT_ID
+VITE_FIREBASE_DATABASE_URL
+```
