@@ -359,6 +359,7 @@ details summary::-webkit-details-marker { display: none; }
     <span class="page-title">Relic Calculator</span>
     <span class="beta-pill">Beta</span>
     <div class="tb-sep"></div>
+    <a href="/potion" class="nav-link">Potion →</a>
 
     <div class="spacer"></div>
 
@@ -483,7 +484,7 @@ details summary::-webkit-details-marker { display: none; }
 
 <!-- Firebase -->
 <script type="module">
-  import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, doc, getDoc, setDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   import { getDatabase, ref, set, onValue, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
@@ -497,7 +498,7 @@ details summary::-webkit-details-marker { display: none; }
     measurementId:     "G-70XPG1283P",
     databaseURL:       "https://boss-timer2-default-rtdb.asia-southeast1.firebasedatabase.app"
   };
-  const app  = initializeApp(cfg);
+  const app  = getApps().length ? getApp() : initializeApp(cfg);
   const db   = getFirestore(app);
   const rtdb = getDatabase(app);
 
