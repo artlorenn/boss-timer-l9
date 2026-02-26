@@ -1,551 +1,832 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Relic Calculator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { darkMode: 'class' }</script>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif; zoom: 1.0625; }
-    .mono { font-family: 'SF Mono', 'Cascadia Mono', 'Courier New', monospace; }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type="number"] { -moz-appearance: textfield; }
-    .num-wrap { display: inline-flex; align-items: center; gap: 0; }
-    .num-btn { width: 32px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; font-size: 16px; font-weight: 600; line-height: 1; color: rgba(150,150,150,0.8); transition: all 0.15s; flex-shrink: 0; }
-    .num-btn:hover { color: rgba(180,180,180,1); }
-    .num-btn:active { transform: scale(0.9); }
-    .num-btn.minus { border-radius: 8px 0 0 8px; border: 1px solid; border-right: none; }
-    .num-btn.plus { border-radius: 0 8px 8px 0; border: 1px solid; border-left: none; }
-    .num-wrap input { border-radius: 0 !important; border-left: none !important; border-right: none !important; text-align: center; }
-    .thin-scroll::-webkit-scrollbar { width: 4px; }
-    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
-    .thin-scroll::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.3); border-radius: 4px; }
-    .thin-scroll::-webkit-scrollbar-thumb:hover { background: rgba(150,150,150,0.5); }
-    .thin-scroll { scrollbar-width: thin; scrollbar-color: rgba(150,150,150,0.3) transparent; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relic Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #000000;
+  --bg2:       #0a0a0a;
+  --surface:   rgba(28,28,30,0.8);
+  --surface2:  rgba(44,44,46,0.6);
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.05);
+  --text:      #ffffff;
+  --text2:     rgba(255,255,255,0.6);
+  --text3:     rgba(255,255,255,0.3);
+  --text4:     rgba(255,255,255,0.12);
+  --red:       #ff453a;
+  --blue:      #0a84ff;
+  --green:     #30d158;
+  --amber:     #ffd60a;
+  --teal:      #5ac8fa;
+  --radius:    14px;
+  --radius-sm: 10px;
+  --blur:      20px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── OUTER FRAME ── */
+#frame {
+  position: fixed;
+  inset: 8px;
+  border-radius: 20px;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,1),
+    0 32px 64px rgba(0,0,0,0.8),
+    0 8px 32px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  grid-template-columns: 1fr 580px; /* doubled from 360px */
+}
+
+/* ── TOP BAR ── */
+#topbar {
+  grid-column: 1 / -1;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  background: rgba(18,18,18,0.7);
+}
+
+.nav-link {
+  font-size: 13px; font-weight: 400;
+  color: var(--blue);
+  text-decoration: none;
+  letter-spacing: -.01em;
+}
+.nav-link:hover { opacity: .8; }
+
+.page-title {
+  font-size: 15px; font-weight: 600;
+  letter-spacing: -.03em;
+  color: var(--text);
+}
+
+.beta-pill {
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 20px;
+  background: rgba(255,214,10,0.15);
+  color: var(--amber);
+  letter-spacing: .02em;
+}
+
+.spacer { flex: 1; }
+
+.tb-stat {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 1px;
+}
+.tb-stat-label {
+  font-size: 10px; font-weight: 500;
+  color: var(--text3); letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.tb-stat-val {
+  font-size: 15px; font-weight: 600;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+.cur-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px; font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── PANELS ── */
+#left-panel {
+  grid-column: 1; grid-row: 2;
+  overflow-y: auto;
+  padding: 30px 12px 16px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+#right-panel {
+  grid-column: 2; grid-row: 2;
+  overflow-y: auto;
+  padding: 30px 16px 16px 10px;
+  display: flex; flex-direction: column; gap: 10px;
+  border-left: 1px solid var(--border2);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+
+/* ── GLASS CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.section-label {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 12px;
+}
+
+/* ── RELIC CARDS ── */
+.relic-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.relic-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: 0 2px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+  transition: box-shadow .2s;
+}
+.relic-card:hover {
+  box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.relic-name {
+  font-size: 12px; font-weight: 600;
+  letter-spacing: -.01em; margin-bottom: 10px;
+}
+.relic-name.red   { color: var(--red);   }
+.relic-name.blue  { color: var(--blue);  }
+.relic-name.green { color: var(--green); }
+.relic-name.amber { color: var(--amber); }
+
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.input-label { font-size: 11px; font-weight: 500; color: var(--text3); margin-bottom: 4px; letter-spacing: -.01em; }
+
+/* iOS-style input */
+.num-wrap { display: flex; align-items: center; }
+.num-btn {
+  width: 28px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  font-size: 16px; font-weight: 400;
+  color: var(--text3);
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.num-btn:hover { color: var(--text2); background: rgba(255,255,255,.07); }
+.num-btn:active { transform: scale(.93); }
+.num-btn.minus { border-radius: 8px 0 0 8px; border-right: none; }
+.num-btn.plus  { border-radius: 0 8px 8px 0; border-left: none; }
+.num-wrap input {
+  flex: 1; height: 34px;
+  border: 1px solid var(--border);
+  border-left: none; border-right: none;
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px; font-weight: 500;
+  text-align: center; outline: none;
+  letter-spacing: -.02em;
+  -moz-appearance: textfield;
+  font-variant-numeric: tabular-nums;
+}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* Result strip */
+.result-strip {
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  min-height: 40px;
+}
+
+/* Big numbers */
+.big-num {
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+.big-num.red   { color: var(--red);   }
+.big-num.blue  { color: var(--blue);  }
+.big-num.green { color: var(--green); }
+.big-num.amber { color: var(--amber); }
+
+/* ── BAR ── */
+.bar-track {
+  height: 20px;
+  background: rgba(255,255,255,.04);
+  border-radius: 6px;
+  overflow: hidden;
+  flex: 1;
+  border: 1px solid var(--border2);
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  display: flex; align-items: center;
+  transition: width .5s cubic-bezier(.25,.46,.45,.94);
+}
+
+/* ── GRAND TOTAL ── */
+.grand-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+}
+.grand-cell {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.grand-cell-label {
+  font-size: 10px; font-weight: 500;
+  color: var(--text3); margin-bottom: 4px;
+  letter-spacing: .02em; text-transform: uppercase;
+}
+.grand-cell-val {
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── CHEST ── */
+.chest-body {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.live-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600;
+  color: var(--green); letter-spacing: .02em;
+}
+.live-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+/* Tier rows */
+.tier-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid var(--border2);
+  transition: background .15s;
+}
+.tier-row:hover { background: rgba(255,255,255,.04); }
+
+/* Chest select */
+.chest-select-wrap {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-anim { animation: spin .8s linear infinite; }
+
+/* Details */
+details {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  backdrop-filter: blur(var(--blur));
+}
+details summary {
+  font-size: 11px; font-weight: 600;
+  color: var(--text3); cursor: pointer;
+  user-select: none; letter-spacing: .03em;
+  text-transform: uppercase;
+  list-style: none;
+}
+details summary::-webkit-details-marker { display: none; }
+
+/* Table */
+.cost-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
+.cost-table th { text-align: left; padding: 3px 6px; color: var(--text4); font-weight: 500; font-size: 11px; }
+.cost-table th:nth-child(2), .cost-table th:nth-child(4) { text-align: right; }
+.cost-table td { padding: 2px 6px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.cost-table td:nth-child(2), .cost-table td:nth-child(4) { text-align: right; color: var(--text2); }
+.cost-table tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+</style>
 </head>
-<body class="min-h-screen bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
-  <div class="max-w-6xl mx-auto px-5 py-8">
+<body>
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-3">
-        <a href="index.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">&larr; Timer</a>
-        <h1 class="text-lg font-semibold tracking-tight">Relic Calculator</h1>
-        <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 leading-none">Beta</span>
-        <a href="potion.html" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">Potion Calc &rarr;</a>
-      </div>
-      <button id="toggle-theme" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition" title="Toggle theme">
-        <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg id="icon-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-      </button>
+<div id="frame">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <a href="index.html" class="nav-link">← Timer</a>
+    <div style="width:1px;height:16px;background:var(--border);"></div>
+    <span class="page-title">Relic Calculator</span>
+    <span class="beta-pill">Beta</span>
+    <a href="potion.html" class="nav-link">Potion →</a>
+
+    <div class="spacer"></div>
+
+    <div class="tb-stat">
+      <span class="tb-stat-label">Visitors</span>
+      <span class="tb-stat-val" id="total-visitors">—</span>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-stat">
+      <span class="tb-stat-label">Online</span>
+      <span class="tb-stat-val" style="display:flex;align-items:center;gap:5px;">
+        <span class="live-dot"></span>
+        <span id="online-count">—</span>
+      </span>
+    </div>
+    <div class="tb-sep"></div>
+
+    <select class="cur-select" id="cur-select" onchange="setCurrency(this.value)">
+      <option value="PHP">PHP ₱</option>
+      <option value="USDT">USDT</option>
+    </select>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div id="left-panel">
+
+    <!-- Relic cards 2x2 -->
+    <div class="relic-grid" id="relic-grid"></div>
+
+    <!-- Bar graph -->
+    <div class="card">
+      <div class="section-label">Cost Breakdown</div>
+      <div id="bar-graph" style="display:flex;flex-direction:column;gap:7px;"></div>
     </div>
 
-    <!-- Temporal Piece ↔ PHP rate -->
-    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4 mb-5">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Temporal Rate:</span>
-        <div class="flex items-center gap-1.5">
-          <div class="num-wrap">
-            <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
-            <input id="rate-temporal" type="number" min="1" value="1000" class="w-20 h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
-            <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
-          </div>
-          <span class="text-sm text-gray-400">=</span>
-          <div class="num-wrap">
-            <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
-            <input id="rate-php" type="number" min="0.01" step="0.01" value="25" class="w-20 h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
-            <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
-          </div>
-          <span class="text-sm text-gray-400">PHP</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4 Relic Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5" id="relic-grid">
-      <!-- Cards generated by JS -->
-    </div>
-
-    <!-- Grand Total -->
-    <div id="grand-total" class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 mb-5">
-      <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Grand Total (All Relics)</div>
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div>
-          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">Temporal Pieces</div>
-          <div id="grand-temporal" class="text-3xl font-bold mono">0</div>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">PHP Cost</div>
-          <div id="grand-php" class="text-3xl font-bold mono text-emerald-600 dark:text-emerald-400">₱0.00</div>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">Combat Power</div>
-          <div id="grand-cp" class="text-3xl font-bold mono text-yellow-600 dark:text-yellow-400">+0</div>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">Total Upgrades</div>
-          <div id="grand-upgrades" class="text-3xl font-bold mono">0</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Cost Breakdown -->
-    <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 mb-5">
-      <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Cost Breakdown</div>
-      <div id="bar-graph" class="space-y-4"></div>
-    </div>
-
-    <!-- Cost reference -->
-    <details class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4">
-      <summary class="text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none">Full Cost Table (1 → 100)</summary>
-      <div id="full-table" class="mt-3 max-h-[300px] overflow-y-auto">
-        <table class="w-full text-xs">
-          <thead class="sticky top-0 bg-white dark:bg-neutral-900">
+    <!-- Full table -->
+    <details>
+      <summary>Full Cost Table (1 → 100)</summary>
+      <div style="max-height:180px;overflow-y:auto;margin-top:2px;">
+        <table class="cost-table">
+          <thead>
             <tr>
-              <th class="text-left px-2 py-1 text-gray-400">Lvl</th>
-              <th class="text-right px-2 py-1 text-gray-400">Cost</th>
-              <th class="text-left px-2 py-1 text-gray-400 pl-6">Lvl</th>
-              <th class="text-right px-2 py-1 text-gray-400">Cost</th>
+              <th>Lvl</th><th>Cost</th>
+              <th style="padding-left:20px;">Lvl</th><th>Cost</th>
             </tr>
           </thead>
           <tbody id="full-table-body"></tbody>
         </table>
       </div>
     </details>
+
   </div>
 
-  <script>
-    const $ = id => document.getElementById(id);
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
 
-    // ── Cost table: COSTS[n] = temporal pieces to upgrade from level n to n+1 ──
-    const COSTS = [
-      0,     // 0 (unused)
-      15,    // 1→2   ✓
-      25,    // 2→3   ✓
-      36,    // 3→4   ✓
-      48,    // 4→5   ✓
-      62,    // 5→6   ✓
-      78,    // 6→7   ✓
-      96,    // 7→8   ✓
-      116,   // 8→9   ✓
-      138,   // 9→10  ✓
-      163,   // 10→11 ✓
-      192,   // 11→12 ✓
-      225,   // 12→13 ✓
-      263,   // 13→14 ✓
-      306,   // 14→15 ✓
-      355,   // 15→16 ✓
-      410,   // 16→17 ✓
-      471,   // 17→18 ✓
-      539,   // 18→19 ✓
-      614,   // 19→20 ✓
-      697,   // 20→21 ✓
-      790,   // 21→22 ✓
-      890,   // 22→23 ✓
-      990,   // 23→24 ✓
-      1090,  // 24→25 ✓
-      1190,  // 25→26 ✓
-      1340,  // 26→27 ✓
-      1490,  // 27→28 ✓
-      1760,  // 28→29 ✓
-      1964,  // 29→30 ✓
-    ];
-    for (let n = 30; n <= 99; n++) {
-      COSTS[n] = Math.round((n * n * n - 60 * n * n + 1553 * n - 13074) / 3);
-    }
+    <!-- Grand Total -->
+    <div class="card">
+      <div class="section-label">Grand Total</div>
+      <div class="grand-grid">
+        <div class="grand-cell">
+          <div class="grand-cell-label">Pieces</div>
+          <div class="grand-cell-val" id="grand-temporal">0</div>
+        </div>
+        <div class="grand-cell">
+          <div class="grand-cell-label">Upgrades</div>
+          <div class="grand-cell-val" id="grand-upgrades">0</div>
+        </div>
+        <div class="grand-cell">
+          <div class="grand-cell-label">Combat Power</div>
+          <div class="grand-cell-val" id="grand-cp" style="color:var(--amber);">+0</div>
+        </div>
+      </div>
+    </div>
 
-    // ── Magic Storm costs (separate table) ──
-    const STORM_COSTS = [0,
-      5000,5104,5219,5346,5485,5637,5802,5981,6174,6382,       // 1-10 ✓
-      6610,6860,7134,7434,7762,8120,8510,8934,9394,9892,       // 11-20 (11,15,20 ✓)
-      10430,11010,11634,12304,13022,13790,14610,15484,16414,17402, // 21-30 (25,30 ✓)
-      18450,19560,20734,21974,23282,24660,26110,27634,29234,30912, // 31-40 (35,40 ✓)
-      32670,34510,36434,38444,40542,42730,45010,47384,49854,52422, // 41-50 (50 ✓)
-      55090,57860,60734,63714,66802,70000,73310,76734,80274,83932, // 51-60 (60 ✓)
-      87710,91610,95634,99784,104062,108470,113010,117684,122494,127442, // 61-70 (70 ✓)
-      132530,137760,143134,148654,154322,160140,166110,172234,178514,184952, // 71-80 (80 ✓)
-      191550,198310,205234,212324,219582,227010,234610,242384,250334,258462, // 81-90 (90 ✓)
-      266770,275260,283934,292794,301842,311080,320510,330134,339954  // 91-99 (95 ✓)
-    ];
+    <!-- Chest Analysis -->
+    <div class="card" style="flex:1;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+        <div class="section-label" style="margin-bottom:0;">Chest Market</div>
+        <select id="chest-select" class="cur-select" onchange="updateChestAnalysis();fetchLivePrice()" style="font-size:12px;padding:4px 8px;">
+          <option value="t1">T1 — x1,000</option>
+          <option value="t2">T2 — x5,000</option>
+          <option value="t3">T3 — x10,000</option>
+          <option value="t4">T4 — x50,000</option>
+          <option value="t5">T5 — x100,000</option>
+        </select>
+      </div>
 
-    // ── Relic stat milestones (every 2 levels starting at lv 10, cycle of 5) ──
-    const RELIC_STATS = {
-      destruction: [
-        'Defense Penetration + 10',
-        'Accuracy + 10',
-        'Melee Critical Hit Resistance + 10',
-        'Damage to Boss Monsters Increase + 2%',
-        'Max MP + 20',
-      ],
-      protection: [
-        'Defense Penetration + 10',
-        'Evasion + 10',
-        'Ranged Critical Hit Resistance + 10',
-        'Damage to Elite Monsters Increase + 2%',
-        'Max MP + 20',
-      ],
-      life: [
-        'Defense Penetration + 10',
-        'Potion Recovery + 3',
-        'Magic Critical Hit Resistance + 10',
-        'Damage to Normal Monsters Increase + 2%',
-        'Max MP + 20',
-      ],
-      storm: [
-        'Basic Attack Damage Received Decrease in PvP + 1%',
-        'MP Recovery in Battle + 9',
-        'Critical Hit + 10',
-        'Potion Recovery + 3',
-        'Global Cooldown Decrease + 0.03 sec',
-      ],
-    };
+      <div class="chest-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <div>
+            <div style="font-size:15px;font-weight:600;letter-spacing:-.02em;margin-bottom:3px;" id="chest-label">T1 Chest</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;" id="chest-sublabel">x1,000 Pieces / Chest</div>
 
-    // ── Combat Power per stat milestone ──
-    // Based on: STAT amount = CP
-    const STAT_CP = {
-      'Defense Penetration + 10': 100,      // 10 × 10 CP/pt
-      'Accuracy + 10': 60,                  // 10 × 6 CP/pt
-      'Melee Critical Hit Resistance + 10': 20,  // 10 × 2 CP/pt
-      'Ranged Critical Hit Resistance + 10': 20, // 10 × 2 CP/pt
-      'Magic Critical Hit Resistance + 10': 20,  // 10 × 2 CP/pt
-      'Damage to Boss Monsters Increase + 2%': 40,   // 2 × 20 CP/1%
-      'Damage to Elite Monsters Increase + 2%': 44,  // ≈ 2/0.18 × 4
-      'Damage to Normal Monsters Increase + 2%': 44, // ≈ 2/0.18 × 4
-      'Max MP + 20': 2,                      // 20/10 × 1 CP
-      'Evasion + 10': 40,                    // 10 × 4 CP/pt
-      'Potion Recovery + 3': 30,             // 3 × 10 CP/pt
-      'MP Recovery in Battle + 9': 90,       // 9 × 10 CP/pt
-      'Critical Hit + 10': 80,               // 10 × 8 CP/pt
-      'Basic Attack Damage Received Decrease in PvP + 1%': 44, // ≈ 1/0.18 × 8
-      'Global Cooldown Decrease + 0.03 sec': 0, // no direct CP mapping
-    };
-
-    function getStatMilestones(relicId, from, to) {
-      const stats = RELIC_STATS[relicId];
-      if (!stats || stats.length === 0) return [];
-      const milestones = [];
-      // milestones at even levels: 10, 12, 14, 16, 18, 20, 22, ...
-      for (let lv = 10; lv <= 100; lv += 2) {
-        if (lv > from && lv <= to) {
-          const idx = ((lv - 10) / 2) % stats.length;
-          milestones.push({ level: lv, stat: stats[idx] });
-        }
-      }
-      return milestones;
-    }
-
-    // ── Relic definitions ──
-    const RELICS = [
-      { id: 'destruction', name: 'Origin of Destruction', color: 'red' },
-      { id: 'protection',  name: 'Barrier of Protection', color: 'blue' },
-      { id: 'life',        name: 'Crystal of Life',       color: 'green' },
-      { id: 'storm',       name: 'Magic Storm',           color: 'amber' },
-    ];
-
-    const COLORS = {
-      red:    { border: 'border-red-200 dark:border-red-900/40', accent: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30' },
-      blue:   { border: 'border-blue-200 dark:border-blue-900/40', accent: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30' },
-      green:  { border: 'border-green-200 dark:border-green-900/40', accent: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/30' },
-      amber: { border: 'border-amber-200 dark:border-amber-900/40', accent: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30' },
-    };
-
-    // ── Build relic cards ──
-    function buildCards() {
-      const grid = $('relic-grid');
-      for (const relic of RELICS) {
-        const c = COLORS[relic.color];
-        const card = document.createElement('div');
-        card.className = `bg-white dark:bg-neutral-900 border ${c.border} rounded-xl p-5`;
-        card.innerHTML = `
-          <div class="text-base font-semibold ${c.accent} mb-3">${relic.name}</div>
-          <div class="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Current</label>
-              <div class="num-wrap w-full">
-                <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
-                <input id="${relic.id}-current" type="number" min="1" max="100" value="1"
-                  class="w-full h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
-                <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Target</label>
-              <div class="num-wrap w-full">
-                <span class="num-btn minus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="down">&minus;</span>
-                <input id="${relic.id}-target" type="number" min="1" max="100" value="1"
-                  class="w-full h-9 border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-base px-1 outline-none transition text-center mono">
-                <span class="num-btn plus border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800" data-dir="up">+</span>
-              </div>
+            <!-- Live price badge -->
+            <div id="price-status-inner" style="display:flex;align-items:center;gap:6px;">
+              <svg class="spin-anim" style="width:11px;height:11px;color:var(--text4);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <span style="font-size:11px;color:var(--text4);">Fetching price…</span>
             </div>
           </div>
-          <div id="${relic.id}-result" class="rounded-lg ${c.bg} p-3 min-h-[60px]">
-            <div class="text-sm text-gray-500 dark:text-gray-400">Set levels to calculate</div>
-          </div>
-        `;
-        grid.appendChild(card);
 
-        // Listen for changes
-        $(`${relic.id}-current`).addEventListener('input', recalcAll);
-        $(`${relic.id}-target`).addEventListener('input', recalcAll);
-      }
-    }
-
-    // ── Calculate cost for a level range ──
-    function getCost(from, to, relicId) {
-      if (from >= to || from < 1 || to > 100) return 0;
-      const table = relicId === 'storm' ? STORM_COSTS : COSTS;
-      let total = 0;
-      for (let n = from; n < to; n++) total += table[n] || 0;
-      return total;
-    }
-
-    // ── PHP conversion ──
-    function toPhp(temporal) {
-      const rateTemporal = parseFloat($('rate-temporal').value) || 1000;
-      const ratePhp = parseFloat($('rate-php').value) || 25;
-      return temporal * (ratePhp / rateTemporal);
-    }
-
-    // ── Recalculate everything ──
-    function recalcAll() {
-      let grandTemporal = 0;
-      let grandUpgrades = 0;
-      let grandCP = 0;
-
-      for (const relic of RELICS) {
-        const from = parseInt($(`${relic.id}-current`).value) || 1;
-        const to = parseInt($(`${relic.id}-target`).value) || 1;
-        const resultEl = $(`${relic.id}-result`);
-        const c = COLORS[relic.color];
-
-        if (from >= to || from < 1 || to > 100) {
-          resultEl.innerHTML = `<div class="text-sm text-gray-500 dark:text-gray-400">Set levels to calculate</div>`;
-          continue;
-        }
-
-        const cost = getCost(from, to, relic.id);
-        const php = toPhp(cost);
-        const upgrades = to - from;
-        const milestones = getStatMilestones(relic.id, from, to);
-        let relicCP = 0;
-        let milestoneCP = 0;
-        for (const m of milestones) milestoneCP += STAT_CP[m.stat] || 0;
-        if (relic.id === 'destruction') {
-          // Custom Origin Destruction CP calculation (matches provided mapping)
-          let atkTotal = 0;
-          for (let lvl = from; lvl < to; lvl++) {
-            let atk = 3 + Math.floor((lvl - 1) / 5);
-            if (lvl % 5 === 0) atk += 1; // bump at each 5th level (5, 10, ...)
-            atkTotal += atk;
-          }
-          relicCP = atkTotal * 10;
-          let totalCP = relicCP + milestoneCP;
-          grandCP += totalCP;
-          resultEl.innerHTML = `
-            <div class="flex items-baseline justify-between gap-2 mb-2">
-              <div>
-                <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
-                <!-- Upgrades/level range line removed as requested -->
-              </div>
-              <div class="text-right">
-                <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">+${totalCP.toLocaleString()} CP</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">ATK: ${atkTotal}</div>
-              </div>
-            </div>`;
-        } else {
-          relicCP = milestoneCP;
-          grandCP += relicCP;
-          resultEl.innerHTML = `
-            <div class="flex items-baseline justify-between gap-2 mb-2">
-              <div>
-                <div class="text-xl font-bold mono ${c.accent}">${cost.toLocaleString()}</div>
-                <!-- Upgrades/level range line removed as requested -->
-              </div>
-              <div class="text-right">
-                <div class="text-base font-semibold mono text-emerald-600 dark:text-emerald-400">₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                <div class="text-sm font-semibold mono text-yellow-600 dark:text-yellow-400">${relicCP > 0 ? '+' + relicCP.toLocaleString() + ' CP' : ''}</div>
-              </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="display:flex;align-items:baseline;gap:5px;justify-content:flex-end;">
+              <span id="chests-needed" style="font-size:34px;font-weight:700;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--text);">0</span>
+              <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Chests</span>
             </div>
-          `;
-        }
+            <div id="chest-calc" style="font-size:11px;color:var(--green);letter-spacing:-.01em;font-variant-numeric:tabular-nums;">—</div>
+          </div>
+        </div>
+      </div>
 
-        // Show stat milestones
-        if (milestones.length > 0) {
-          // Sum up totals per stat
-          const totals = {};
-          for (const m of milestones) {
-            // Parse stat name and value
-            const match = m.stat.match(/^(.+?)\s*([+\-])\s*(.+)$/);
-            if (match) {
-              const name = match[1].trim();
-              const val = parseFloat(match[3].replace('%',''));
-              const isPercent = match[3].includes('%');
-              if (!totals[name]) totals[name] = { val: 0, isPercent };
-              totals[name].val += val;
-            }
-          }
+      <!-- All tiers -->
+      <div style="margin-bottom:8px;">
+        <div class="section-label" style="margin-bottom:6px;">All Tiers</div>
+        <div id="tier-breakdown" style="display:flex;flex-direction:column;gap:4px;"></div>
+      </div>
 
-          // Totals summary
-          let html = `<div class="border-t border-gray-200/50 dark:border-neutral-700/50 pt-2 mt-1">
-            <div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Total Stat Gains</div>`;
-          // Show each stat's CP separately (not summed with paired stat)
-          for (const [name, info] of Object.entries(totals)) {
-            let cpForStat = 0;
-            for (const m of milestones) {
-              const mm = m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
-              if (mm && mm[1].trim() === name) cpForStat += STAT_CP[m.stat] || 0;
-            }
-            html += `<div class="flex justify-between text-xs py-0.5">
-              <span class="text-gray-600 dark:text-gray-300">${name}</span>
-              <span class="flex gap-2">
-                <span class="font-semibold ${c.accent}">+ ${info.val}${info.isPercent ? '%' : ''}</span>
-                ${cpForStat > 0 ? `<span class="text-yellow-600 dark:text-yellow-400 font-medium">${cpForStat} CP</span>` : ''}
-              </span>
-            </div>`;
-          }
+    </div>
 
-          // Per-level breakdown (scrollable, max 5 visible)
-          html += `<div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mt-2 mb-1">Per Level (${milestones.length})</div>
-            <div class="max-h-[120px] overflow-y-auto thin-scroll pr-1">`;
-          for (const m of milestones) {
-            html += `<div class="flex justify-between text-xs py-0.5">
-              <span class="text-gray-500 dark:text-gray-400">Lv. ${m.level}</span>
-              <span class="text-gray-600 dark:text-gray-300">${m.stat}</span>
-            </div>`;
-          }
-          html += `</div></div>`;
-          resultEl.innerHTML += html;
-        }
-      }
+  </div>
+</div>
 
-      // Grand total
-      const grandPhp = toPhp(grandTemporal);
-      $('grand-temporal').textContent = grandTemporal.toLocaleString();
-      $('grand-php').textContent = `₱${grandPhp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      $('grand-cp').textContent = `+${grandCP.toLocaleString()}`;
-      $('grand-upgrades').textContent = grandUpgrades;
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, getDoc, setDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getDatabase, ref, set, onValue, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-      // Update cost breakdown graph
-      updateBarGraph();
+  const cfg = {
+    apiKey:            "AIzaSyAyotrWoly1Xd8qg8-eq97EJoP2Mx8V1To",
+    authDomain:        "boss-timer2.firebaseapp.com",
+    projectId:         "boss-timer2",
+    storageBucket:     "boss-timer2.firebasestorage.app",
+    messagingSenderId: "1089834357623",
+    appId:             "1:1089834357623:web:3f66c8bfb8aa208eb98772",
+    measurementId:     "G-70XPG1283P",
+    databaseURL:       "https://boss-timer2-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+  const app  = initializeApp(cfg);
+  const db   = getFirestore(app);
+  const rtdb = getDatabase(app);
+
+  async function trackVisitor() {
+    const r = doc(db, 'stats', 'relic_visitors');
+    if (!sessionStorage.getItem('relic_counted')) {
+      sessionStorage.setItem('relic_counted', '1');
+      await setDoc(r, { count: increment(1) }, { merge: true });
     }
+    const s = await getDoc(r);
+    if (s.exists()) document.getElementById('total-visitors').textContent = s.data().count.toLocaleString();
+  }
 
-    // ── Full reference table (2-column layout) ──
-    function buildFullTable() {
-      const tbody = $('full-table-body');
-      const half = 50;
-      for (let i = 1; i <= half; i++) {
-        const j = i + half;
-        const tr = document.createElement('tr');
-        tr.className = 'border-t border-gray-50 dark:border-neutral-800/50';
-        tr.innerHTML = `
-          <td class="px-2 py-0.5 text-gray-500">${i}→${i + 1}</td>
-          <td class="px-2 py-0.5 text-right mono text-gray-600 dark:text-gray-300">${(COSTS[i] || 0).toLocaleString()}</td>
-          <td class="px-2 py-0.5 text-gray-500 pl-6">${j <= 99 ? j + '→' + (j + 1) : ''}</td>
-          <td class="px-2 py-0.5 text-right mono text-gray-600 dark:text-gray-300">${j <= 99 ? (COSTS[j] || 0).toLocaleString() : ''}</td>
-        `;
-        tbody.appendChild(tr);
-      }
-    }
-
-    // ── Cost Breakdown Bar Graph ──
-    const BAR_COLORS = {
-      red:   { bar: 'bg-red-500', hover: 'hover:bg-red-400' },
-      blue:  { bar: 'bg-blue-500', hover: 'hover:bg-blue-400' },
-      green: { bar: 'bg-green-500', hover: 'hover:bg-green-400' },
-      amber: { bar: 'bg-amber-500', hover: 'hover:bg-amber-400' },
-    };
-
-    function updateBarGraph() {
-      const container = $('bar-graph');
-      const entries = [];
-      for (const relic of RELICS) {
-        const from = parseInt($(`${relic.id}-current`)?.value) || 1;
-        const to = parseInt($(`${relic.id}-target`)?.value) || 1;
-        const cost = from < to ? getCost(from, to, relic.id) : 0;
-        entries.push({ name: relic.name, cost, color: relic.color, from, to });
-      }
-      const maxVal = Math.max(...entries.map(e => e.cost), 1);
-
-      let html = '';
-      for (const e of entries) {
-        const bc = BAR_COLORS[e.color];
-        const pct = (e.cost / maxVal * 100).toFixed(1);
-        const php = toPhp(e.cost);
-        const label = e.cost > 0 ? `Lv ${e.from} → ${e.to}` : 'Not set';
-        html += `<div>`;
-        html += `<div class="flex items-baseline justify-between mb-1">`;
-        html += `<span class="text-sm font-medium ${COLORS[e.color].accent}">${e.name}</span>`;
-        html += `<span class="text-xs text-gray-500 dark:text-gray-400">${label}</span>`;
-        html += `</div>`;
-        html += `<div class="flex items-center gap-3">`;
-        html += `<div class="flex-1 h-8 rounded-md bg-gray-100 dark:bg-neutral-800 overflow-hidden">`;
-        if (e.cost > 0) {
-          html += `<div class="h-full ${bc.bar} ${bc.hover} transition-all rounded-md flex items-center" style="width:${pct}%; min-width: ${e.cost > 0 ? '2rem' : '0'}">`;
-          html += `<span class="text-xs mono font-semibold text-white px-2 truncate">${e.cost.toLocaleString()}</span>`;
-          html += `</div>`;
-        }
-        html += `</div>`;
-        html += `<span class="text-sm mono font-medium text-gray-600 dark:text-gray-300 w-28 text-right shrink-0">`;
-        html += e.cost > 0 ? `₱${php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '—';
-        html += `</span>`;
-        html += `</div>`;
-        html += `</div>`;
-      }
-      container.innerHTML = html;
-    }
-
-    // ── Rate change listeners ──
-    $('rate-temporal').addEventListener('input', recalcAll);
-    $('rate-php').addEventListener('input', recalcAll);
-
-    // ── Custom spinner buttons ──
-    document.addEventListener('click', e => {
-      const btn = e.target.closest('.num-btn');
-      if (!btn) return;
-      const input = btn.closest('.num-wrap').querySelector('input');
-      const step = parseFloat(input.step) || 1;
-      const min = parseFloat(input.min) ?? -Infinity;
-      const max = parseFloat(input.max) ?? Infinity;
-      let val = parseFloat(input.value) || 0;
-      val = btn.dataset.dir === 'up' ? val + step : val - step;
-      val = Math.min(max, Math.max(min, Math.round(val * 100) / 100));
-      input.value = val;
-      input.dispatchEvent(new Event('input'));
+  function trackOnline() {
+    const sid = Math.random().toString(36).slice(2,10);
+    const ur  = ref(rtdb, `presence/relic/${sid}`);
+    set(ur, { t: serverTimestamp() });
+    onDisconnect(ur).remove();
+    onValue(ref(rtdb, 'presence/relic'), s => {
+      document.getElementById('online-count').textContent = s.exists() ? Object.keys(s.val()).length : 0;
     });
+  }
 
-    // ── Clamp typed values to min/max on change ──
-    document.addEventListener('change', e => {
-      if (e.target.type !== 'number') return;
-      const input = e.target;
-      const min = parseFloat(input.min);
-      const max = parseFloat(input.max);
-      let val = parseFloat(input.value) || 0;
-      if (!isNaN(max) && val > max) val = max;
-      if (!isNaN(min) && val < min) val = min;
-      input.value = Math.round(val * 100) / 100;
-      input.dispatchEvent(new Event('input'));
-    });
+  trackVisitor(); trackOnline();
+</script>
 
-    // ── Theme ──
-    function applyTheme(mode) {
-      document.documentElement.classList.toggle('dark', mode === 'dark');
-      $('icon-sun').classList.toggle('hidden', mode !== 'dark');
-      $('icon-moon').classList.toggle('hidden', mode === 'dark');
-      localStorage.setItem('theme', mode);
+<script>
+const $ = id => document.getElementById(id);
+
+// ── Cost tables ──
+const COSTS = [0,15,25,36,48,62,78,96,116,138,163,192,225,263,306,355,410,471,539,614,697,790,890,990,1090,1190,1340,1490,1760,1964];
+for (let n = 30; n <= 99; n++) COSTS[n] = Math.round((n**3 - 60*n**2 + 1553*n - 13074) / 3);
+const STORM_COSTS = [0,5000,5104,5219,5346,5485,5637,5802,5981,6174,6382,6610,6860,7134,7434,7762,8120,8510,8934,9394,9892,10430,11010,11634,12304,13022,13790,14610,15484,16414,17402,18450,19560,20734,21974,23282,24660,26110,27634,29234,30912,32670,34510,36434,38444,40542,42730,45010,47384,49854,52422,55090,57860,60734,63714,66802,70000,73310,76734,80274,83932,87710,91610,95634,99784,104062,108470,113010,117684,122494,127442,132530,137760,143134,148654,154322,160140,166110,172234,178514,184952,191550,198310,205234,212324,219582,227010,234610,242384,250334,258462,266770,275260,283934,292794,301842,311080,320510,330134,339954];
+
+const RELIC_STATS = {
+  destruction:['Defense Penetration + 10','Accuracy + 10','Melee Critical Hit Resistance + 10','Damage to Boss Monsters Increase + 2%','Max MP + 20'],
+  protection: ['Defense Penetration + 10','Evasion + 10','Ranged Critical Hit Resistance + 10','Damage to Elite Monsters Increase + 2%','Max MP + 20'],
+  life:       ['Defense Penetration + 10','Potion Recovery + 3','Magic Critical Hit Resistance + 10','Damage to Normal Monsters Increase + 2%','Max MP + 20'],
+  storm:      ['Basic Attack Damage Received Decrease in PvP + 1%','MP Recovery in Battle + 9','Critical Hit + 10','Potion Recovery + 3','Global Cooldown Decrease + 0.03 sec'],
+};
+const STAT_CP = {
+  'Defense Penetration + 10':100,'Accuracy + 10':60,
+  'Melee Critical Hit Resistance + 10':20,'Ranged Critical Hit Resistance + 10':20,'Magic Critical Hit Resistance + 10':20,
+  'Damage to Boss Monsters Increase + 2%':40,'Damage to Elite Monsters Increase + 2%':44,'Damage to Normal Monsters Increase + 2%':44,
+  'Max MP + 20':2,'Evasion + 10':40,'Potion Recovery + 3':30,'MP Recovery in Battle + 9':90,'Critical Hit + 10':80,
+  'Basic Attack Damage Received Decrease in PvP + 1%':44,'Global Cooldown Decrease + 0.03 sec':0,
+};
+
+const RELICS = [
+  {id:'destruction', name:'Origin of Destruction', color:'red'},
+  {id:'protection',  name:'Barrier of Protection', color:'blue'},
+  {id:'life',        name:'Crystal of Life',       color:'green'},
+  {id:'storm',       name:'Magic Storm',            color:'amber'},
+];
+const COLOR_HEX = { red:'#ff453a', blue:'#0a84ff', green:'#30d158', amber:'#ffd60a' };
+const BAR_BG = {
+  red:   'rgba(255,69,58,0.15)',
+  blue:  'rgba(10,132,255,0.15)',
+  green: 'rgba(48,209,88,0.15)',
+  amber: 'rgba(255,214,10,0.15)',
+};
+
+const CHESTS = {
+  t1:{label:'T1 Chest',pieces:1000,  keyword:'T1 Temporal Piece Chest x1,000'},
+  t2:{label:'T2 Chest',pieces:5000,  keyword:'T2 Temporal Piece Chest x5,000'},
+  t3:{label:'T3 Chest',pieces:10000, keyword:'T3 Temporal Piece Chest x10,000'},
+  t4:{label:'T4 Chest',pieces:50000, keyword:'T4 Temporal Piece Chest x50,000'},
+  t5:{label:'T5 Chest',pieces:100000,keyword:'T5 Temporal Piece Chest x100,000'},
+};
+
+let phpPerPiece=null, usdtPerPiece=null, currency='PHP';
+const cache={};
+
+function setCurrency(cur) { currency=cur; recalcAll(); }
+
+function toCur(pieces) {
+  if (currency==='PHP'  && phpPerPiece !==null) return pieces*phpPerPiece;
+  if (currency==='USDT' && usdtPerPiece!==null) return pieces*usdtPerPiece;
+  return null;
+}
+function fmtCur(val) {
+  if (val===null) return '—';
+  const sym=currency==='PHP'?'₱':'';
+  const suf=currency==='USDT'?' USDT':'';
+  return `${sym}${val.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}${suf}`;
+}
+
+// ── Build relic cards ──
+function buildCards() {
+  const grid=$('relic-grid');
+  for (const r of RELICS) {
+    const card=document.createElement('div');
+    card.className='relic-card';
+    card.innerHTML=`
+      <div class="relic-name ${r.color}">${r.name}</div>
+      <div class="input-row">
+        <div>
+          <div class="input-label">Current</div>
+          <div class="num-wrap">
+            <span class="num-btn minus" data-dir="down">−</span>
+            <input id="${r.id}-current" type="number" min="1" max="100" value="1">
+            <span class="num-btn plus" data-dir="up">+</span>
+          </div>
+        </div>
+        <div>
+          <div class="input-label">Target</div>
+          <div class="num-wrap">
+            <span class="num-btn minus" data-dir="down">−</span>
+            <input id="${r.id}-target" type="number" min="1" max="100" value="1">
+            <span class="num-btn plus" data-dir="up">+</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-strip" id="${r.id}-result">
+        <span style="font-size:12px;color:var(--text4);">Set levels to calculate</span>
+      </div>`;
+    grid.appendChild(card);
+    card.querySelector(`#${r.id}-current`).addEventListener('input',recalcAll);
+    card.querySelector(`#${r.id}-target`).addEventListener('input',recalcAll);
+  }
+}
+
+function getCost(from,to,id) {
+  if(from>=to||from<1||to>100) return 0;
+  const t=id==='storm'?STORM_COSTS:COSTS;
+  let s=0; for(let n=from;n<to;n++) s+=t[n]||0; return s;
+}
+function getMilestones(id,from,to) {
+  const stats=RELIC_STATS[id]; if(!stats) return [];
+  const ms=[];
+  for(let lv=10;lv<=100;lv+=2)
+    if(lv>from&&lv<=to) ms.push({level:lv,stat:stats[((lv-10)/2)%stats.length]});
+  return ms;
+}
+
+function recalcAll() {
+  let gT=0,gU=0,gCP=0;
+  for (const r of RELICS) {
+    const from=parseInt($(`${r.id}-current`).value)||1;
+    const to  =parseInt($(`${r.id}-target`).value)||1;
+    const el  =$(`${r.id}-result`);
+    if (from>=to){el.innerHTML=`<span style="font-size:12px;color:var(--text4);">Set levels to calculate</span>`;continue;}
+    const cost=getCost(from,to,r.id);
+    gT+=cost; gU+=to-from;
+    const ms=getMilestones(r.id,from,to);
+    let mCP=0; for(const m of ms) mCP+=STAT_CP[m.stat]||0;
+    let totalCP=mCP, atk=0;
+    if(r.id==='destruction'){
+      for(let l=from;l<to;l++){let a=3+Math.floor((l-1)/5);if(l%5===0)a++;atk+=a;}
+      totalCP+=atk*10;
     }
-    $('toggle-theme').addEventListener('click', () => {
-      applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
-    });
-    applyTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    gCP+=totalCP;
+    const cv=toCur(cost);
+    const hex=COLOR_HEX[r.color];
 
-    // Init
-    buildCards();
-    buildFullTable();
+    // Compact stat gains
+    const totals={};
+    for(const m of ms){
+      const match=m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
+      if(match){const n=match[1].trim(),v=parseFloat(match[2].replace('%','')),isP=match[2].includes('%');if(!totals[n])totals[n]={val:0,isP};totals[n].val+=v;}
+    }
+
+    let html=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:${ms.length?'8px':'0'};">
+      <div style="font-size:20px;font-weight:700;letter-spacing:-.04em;color:${hex};font-variant-numeric:tabular-nums;">${cost.toLocaleString()}</div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:500;color:var(--green);letter-spacing:-.01em;">${fmtCur(cv)}</div>
+        ${totalCP>0?`<div style="font-size:11px;color:var(--amber);font-weight:500;">+${totalCP.toLocaleString()} CP</div>`:''}
+      </div>
+    </div>`;
+    if(Object.keys(totals).length){
+      html+=`<div style="display:flex;flex-direction:column;gap:2px;">`;
+      for(const[n,info]of Object.entries(totals))
+        html+=`<div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--text3);">${n}</span>
+          <span style="color:${hex};font-weight:500;">+${info.val}${info.isP?'%':''}</span>
+        </div>`;
+      html+=`</div>`;
+    }
+    el.innerHTML=html;
+  }
+
+  $('grand-temporal').textContent=gT.toLocaleString();
+  $('grand-cp').textContent=`+${gCP.toLocaleString()}`;
+  $('grand-upgrades').textContent=gU;
+  updateBarGraph();
+  updateChestAnalysis(gT);
+  updateTierBreakdown(gT);
+}
+
+function updateBarGraph() {
+  const c=$('bar-graph');
+  const entries=RELICS.map(r=>{
+    const f=parseInt($(`${r.id}-current`)?.value)||1,t=parseInt($(`${r.id}-target`)?.value)||1;
+    return{...r,cost:f<t?getCost(f,t,r.id):0,from:f,to:t};
+  });
+  const max=Math.max(...entries.map(e=>e.cost),1);
+  c.innerHTML=entries.map(e=>{
+    const pct=(e.cost/max*100).toFixed(1);
+    const val=toCur(e.cost);
+    const hex=COLOR_HEX[e.color];
+    return`<div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;align-items:baseline;">
+        <span style="font-size:12px;font-weight:500;color:${hex};">${e.name}</span>
+        <span style="font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;">${fmtCur(val)}</span>
+      </div>
+      <div class="bar-track">
+        ${e.cost>0?`<div class="bar-fill" style="width:${pct}%;background:${BAR_BG[e.color]};border-right:1.5px solid ${hex}40;">
+          <span style="font-size:10px;font-weight:600;color:${hex};padding:0 8px;font-variant-numeric:tabular-nums;">${e.cost.toLocaleString()}</span>
+        </div>`:`<div style="height:100%;display:flex;align-items:center;padding:0 8px;"><span style="font-size:11px;color:var(--text4);">—</span></div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateChestAnalysis(gT) {
+  if(gT===undefined) gT=RELICS.reduce((s,r)=>{const f=parseInt($(`${r.id}-current`).value)||1,t=parseInt($(`${r.id}-target`).value)||1;return s+(f<t?getCost(f,t,r.id):0);},0);
+  const tier=$('chest-select').value;
+  const chest=CHESTS[tier];
+  const needed=gT>0?Math.ceil(gT/chest.pieces):0;
+  $('chest-label').textContent=chest.label;
+  $('chest-sublabel').textContent=`x${chest.pieces.toLocaleString()} Pieces / Chest`;
+  $('chests-needed').textContent=needed>0?needed.toLocaleString():'0';
+  const cached=cache[tier];
+  if(cached){
+    const price=currency==='PHP'?cached.php:cached.usdt;
+    const suf=currency==='PHP'?' PHP':' USDT';
+    $('chest-calc').textContent=needed>0?`${needed} × ${price.toFixed(2)} = ${(needed*price).toFixed(2)}${suf}`:'—';
+  } else {
+    $('chest-calc').textContent='—';
+    fetchPrice(tier);
+  }
+}
+
+function updateTierBreakdown(gT) {
+  if(!gT) gT=0;
+  const c=$('tier-breakdown');
+  c.innerHTML=Object.entries(CHESTS).map(([tier,chest])=>{
+    const needed=gT>0?Math.ceil(gT/chest.pieces):0;
+    const cached=cache[tier];
+    const price=cached?(currency==='PHP'?cached.php:cached.usdt):null;
+    const total=price&&needed?(needed*price).toFixed(2):null;
+    const sym=currency==='PHP'?'₱':'';
+    const suf=currency==='PHP'?'':' USDT';
+    return`<div class="tier-row">
+      <span style="font-size:12px;font-weight:600;color:var(--text2);">${chest.label}</span>
+      <span style="font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;">${needed>0?needed.toLocaleString()+' chests':'—'}</span>
+      <span style="font-size:12px;color:var(--green);font-weight:500;font-variant-numeric:tabular-nums;">${total?sym+total+suf:cached?'—':'…'}</span>
+    </div>`;
+  }).join('');
+}
+
+const PROXY='/.netlify/functions/market-price';
+
+async function fetchPrice(tier) {
+  if(cache[tier]){updateChestAnalysis();return;}
+  let php=null,usdt=null;
+  try{
+    const res=await fetch(`${PROXY}?tier=${tier}`,{signal:AbortSignal.timeout(10000)});
+    if(res.ok){const d=await res.json();const item=d?.data?.[tier.toUpperCase()];if(item){php=item.pricePhp;usdt=item.price;}}
+  }catch(_){}
+  if(php&&usdt){cache[tier]={php,usdt};updateChestAnalysis();updateTierBreakdown();}
+}
+
+async function fetchAllTiers(){
+  await Promise.all(Object.keys(CHESTS).map(fetchPrice));
+  updateTierBreakdown(RELICS.reduce((s,r)=>{const f=parseInt($(`${r.id}-current`).value)||1,t=parseInt($(`${r.id}-target`).value)||1;return s+(f<t?getCost(f,t,r.id):0);},0));
+}
+
+async function fetchLivePrice(){
+  const el=$('price-status-inner');
+  const tier=$('chest-select').value;
+  await fetchPrice(tier);
+  const c=cache[tier];
+  if(c){
+    phpPerPiece=cache['t1']?cache['t1'].php/1000:null;
+    usdtPerPiece=cache['t1']?cache['t1'].usdt/1000:null;
+    const price=currency==='PHP'?c.php:c.usdt;
+    const sym=currency==='PHP'?'₱':'';
+    const suf=currency==='PHP'?' PHP':' USDT';
+    el.innerHTML=`<span class="live-badge"><span class="live-dot"></span>Live</span>
+      <span style="font-size:12px;color:var(--text2);font-weight:500;font-variant-numeric:tabular-nums;">${sym}${price.toFixed(2)}${suf} / chest</span>`;
+    // Always make sure t1 is fetched for per-piece price
+    if(!cache['t1']) await fetchPrice('t1');
+    if(cache['t1']){phpPerPiece=cache['t1'].php/1000;usdtPerPiece=cache['t1'].usdt/1000;}
     recalcAll();
-  </script>
+    fetchAllTiers();
+    clearTimeout(window._pt);
+    window._pt=setTimeout(()=>{Object.keys(cache).forEach(k=>delete cache[k]);phpPerPiece=null;usdtPerPiece=null;fetchLivePrice();},120000);
+  } else {
+    el.innerHTML=`<span style="font-size:12px;color:var(--text4);">Price unavailable</span>
+      <button onclick="fetchLivePrice()" style="font-size:12px;color:var(--blue);background:none;border:none;cursor:pointer;">Retry</button>`;
+  }
+}
+
+function buildFullTable(){
+  const tbody=$('full-table-body');
+  for(let i=1;i<=50;i++){
+    const j=i+50;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${i}→${i+1}</td>
+      <td>${(COSTS[i]||0).toLocaleString()}</td>
+      <td style="padding-left:20px;">${j<=99?j+'→'+(j+1):''}</td>
+      <td>${j<=99?(COSTS[j]||0).toLocaleString():''}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// Spinners
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('.num-btn');if(!btn)return;
+  const input=btn.closest('.num-wrap').querySelector('input');
+  const min=parseFloat(input.min),max=parseFloat(input.max);
+  let val=(parseFloat(input.value)||0)+(btn.dataset.dir==='up'?1:-1);
+  val=Math.min(max,Math.max(min,val));
+  input.value=val; input.dispatchEvent(new Event('input'));
+});
+document.addEventListener('change',e=>{
+  if(e.target.type!=='number')return;
+  let v=parseFloat(e.target.value)||0;
+  const min=parseFloat(e.target.min),max=parseFloat(e.target.max);
+  if(!isNaN(max)&&v>max)v=max; if(!isNaN(min)&&v<min)v=min;
+  e.target.value=v; e.target.dispatchEvent(new Event('input'));
+});
+
+buildCards(); buildFullTable(); recalcAll(); fetchLivePrice();
+</script>
 </body>
 </html>
