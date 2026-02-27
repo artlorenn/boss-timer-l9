@@ -4,27 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relic Calculator</title>
-<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* ── VARIABLES — exact match to style.css ── */
 :root {
   --bg:        #000000;
-  --bg2:       #0a0a0a;
-  --surface:   rgba(28,28,30,0.8);
-  --surface2:  rgba(44,44,46,0.6);
-  --border:    rgba(255,255,255,0.08);
-  --border2:   rgba(255,255,255,0.05);
+  --bg2:       #0c0c0e;
+  --surface:   rgba(26,26,28,0.9);
+  --surface2:  rgba(38,38,42,0.7);
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.04);
   --text:      #ffffff;
-  --text2:     rgba(255,255,255,0.6);
-  --text3:     rgba(255,255,255,0.3);
-  --text4:     rgba(255,255,255,0.12);
+  --text2:     rgba(255,255,255,0.55);
+  --text3:     rgba(255,255,255,0.28);
+  --text4:     rgba(255,255,255,0.10);
   --red:       #ff453a;
   --blue:      #0a84ff;
   --green:     #30d158;
   --amber:     #ffd60a;
   --teal:      #5ac8fa;
-  --radius:    14px;
+  --radius:    16px;
   --radius-sm: 10px;
-  --blur:      20px;
+  --blur:      24px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,113 +38,69 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── OUTER FRAME ── */
+/* ── FRAME — matches style.css exactly ── */
 #frame {
-  position: fixed;
-  inset: 10px;
-  border-radius: 22px;
+  position: fixed; inset: 10px; border-radius: 22px;
   background: var(--bg2);
   border: 1px solid rgba(255,255,255,0.08);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,1),
-    0 40px 80px rgba(0,0,0,0.85),
-    inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow: 0 0 0 1px rgba(0,0,0,1), 0 40px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.05);
   overflow: hidden;
-  display: grid;
-  grid-template-rows: 80px 1fr;
-  grid-template-columns: 1fr 580px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* ── TOP BAR ── */
+/* ── TOPBAR — matches style.css exactly ── */
 #topbar {
-  grid-column: 1 / -1;
-  height: 80px;
+  flex-shrink: 0;
+  height: 56px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 16px;
+  padding: 0 16px;
+  gap: 8px;
   border-bottom: 1px solid var(--border);
+  background: rgba(14,14,16,0.85);
   backdrop-filter: blur(var(--blur));
   -webkit-backdrop-filter: blur(var(--blur));
-  background: rgba(14,14,16,0.85);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+#topbar::-webkit-scrollbar { display: none; }
 
-.nav-link {
-  font-size: 12px; font-weight: 400;
-  color: var(--text3);
-  text-decoration: none;
-  letter-spacing: -.01em;
-  transition: color .15s;
-}
+.page-title { font-size: 16px; font-weight: 600; letter-spacing: -.04em; color: var(--text); white-space: nowrap; flex-shrink: 0; }
+.beta-pill { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; background: rgba(255,214,10,0.12); color: var(--amber); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+.nav-link { font-size: 12px; font-weight: 400; color: var(--text3); text-decoration: none; letter-spacing: -.01em; transition: color .15s; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
 .nav-link:hover { color: var(--blue); }
-
-.page-title {
-  font-size: 16px; font-weight: 600;
-  letter-spacing: -.04em;
-  color: var(--text);
-}
-
-.beta-pill {
-  font-size: 9px; font-weight: 700;
-  padding: 2px 7px; border-radius: 20px;
-  background: rgba(255,214,10,0.12);
-  color: var(--amber);
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-
-.spacer { flex: 1; }
-
-.tb-stat {
-  display: flex; flex-direction: column;
-  align-items: flex-end; gap: 0;
-}
-.tb-stat-label {
-  font-size: 9px; font-weight: 600;
-  color: var(--text4); letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.tb-stat-val {
-  font-size: 15px; font-weight: 600;
-  letter-spacing: -.03em;
-  font-variant-numeric: tabular-nums;
-  color: var(--text2);
-}
-
 .tb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.spacer { flex: 1; min-width: 4px; }
+.tb-stat { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.tb-stat-label { font-size: 9px; font-weight: 600; color: var(--text4); letter-spacing: .06em; text-transform: uppercase; }
+.tb-stat-val { font-size: 15px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 5px; color: var(--text2); }
 
-.cur-select {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px; font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 8px;
-  outline: none;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+/* ── BODY LAYOUT ── */
+#body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 540px;
+  overflow: hidden;
+  min-height: 0;
 }
 
-/* ── PANELS ── */
 #left-panel {
-  grid-column: 1; grid-row: 2;
   overflow-y: auto;
-  padding: 30px 12px 16px 16px;
+  padding: 20px 10px 20px 16px;
   display: flex; flex-direction: column; gap: 10px;
 }
 #right-panel {
-  grid-column: 2; grid-row: 2;
   overflow-y: auto;
-  padding: 30px 16px 16px 10px;
+  padding: 20px 16px 20px 10px;
   display: flex; flex-direction: column; gap: 10px;
   border-left: 1px solid var(--border2);
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 2px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+#left-panel::-webkit-scrollbar, #right-panel::-webkit-scrollbar { width: 2px; }
+#left-panel::-webkit-scrollbar-thumb, #right-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
 
 /* ── GLASS CARD ── */
 .card {
@@ -158,12 +114,23 @@ html, body {
 }
 
 .section-label {
-  font-size: 11px; font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase;
-  color: var(--text3); margin-bottom: 12px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text4); margin-bottom: 12px;
 }
 
-/* ── RELIC CARDS ── */
+/* ── CURRENCY SELECT ── */
+.cur-select {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); font-family: inherit;
+  font-size: 12px; font-weight: 500; padding: 5px 10px;
+  border-radius: 9px; outline: none; cursor: pointer; transition: border-color .15s;
+  flex-shrink: 0;
+}
+.cur-select:hover { border-color: rgba(255,255,255,.12); }
+.cur-select option { background: #1c1c1e; }
+
+/* ── RELIC GRID ── */
 .relic-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -180,14 +147,9 @@ html, body {
   box-shadow: 0 2px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
   transition: box-shadow .2s;
 }
-.relic-card:hover {
-  box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07);
-}
+.relic-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07); }
 
-.relic-name {
-  font-size: 12px; font-weight: 600;
-  letter-spacing: -.01em; margin-bottom: 10px;
-}
+.relic-name { font-size: 12px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 10px; }
 .relic-name.red   { color: var(--red);   }
 .relic-name.blue  { color: var(--blue);  }
 .relic-name.green { color: var(--green); }
@@ -196,18 +158,14 @@ html, body {
 .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 .input-label { font-size: 11px; font-weight: 500; color: var(--text3); margin-bottom: 4px; letter-spacing: -.01em; }
 
-/* iOS-style input */
 .num-wrap { display: flex; align-items: center; }
 .num-btn {
   width: 28px; height: 34px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; user-select: none;
-  font-size: 16px; font-weight: 400;
-  color: var(--text3);
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--border);
-  transition: all .15s;
-  flex-shrink: 0;
+  font-size: 16px; font-weight: 400; color: var(--text3);
+  background: rgba(255,255,255,.04); border: 1px solid var(--border);
+  transition: all .15s; flex-shrink: 0;
 }
 .num-btn:hover { color: var(--text2); background: rgba(255,255,255,.07); }
 .num-btn:active { transform: scale(.93); }
@@ -215,16 +173,11 @@ html, body {
 .num-btn.plus  { border-radius: 0 8px 8px 0; border-left: none; }
 .num-wrap input {
   flex: 1; height: 34px;
-  border: 1px solid var(--border);
-  border-left: none; border-right: none;
-  background: rgba(255,255,255,.04);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 14px; font-weight: 500;
-  text-align: center; outline: none;
-  letter-spacing: -.02em;
-  -moz-appearance: textfield;
-  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border); border-left: none; border-right: none;
+  background: rgba(255,255,255,.04); color: var(--text);
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  text-align: center; outline: none; letter-spacing: -.02em;
+  -moz-appearance: textfield; font-variant-numeric: tabular-nums;
 }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -234,131 +187,141 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: rgba(255,255,255,.025);
   border: 1px solid var(--border2);
   border-radius: var(--radius-sm);
-  padding: 9px 11px;
-  min-height: 40px;
+  padding: 9px 11px; min-height: 40px;
 }
-
-/* Big numbers */
-.big-num {
-  font-size: 22px; font-weight: 700;
-  letter-spacing: -.04em;
-  font-variant-numeric: tabular-nums;
-}
-.big-num.red   { color: var(--red);   }
-.big-num.blue  { color: var(--blue);  }
-.big-num.green { color: var(--green); }
-.big-num.amber { color: var(--amber); }
 
 /* ── BAR ── */
 .bar-track {
-  height: 20px;
-  background: rgba(255,255,255,.04);
-  border-radius: 6px;
-  overflow: hidden;
-  flex: 1;
-  border: 1px solid var(--border2);
+  height: 20px; background: rgba(255,255,255,.04); border-radius: 6px;
+  overflow: hidden; flex: 1; border: 1px solid var(--border2);
 }
 .bar-fill {
-  height: 100%;
-  border-radius: 6px;
-  display: flex; align-items: center;
+  height: 100%; border-radius: 6px; display: flex; align-items: center;
   transition: width .5s cubic-bezier(.25,.46,.45,.94);
 }
 
 /* ── GRAND TOTAL ── */
-.grand-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
-}
+.grand-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .grand-cell {
-  background: rgba(255,255,255,.03);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 10px 12px;
 }
-.grand-cell-label {
-  font-size: 10px; font-weight: 500;
-  color: var(--text3); margin-bottom: 4px;
-  letter-spacing: .02em; text-transform: uppercase;
-}
-.grand-cell-val {
-  font-size: 22px; font-weight: 700;
-  letter-spacing: -.04em;
-  font-variant-numeric: tabular-nums;
-}
+.grand-cell-label { font-size: 10px; font-weight: 500; color: var(--text3); margin-bottom: 4px; letter-spacing: .02em; text-transform: uppercase; }
+.grand-cell-val { font-size: 20px; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 
 /* ── CHEST ── */
 .chest-body {
-  background: rgba(255,255,255,.03);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  margin-bottom: 10px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px;
 }
 
-.live-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 600;
-  color: var(--green); letter-spacing: .02em;
-}
-.live-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--green);
-  animation: pulse 2s ease-in-out infinite;
-}
+.live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: var(--green); letter-spacing: .02em; }
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
 
-/* Tier rows */
 .tier-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: rgba(255,255,255,.02);
-  border: 1px solid var(--border2);
-  transition: background .15s;
+  padding: 7px 10px; border-radius: 8px;
+  background: rgba(255,255,255,.02); border: 1px solid var(--border2);
+  transition: background .15s; gap: 8px;
 }
 .tier-row:hover { background: rgba(255,255,255,.04); }
 
-/* Spinner */
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin-anim { animation: spin .8s linear infinite; }
 
-/* Details */
 details {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 12px 14px;
   backdrop-filter: blur(var(--blur));
 }
 details summary {
-  font-size: 11px; font-weight: 600;
-  color: var(--text3); cursor: pointer;
-  user-select: none; letter-spacing: .03em;
-  text-transform: uppercase;
-  list-style: none;
+  font-size: 10px; font-weight: 700; color: var(--text4); cursor: pointer;
+  user-select: none; letter-spacing: .05em; text-transform: uppercase; list-style: none;
 }
 details summary::-webkit-details-marker { display: none; }
 
-/* Table */
 .cost-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
 .cost-table th { text-align: left; padding: 3px 6px; color: var(--text4); font-weight: 500; font-size: 11px; }
 .cost-table th:nth-child(2), .cost-table th:nth-child(4) { text-align: right; }
 .cost-table td { padding: 2px 6px; color: var(--text3); font-variant-numeric: tabular-nums; }
 .cost-table td:nth-child(2), .cost-table td:nth-child(4) { text-align: right; color: var(--text2); }
 .cost-table tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+/* ════════════════════════════════
+   MOBILE  ≤ 768px
+   ════════════════════════════════ */
+@media (max-width: 768px) {
+  #frame { inset: 6px; border-radius: 18px; }
+
+  #topbar { height: 52px; padding: 0 10px; gap: 6px; }
+
+  /* Stack panels into single scrollable column */
+  #body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  #left-panel {
+    overflow-y: visible;
+    padding: 14px 10px 0;
+    min-height: unset;
+  }
+
+  #right-panel {
+    overflow-y: visible;
+    padding: 10px 10px 16px;
+    border-left: none;
+    border-top: 1px solid var(--border2);
+  }
+
+  /* Relic grid stays 2-col but tighter */
+  .relic-grid { gap: 6px; }
+
+  .relic-card { padding: 10px 12px; }
+  .relic-name { font-size: 11px; margin-bottom: 8px; }
+
+  /* Smaller +/- buttons on mobile */
+  .num-btn { width: 26px; height: 32px; font-size: 14px; }
+  .num-wrap input { height: 32px; font-size: 13px; }
+
+  /* Grand grid — 3 col is cramped, make 1 row of 3 smaller cells */
+  .grand-grid { gap: 6px; }
+  .grand-cell { padding: 8px 10px; }
+  .grand-cell-val { font-size: 16px; }
+  .grand-cell-label { font-size: 9px; }
+
+  /* Chest section */
+  .chest-body { padding: 10px 12px; }
+
+  /* Tier rows — tighter */
+  .tier-row { padding: 6px 8px; flex-wrap: nowrap; }
+  .tier-row span { font-size: 11px; }
+
+  /* Result strip */
+  .result-strip { padding: 8px 10px; }
+
+  details { padding: 10px 12px; }
+}
+
+@media (max-width: 400px) {
+  /* Very small phones: relic grid goes 1-col */
+  .relic-grid { grid-template-columns: 1fr; }
+  .grand-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
 </style>
 </head>
 <body>
 
 <div id="frame">
 
-  <!-- TOP BAR -->
+  <!-- TOPBAR -->
   <div id="topbar">
     <a href="/timer" class="nav-link">← Timer</a>
     <div class="tb-sep"></div>
     <span class="page-title">Relic Calculator</span>
     <span class="beta-pill">Beta</span>
-    <div class="tb-sep"></div>
     <div class="spacer"></div>
 
     <div class="tb-stat">
@@ -368,115 +331,113 @@ details summary::-webkit-details-marker { display: none; }
     <div class="tb-sep"></div>
     <div class="tb-stat">
       <span class="tb-stat-label">Online</span>
-      <span class="tb-stat-val" style="display:flex;align-items:center;gap:5px;">
+      <span class="tb-stat-val">
         <span class="live-dot"></span>
         <span id="online-count">—</span>
       </span>
     </div>
     <div class="tb-sep"></div>
-
     <select class="cur-select" id="cur-select" onchange="setCurrency(this.value)">
       <option value="PHP">PHP ₱</option>
       <option value="USDT">USDT</option>
     </select>
   </div>
 
-  <!-- LEFT PANEL -->
-  <div id="left-panel">
+  <!-- BODY -->
+  <div id="body">
 
-    <!-- Relic cards 2x2 -->
-    <div class="relic-grid" id="relic-grid"></div>
+    <!-- LEFT PANEL -->
+    <div id="left-panel">
 
-    <!-- Bar graph -->
-    <div class="card">
-      <div class="section-label">Cost Breakdown</div>
-      <div id="bar-graph" style="display:flex;flex-direction:column;gap:7px;"></div>
+      <!-- Relic cards 2×2 -->
+      <div class="relic-grid" id="relic-grid"></div>
+
+      <!-- Bar graph -->
+      <div class="card">
+        <div class="section-label">Cost Breakdown</div>
+        <div id="bar-graph" style="display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+
+      <!-- Full table -->
+      <details>
+        <summary>Full Cost Table (1 → 100)</summary>
+        <div style="max-height:180px;overflow-y:auto;margin-top:2px;">
+          <table class="cost-table">
+            <thead>
+              <tr>
+                <th>Lvl</th><th>Cost</th>
+                <th style="padding-left:20px;">Lvl</th><th>Cost</th>
+              </tr>
+            </thead>
+            <tbody id="full-table-body"></tbody>
+          </table>
+        </div>
+      </details>
+
     </div>
 
-    <!-- Full table -->
-    <details>
-      <summary>Full Cost Table (1 → 100)</summary>
-      <div style="max-height:180px;overflow-y:auto;margin-top:2px;">
-        <table class="cost-table">
-          <thead>
-            <tr>
-              <th>Lvl</th><th>Cost</th>
-              <th style="padding-left:20px;">Lvl</th><th>Cost</th>
-            </tr>
-          </thead>
-          <tbody id="full-table-body"></tbody>
-        </table>
-      </div>
-    </details>
+    <!-- RIGHT PANEL -->
+    <div id="right-panel">
 
-  </div>
-
-  <!-- RIGHT PANEL -->
-  <div id="right-panel">
-
-    <!-- Grand Total -->
-    <div class="card">
-      <div class="section-label">Grand Total</div>
-      <div class="grand-grid">
-        <div class="grand-cell">
-          <div class="grand-cell-label">Pieces</div>
-          <div class="grand-cell-val" id="grand-temporal">0</div>
-        </div>
-        <div class="grand-cell">
-          <div class="grand-cell-label">Upgrades</div>
-          <div class="grand-cell-val" id="grand-upgrades">0</div>
-        </div>
-        <div class="grand-cell">
-          <div class="grand-cell-label">Combat Power</div>
-          <div class="grand-cell-val" id="grand-cp" style="color:var(--amber);">+0</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chest Analysis -->
-    <div class="card" style="flex:1;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
-        <div class="section-label" style="margin-bottom:0;">Chest Market</div>
-        <select id="chest-select" class="cur-select" onchange="updateChestAnalysis();fetchLivePrice()" style="font-size:12px;padding:4px 8px;">
-          <option value="t1">T1 — x1,000</option>
-          <option value="t2">T2 — x5,000</option>
-          <option value="t3">T3 — x10,000</option>
-          <option value="t4">T4 — x50,000</option>
-          <option value="t5">T5 — x100,000</option>
-        </select>
-      </div>
-
-      <div class="chest-body">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-          <div>
-            <div style="font-size:15px;font-weight:600;letter-spacing:-.02em;margin-bottom:3px;" id="chest-label">T1 Chest</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;" id="chest-sublabel">x1,000 Pieces / Chest</div>
-
-            <!-- Live price badge -->
-            <div id="price-status-inner" style="display:flex;align-items:center;gap:6px;">
-              <svg class="spin-anim" style="width:11px;height:11px;color:var(--text4);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-              <span style="font-size:11px;color:var(--text4);">Fetching price…</span>
-            </div>
+      <!-- Grand Total -->
+      <div class="card">
+        <div class="section-label">Grand Total</div>
+        <div class="grand-grid">
+          <div class="grand-cell">
+            <div class="grand-cell-label">Pieces</div>
+            <div class="grand-cell-val" id="grand-temporal">0</div>
           </div>
-
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="display:flex;align-items:baseline;gap:5px;justify-content:flex-end;">
-              <span id="chests-needed" style="font-size:34px;font-weight:700;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--text);">0</span>
-              <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Chests</span>
-            </div>
-            <div id="chest-calc" style="font-size:11px;color:var(--green);letter-spacing:-.01em;font-variant-numeric:tabular-nums;">—</div>
+          <div class="grand-cell">
+            <div class="grand-cell-label">Upgrades</div>
+            <div class="grand-cell-val" id="grand-upgrades">0</div>
+          </div>
+          <div class="grand-cell">
+            <div class="grand-cell-label">Combat Power</div>
+            <div class="grand-cell-val" id="grand-cp" style="color:var(--amber);">+0</div>
           </div>
         </div>
       </div>
 
-      <!-- All tiers -->
-      <div style="margin-bottom:8px;">
-        <div class="section-label" style="margin-bottom:6px;">All Tiers</div>
-        <div id="tier-breakdown" style="display:flex;flex-direction:column;gap:4px;"></div>
+      <!-- Chest Analysis -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+          <div class="section-label" style="margin-bottom:0;">Chest Market</div>
+          <select id="chest-select" class="cur-select" onchange="updateChestAnalysis();fetchLivePrice()" style="font-size:12px;padding:4px 8px;">
+            <option value="t1">T1 — x1,000</option>
+            <option value="t2">T2 — x5,000</option>
+            <option value="t3">T3 — x10,000</option>
+            <option value="t4">T4 — x50,000</option>
+            <option value="t5">T5 — x100,000</option>
+          </select>
+        </div>
+
+        <div class="chest-body">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+            <div>
+              <div style="font-size:15px;font-weight:600;letter-spacing:-.02em;margin-bottom:3px;" id="chest-label">T1 Chest</div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:8px;" id="chest-sublabel">x1,000 Pieces / Chest</div>
+              <div id="price-status-inner" style="display:flex;align-items:center;gap:6px;">
+                <svg class="spin-anim" style="width:11px;height:11px;color:var(--text4);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                <span style="font-size:11px;color:var(--text4);">Fetching price…</span>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="display:flex;align-items:baseline;gap:5px;justify-content:flex-end;">
+                <span id="chests-needed" style="font-size:34px;font-weight:700;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--text);">0</span>
+                <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Chests</span>
+              </div>
+              <div id="chest-calc" style="font-size:11px;color:var(--green);letter-spacing:-.01em;font-variant-numeric:tabular-nums;">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label" style="margin-bottom:6px;">All Tiers</div>
+          <div id="tier-breakdown" style="display:flex;flex-direction:column;gap:4px;"></div>
+        </div>
       </div>
 
     </div>
-
   </div>
 </div>
 
@@ -526,7 +487,6 @@ details summary::-webkit-details-marker { display: none; }
 <script>
 const $ = id => document.getElementById(id);
 
-// ── Cost tables ──
 const COSTS = [0,15,25,36,48,62,78,96,116,138,163,192,225,263,306,355,410,471,539,614,697,790,890,990,1090,1190,1340,1490,1760,1964];
 for (let n = 30; n <= 99; n++) COSTS[n] = Math.round((n**3 - 60*n**2 + 1553*n - 13074) / 3);
 const STORM_COSTS = [0,5000,5104,5219,5346,5485,5637,5802,5981,6174,6382,6610,6860,7134,7434,7762,8120,8510,8934,9394,9892,10430,11010,11634,12304,13022,13790,14610,15484,16414,17402,18450,19560,20734,21974,23282,24660,26110,27634,29234,30912,32670,34510,36434,38444,40542,42730,45010,47384,49854,52422,55090,57860,60734,63714,66802,70000,73310,76734,80274,83932,87710,91610,95634,99784,104062,108470,113010,117684,122494,127442,132530,137760,143134,148654,154322,160140,166110,172234,178514,184952,191550,198310,205234,212324,219582,227010,234610,242384,250334,258462,266770,275260,283934,292794,301842,311080,320510,330134,339954];
@@ -553,10 +513,8 @@ const RELICS = [
 ];
 const COLOR_HEX = { red:'#ff453a', blue:'#0a84ff', green:'#30d158', amber:'#ffd60a' };
 const BAR_BG = {
-  red:   'rgba(255,69,58,0.15)',
-  blue:  'rgba(10,132,255,0.15)',
-  green: 'rgba(48,209,88,0.15)',
-  amber: 'rgba(255,214,10,0.15)',
+  red:'rgba(255,69,58,0.15)', blue:'rgba(10,132,255,0.15)',
+  green:'rgba(48,209,88,0.15)', amber:'rgba(255,214,10,0.15)',
 };
 
 const CHESTS = {
@@ -584,7 +542,6 @@ function fmtCur(val) {
   return `${sym}${val.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}${suf}`;
 }
 
-// ── Build relic cards ──
 function buildCards() {
   const grid=$('relic-grid');
   for (const r of RELICS) {
@@ -651,14 +608,12 @@ function recalcAll() {
     gCP+=totalCP;
     const cv=toCur(cost);
     const hex=COLOR_HEX[r.color];
-
     const totals={};
     for(const m of ms){
       const match=m.stat.match(/^(.+?)\s*[+\-]\s*(.+)$/);
       if(match){const n=match[1].trim(),v=parseFloat(match[2].replace('%','')),isP=match[2].includes('%');if(!totals[n])totals[n]={val:0,isP};totals[n].val+=v;}
     }
-
-    let html=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:${ms.length?'8px':'0'};">
+    let html=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:${Object.keys(totals).length?'8px':'0'};">
       <div style="font-size:20px;font-weight:700;letter-spacing:-.04em;color:${hex};font-variant-numeric:tabular-nums;">${cost.toLocaleString()}</div>
       <div style="text-align:right;">
         <div style="font-size:13px;font-weight:500;color:var(--green);letter-spacing:-.01em;">${fmtCur(cv)}</div>
@@ -676,7 +631,6 @@ function recalcAll() {
     }
     el.innerHTML=html;
   }
-
   $('grand-temporal').textContent=gT.toLocaleString();
   $('grand-cp').textContent=`+${gCP.toLocaleString()}`;
   $('grand-upgrades').textContent=gU;
@@ -740,9 +694,9 @@ function updateTierBreakdown(gT) {
     const sym=currency==='PHP'?'₱':'';
     const suf=currency==='PHP'?'':' USDT';
     return`<div class="tier-row">
-      <span style="font-size:12px;font-weight:600;color:var(--text2);">${chest.label}</span>
+      <span style="font-size:12px;font-weight:600;color:var(--text2);flex:1;">${chest.label}</span>
       <span style="font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;">${needed>0?needed.toLocaleString()+' chests':'—'}</span>
-      <span style="font-size:12px;color:var(--green);font-weight:500;font-variant-numeric:tabular-nums;">${total?sym+total+suf:cached?'—':'…'}</span>
+      <span style="font-size:12px;color:var(--green);font-weight:500;font-variant-numeric:tabular-nums;text-align:right;min-width:80px;">${total?sym+total+suf:cached?'—':'…'}</span>
     </div>`;
   }).join('');
 }
@@ -794,18 +748,15 @@ function buildFullTable(){
   for(let i=1;i<=50;i++){
     const j=i+50;
     const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${i}→${i+1}</td>
-      <td>${(COSTS[i]||0).toLocaleString()}</td>
+    tr.innerHTML=`<td>${i}→${i+1}</td><td>${(COSTS[i]||0).toLocaleString()}</td>
       <td style="padding-left:20px;">${j<=99?j+'→'+(j+1):''}</td>
       <td>${j<=99?(COSTS[j]||0).toLocaleString():''}</td>`;
     tbody.appendChild(tr);
   }
 }
 
-// Spinners
 document.addEventListener('click',e=>{
-  const btn=e.target.closest('.num-btn');if(!btn)return;
+  const btn=e.target.closest('.num-btn'); if(!btn) return;
   const input=btn.closest('.num-wrap').querySelector('input');
   const min=parseFloat(input.min),max=parseFloat(input.max);
   let val=(parseFloat(input.value)||0)+(btn.dataset.dir==='up'?1:-1);
@@ -813,7 +764,7 @@ document.addEventListener('click',e=>{
   input.value=val; input.dispatchEvent(new Event('input'));
 });
 document.addEventListener('change',e=>{
-  if(e.target.type!=='number')return;
+  if(e.target.type!=='number') return;
   let v=parseFloat(e.target.value)||0;
   const min=parseFloat(e.target.min),max=parseFloat(e.target.max);
   if(!isNaN(max)&&v>max)v=max; if(!isNaN(min)&&v<min)v=min;

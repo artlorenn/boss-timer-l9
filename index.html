@@ -11,83 +11,143 @@
 <body>
 <div id="frame">
 
-  <!-- SINGLE UNIFIED BAR -->
+  <!-- TOPBAR -->
   <div id="topbar">
-
-    <!-- LEFT: branding + nav -->
     <span class="page-title">Boss Timer</span>
     <span class="beta-pill">Beta</span>
-    <div class="tb-sep"></div>
     <a href="/relic" class="nav-link">Relic →</a>
     <div class="tb-sep"></div>
     <input id="boss-filter" type="text" placeholder="Filter bosses…" autocomplete="off" class="tb-filter">
-    <!-- CONTROLS inline -->
-    <select id="layout-mode" class="glass-select">
+
+    <!-- Desktop-only controls -->
+    <select id="layout-mode" class="glass-select tb-desktop">
       <option value="compact">Compact</option>
       <option value="deck">Deck</option>
     </select>
-    <div class="tb-sep"></div>
-    <select id="alarm-lead" class="glass-select">
+    <div class="tb-sep tb-desktop"></div>
+    <select id="alarm-lead" class="glass-select tb-desktop">
       <option value="3">3m</option>
       <option value="5" selected>5m</option>
       <option value="10">10m</option>
       <option value="15">15m</option>
     </select>
-    <div class="tb-sep"></div>
-    <input id="alarm-volume" type="range" min="0" max="100" value="80" class="tb-slider">
-    <span class="vol-label" id="alarm-volume-label">80%</span>
-    <div class="tb-sep"></div>
-    <select id="sound-preset" class="glass-select">
+    <div class="tb-sep tb-desktop"></div>
+    <input id="alarm-volume" type="range" min="0" max="100" value="80" class="tb-slider tb-desktop">
+    <span class="vol-label tb-desktop" id="alarm-volume-label">80%</span>
+    <div class="tb-sep tb-desktop"></div>
+    <select id="sound-preset" class="glass-select tb-desktop">
       <option value="classic">Classic</option>
       <option value="chimes">Chimes</option>
       <option value="retro">Retro</option>
       <option value="pulse">Pulse</option>
     </select>
-    <button id="user-test-alarm" class="tb-btn" title="Test alarm">
+    <button id="user-test-alarm" class="tb-btn tb-desktop" title="Test alarm">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     </button>
-    <button id="toggle-timeline" class="tb-btn" title="Toggle timeline">
+    <button id="toggle-timeline" class="tb-btn tb-desktop" title="Toggle timeline">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="8 8 3 12 8 16"/><polyline points="16 8 21 12 16 16"/></svg>
     </button>
+    <div class="tb-sep tb-desktop"></div>
 
     <div class="spacer"></div>
 
-    <!-- RIGHT: status + stats + actions -->
+    <!-- Sync status -->
     <div class="sync-wrap">
       <span class="sync-dot syncing" id="sync-dot"></span>
-      <span class="sync-label" id="sync-label">Loading…</span>
+      
+      <span class="sync-label tb-desktop" id="sync-label">Loading…</span>
     </div>
-    <div class="tb-sep"></div>
+    <span id="toast" class="tb-desktop"></span>
+    <div class="tb-sep tb-desktop"></div>
 
-    <span id="status-pill">—</span>
-    <div class="tb-sep"></div>
-
+    <!-- Visitors + Online — ALWAYS visible -->
     <div class="tb-stat">
       <span class="tb-stat-label">Visitors</span>
       <span class="tb-stat-val" id="visitor-count">—</span>
     </div>
     <div class="tb-sep"></div>
-
     <div class="tb-stat">
       <span class="tb-stat-label">Online</span>
       <span class="tb-stat-val"><span class="live-dot"></span><span id="online-count">—</span></span>
     </div>
-    <div class="tb-sep"></div>
 
-    <span id="toast"></span>
-
+    <!-- Desktop icon buttons -->
+    <div class="tb-sep tb-desktop"></div>
     <span id="admin-badge" class="admin-badge" style="display:none;">Admin</span>
-    <button id="toggle-admin" class="tb-btn" title="Admin login">
+    <button id="toggle-admin" class="tb-btn tb-desktop" title="Admin login">
       <svg id="icon-lock" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
       <svg id="icon-unlock" style="display:none;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>
     </button>
-    <button id="toggle-mute" class="tb-btn" title="Mute">
+    <button id="toggle-mute" class="tb-btn tb-desktop" title="Mute">
       <svg id="icon-unmuted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
       <svg id="icon-muted" style="display:none;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
     </button>
-    <button id="btn-refresh" class="tb-btn" title="Refresh">
+    <button id="btn-refresh" class="tb-btn tb-desktop" title="Refresh">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
     </button>
+
+    <!-- Hamburger — mobile only -->
+    <div class="tb-sep tb-mobile-only"></div>
+    <button id="hamburger-btn" class="tb-btn tb-mobile-only" title="Menu" aria-label="Open menu">
+      <svg id="hamburger-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <svg id="hamburger-close" style="display:none;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- HAMBURGER DRAWER (mobile only) -->
+  <div id="hamburger-drawer">
+    <div class="drawer-row">
+      <span class="drawer-label">Layout</span>
+      <select id="layout-mode-m" class="glass-select">
+        <option value="compact">Compact</option>
+        <option value="deck">Deck</option>
+      </select>
+    </div>
+    <div class="drawer-divider"></div>
+
+    <div class="drawer-row">
+      <span class="drawer-label">Alarm lead</span>
+      <select id="alarm-lead-m" class="glass-select">
+        <option value="3">3 min</option>
+        <option value="5" selected>5 min</option>
+        <option value="10">10 min</option>
+        <option value="15">15 min</option>
+      </select>
+    </div>
+    <div class="drawer-divider"></div>
+
+    <div class="drawer-row">
+      <span class="drawer-label">Volume</span>
+      <div class="drawer-right">
+        <input id="alarm-volume-m" type="range" min="0" max="100" value="80" class="tb-slider drawer-slider">
+        <span class="vol-label" id="alarm-volume-label-m">80%</span>
+      </div>
+    </div>
+    <div class="drawer-divider"></div>
+
+    <div class="drawer-row">
+      <span class="drawer-label">Sound</span>
+      <select id="sound-preset-m" class="glass-select">
+        <option value="classic">Classic</option>
+        <option value="chimes">Chimes</option>
+        <option value="retro">Retro</option>
+        <option value="pulse">Pulse</option>
+      </select>
+    </div>
+    <div class="drawer-divider"></div>
+
+    <div class="drawer-row drawer-actions">
+      <button id="user-test-alarm-m" class="action-btn">🔔 Test</button>
+      <button id="toggle-timeline-m" class="action-btn">📅 Timeline</button>
+      <button id="toggle-mute-m" class="action-btn" data-muted="false">🔊 Mute</button>
+      <button id="btn-refresh-m" class="action-btn">↻ Refresh</button>
+    </div>
+    <div class="drawer-divider"></div>
+
+    <div class="drawer-row">
+      <span class="drawer-label" id="admin-drawer-label">Admin</span>
+      <button id="toggle-admin-m" class="action-btn">🔒 Login</button>
+    </div>
   </div>
 
   <!-- ADMIN AREA -->
@@ -105,7 +165,6 @@
 
   <!-- MAIN SCROLL -->
   <div id="main">
-
     <div id="summary"></div>
     <div id="timeline-section" style="display:none;"></div>
     <div id="sections"></div>

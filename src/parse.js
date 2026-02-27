@@ -10,11 +10,41 @@ function stripEmoji(str) {
     .trim()
 }
 
+// Convert "BARON BRAUDMORE" → "Baron Braudmore"
+// Handles multi-word names and preserves known abbreviations like "SCHEDULED"
+function toTitleCase(str) {
+  return str
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
 function cleanBossName(name) {
-  return stripEmoji(name)
-    .replace(/^[\s\-–—|_.•*#>]+/, '')
-    .replace(/[\s\-–—|_.•*#>]+$/, '')
+  // Strip trailing tags like "(SCHEDULED)" or "(scheduled)" before title-casing
+  const withoutTags = name
+    .replace(/\s*\(scheduled\)/gi, '')
+    .replace(/\s*\(fixed\)/gi, '')
+    .replace(/\s*\(event\)/gi, '')
+
+  const stripped = stripEmoji(withoutTags)
+    .replace(/^[\s\-–—|_.•*#>`]+/, '')
+    .replace(/[\s\-–—|_.•*#>`]+$/, '')
     .trim()
+
+  return toTitleCase(stripped)
+}
+
+// Limit: only keep events within N days from today (default 2 = today + tomorrow)
+const MAX_DAYS_AHEAD = 2
+
+function isWithinLimit(dt) {
+  const now = new Date()
+  // Start of today (midnight local)
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+  // End of (today + MAX_DAYS_AHEAD - 1), i.e. end of tomorrow if MAX_DAYS_AHEAD=2
+  const limitEnd = new Date(todayStart)
+  limitEnd.setDate(limitEnd.getDate() + MAX_DAYS_AHEAD)
+  // limitEnd is midnight at the START of the day after the limit
+  return dt.getTime() >= todayStart.getTime() && dt.getTime() < limitEnd.getTime()
 }
 
 function makeEvent(bossName, dt, dur = '00:30:00', extra = {}) {
@@ -29,16 +59,39 @@ function makeEvent(bossName, dt, dur = '00:30:00', extra = {}) {
 }
 
 // FORMAT 0: "BOSSNAME\n🕒 5:08 PM • in 5h 35m" (bot format)
+// Also handles inline: "BOSSNAME  `9:22 AM` • in 1h 10m"
 function parseClockFormat(raw, now) {
   const out = []
+
+  // ── Inline format: "BOSS NAME  `9:22 AM` • in 1h 10m" ──
+  // Each entry is separated by 2+ spaces or newlines
+  const inlineRe = /([A-Z][A-Z\s]+?)\s{2,}`(\d{1,2}:\d{2}\s*(?:AM|PM))`\s*[•·]?\s*in\s+[\dhm\s]+/g
+  let im
+  while ((im = inlineRe.exec(raw)) !== null) {
+    const rawName = im[1].trim()
+    const timeStr = im[2].trim()
+    const bossName = resolveBossAlias(cleanBossName(rawName))
+    if (!bossName) continue
+    const today = new Date()
+    const base = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const dt = new Date(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')} ${timeStr}`)
+    if (isNaN(dt.getTime())) continue
+    if (dt.getTime() <= now - 60000) dt.setDate(dt.getDate() + 1) // assume tomorrow if past
+    if (!isWithinLimit(dt)) continue
+    out.push(makeEvent(bossName, dt))
+  }
+  if (out.length) return out
+
+  // ── Newline/block format: "BOSSNAME\n🕒 5:08 PM • in Xh Ym" ──
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  const clockRe = /(?:🕒|\u{1F552})?\s*(\d{1,2}:\d{2}\s*(?:AM|PM))\s*[•·]?/iu
+  const clockRe = /(?:🕒|\u{1F552}|`)?(\d{1,2}:\d{2}\s*(?:AM|PM))`?\s*[•·]?/iu
   let i = 0
   while (i < lines.length) {
     const line = lines[i]
     const next = lines[i + 1] || ''
     const after = lines[i + 2] || ''
     let bossLine = null, isTomorrow = false, clockLine = null
+
     if (clockRe.test(next)) {
       bossLine = line; clockLine = next; i += 2
     } else if (/^tomorrow$/i.test(next) && clockRe.test(after)) {
@@ -60,6 +113,29 @@ function parseClockFormat(raw, now) {
       : new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const dt = new Date(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')} ${timeStr}`)
     if (isNaN(dt.getTime()) || dt.getTime() <= now - 60000) continue
+    if (!isWithinLimit(dt)) continue
+    out.push(makeEvent(bossName, dt))
+  }
+  return out
+}
+
+// FORMAT 0b: handle the specific sample format with "Tomorrow" inline
+// "EGO Tomorrow  `5:08 AM` • in 20h 56m"
+function parseTomorrowInlineFormat(raw, now) {
+  const out = []
+  // Match "BOSS NAME Tomorrow  `H:MM AM/PM`"
+  const re = /([A-Z][A-Z\s]+?)\s+Tomorrow\s+`(\d{1,2}:\d{2}\s*(?:AM|PM))`/gi
+  let m
+  while ((m = re.exec(raw)) !== null) {
+    const rawName = m[1].trim()
+    const timeStr = m[2].trim()
+    const bossName = resolveBossAlias(cleanBossName(rawName))
+    if (!bossName) continue
+    const today = new Date()
+    const base = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    const dt = new Date(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')} ${timeStr}`)
+    if (isNaN(dt.getTime())) continue
+    if (!isWithinLimit(dt)) continue
     out.push(makeEvent(bossName, dt))
   }
   return out
@@ -91,6 +167,7 @@ function parseDateHeaderFormat(cleaned, now) {
       if (!bossName) continue
       const dt = new Date(`${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')} ${rawTime}`)
       if (isNaN(dt.getTime()) || dt.getTime() <= now - 60000) continue
+      if (!isWithinLimit(dt)) continue
       out.push(makeEvent(bossName, dt))
     }
   }
@@ -107,7 +184,7 @@ function parseLineFormat(cleaned, now) {
     const boss = resolveBossAlias(cleanBossName(m[1]))
     if (!boss) continue
     const ts = new Date(`${m[2]} ${m[3]}`)
-    if (!isNaN(ts) && ts.getTime() > now)
+    if (!isNaN(ts) && ts.getTime() > now && isWithinLimit(ts))
       out.push(makeEvent(boss, ts, m[4] || '00:30:00'))
   }
   return out
@@ -127,7 +204,7 @@ function parseTokenFormat(cleaned, now) {
       const boss = resolveBossAlias(cleanBossName(m[1]))
       if (!boss) continue
       const ts = new Date(`${m[2]} ${m[3]}`)
-      if (!isNaN(ts)) out.push(makeEvent(boss, ts, m[4]))
+      if (!isNaN(ts) && isWithinLimit(ts)) out.push(makeEvent(boss, ts, m[4]))
       continue
     }
 
@@ -169,7 +246,7 @@ function parseTokenFormat(cleaned, now) {
       if (tm.getTime() <= now) tm.setDate(tm.getDate() + 1)
       startDt = tm
     }
-    if (!startDt || isNaN(startDt)) continue
+    if (!startDt || isNaN(startDt) || !isWithinLimit(startDt)) continue
 
     if (isWorldGroup) {
       out.push(makeEvent('World Boss', startDt, dur || '01:00:00', { bosses: names, worldBoss: true }))
@@ -189,8 +266,16 @@ export function parseSchedule(raw) {
     .replace(/[🦖🦕🐉🐲🗡️⚔️🏆💀☠️👾🔥💥]/g, ' ')
   const now = Date.now()
 
+  // Try tomorrow-inline first (e.g. "EGO Tomorrow `5:08 AM`")
+  const rTmrw = parseTomorrowInlineFormat(raw, now)
+
   const r0 = parseClockFormat(raw, now)
-  if (r0.length) return r0
+  // Merge tomorrow entries into clock format results (avoid duplicates)
+  const merged = [...r0]
+  for (const ev of rTmrw) {
+    if (!merged.find(e => e.boss === ev.boss && e.start === ev.start)) merged.push(ev)
+  }
+  if (merged.length) return merged
 
   const r1 = parseDateHeaderFormat(cleaned, now)
   if (r1.length) return r1

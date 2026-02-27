@@ -32,19 +32,20 @@ const completed   = new Set()
 const AUTO_REFRESH_MS = 60_000
 
 // ── Helpers ──
-const evId     = ev => ev.start + '-' + ev.boss
+const evId       = ev => ev.start + '-' + ev.boss
 const getInitial = name => (name || '?').charAt(0).toUpperCase()
 const fmtCountdown = iso => {
   const d = Math.max(0, new Date(iso).getTime() - Date.now())
   const h = Math.floor(d / 3.6e6)
   const m = Math.floor((d % 3.6e6) / 6e4)
   const s = Math.floor((d % 6e4) / 1e3)
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'00')}:${String(s).padStart(2,'00')}`
 }
 const fmtTime = iso => new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
 const fmtDate = iso => new Date(iso).toLocaleDateString([], {month:'short',day:'numeric'})
 const localDateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 const getDisplayName = ev => ev.bosses ? ev.bosses.join(', ') : ev.boss
+const toTitle = str => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 const matchesFilter = ev => {
   if (!filterText) return true
   const q = filterText.toLowerCase()
@@ -61,25 +62,20 @@ const sortWithPins = items => [...items].sort((a, b) => {
 // ── Sync UI ──
 function setSyncStatus(state, text) {
   syncDot.className = 'sync-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '')
-  syncLabel.textContent = text
+  if (syncLabel) syncLabel.textContent = text
 }
-const showToast = msg => { toastEl.textContent = msg }
+const showToast = msg => { if (toastEl) toastEl.textContent = msg }
 const setPill   = (text, variant) => {
+  if (!pillEl) return
   pillEl.textContent = text
   pillEl.className = variant === 'positive' ? 'positive' : variant === 'negative' ? 'negative' : ''
 }
 
-// ── Helper: convert internal events to cloud-safe format ──
-// Stores start_iso (full ISO string) instead of localized time strings.
-// This is safe across all browsers/devices including Safari on iOS.
+// ── Cloud format ──
 function toCloudBosses(events) {
   return events
     .filter(e => !e.worldBoss && !isFixedSchedule(e.boss))
-    .map(e => ({
-      name: e.boss,
-      start_iso: e.start,    // e.g. "2025-02-27T17:08:00.000Z" — parses reliably everywhere
-      end_time: e.dur || '',
-    }))
+    .map(e => ({ name: e.boss, start_iso: e.start, end_time: e.dur || '' }))
 }
 
 // ── Firebase ──
@@ -109,71 +105,49 @@ async function saveBossesToCloud(bossesJson) {
   }
 }
 
-function loadBossesFromCloud(bosses) {
-  if (!Array.isArray(bosses) || !bosses.length) return
-  const now = Date.now()
-
-  const loaded = bosses.map(b => {
-    let start
-
-    if (b.start_iso) {
-      // New format: full ISO string, parses correctly on all browsers
-      start = new Date(b.start_iso)
-    } else if (b.date && b.start_time) {
-      // Old format fallback: "2025-02-27" + "5:08 PM"
-      // Safari requires ISO-like format; plain "YYYY-MM-DD H:MM AM" can fail.
-      // Try converting 12-hour time to 24-hour for a reliable parse.
-      const time24 = convertTo24Hour(b.start_time)
-      if (time24) {
-        start = new Date(`${b.date}T${time24}`)
-      }
-      // If that still fails, last-ditch attempt
-      if (!start || isNaN(start.getTime())) {
-        start = new Date(`${b.date} ${b.start_time}`)
-      }
-    } else {
-      return null
-    }
-
-    if (!start || isNaN(start.getTime())) {
-      console.warn('[BossTimer] Could not parse date for entry:', b)
-      return null
-    }
-
-    return {
-      boss:  b.name,
-      date:  start.toISOString().slice(0, 10),
-      time:  start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      dur:   b.end_time || '',
-      start: start.toISOString(),
-    }
-  }).filter(ev => ev && new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss))
-
-  const existingIds = new Set(eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss)).map(evId))
-  eventsState = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))
-  for (const ev of loaded) {
-    if (!existingIds.has(evId(ev))) eventsState.push(ev)
-  }
-  eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
-  render(eventsState)
-  startTicker()
-}
-
-// Converts "5:08 PM" or "05:08 PM" → "17:08:00" for Safari-safe parsing
 function convertTo24Hour(timeStr) {
   if (!timeStr) return null
   const m = timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i)
   if (!m) return null
   let h = parseInt(m[1], 10)
-  const min = m[2]
-  const sec = m[3] || '00'
-  const period = m[4].toUpperCase()
-  if (period === 'AM') {
-    if (h === 12) h = 0
-  } else {
-    if (h !== 12) h += 12
-  }
-  return `${String(h).padStart(2, '0')}:${min}:${sec}`
+  const min = m[2], sec = m[3] || '00', period = m[4].toUpperCase()
+  if (period === 'AM') { if (h === 12) h = 0 }
+  else { if (h !== 12) h += 12 }
+  return `${String(h).padStart(2,'0')}:${min}:${sec}`
+}
+
+const MAX_DAYS_AHEAD = 3
+function isWithinDateLimit(isoStr) {
+  const evDate = new Date(isoStr)
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+  const limitEnd   = new Date(todayStart)
+  limitEnd.setDate(limitEnd.getDate() + MAX_DAYS_AHEAD)
+  return evDate.getTime() >= todayStart.getTime() && evDate.getTime() < limitEnd.getTime()
+}
+
+function loadBossesFromCloud(bosses) {
+  if (!Array.isArray(bosses) || !bosses.length) return
+  const now = Date.now()
+  const loaded = bosses.map(b => {
+    let start
+    if (b.start_iso) {
+      start = new Date(b.start_iso)
+    } else if (b.date && b.start_time) {
+      const time24 = convertTo24Hour(b.start_time)
+      if (time24) start = new Date(`${b.date}T${time24}`)
+      if (!start || isNaN(start.getTime())) start = new Date(`${b.date} ${b.start_time}`)
+    } else { return null }
+    if (!start || isNaN(start.getTime())) { console.warn('[BossTimer] Could not parse:', b); return null }
+    return { boss: b.name, date: start.toISOString().slice(0,10), time: start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), dur: b.end_time || '', start: start.toISOString() }
+  }).filter(ev => ev && new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss) && isWithinDateLimit(ev.start))
+
+  eventsState = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))
+  const existingIds = new Set(eventsState.map(evId))
+  for (const ev of loaded) { if (!existingIds.has(evId(ev))) eventsState.push(ev) }
+  eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
+  render(eventsState)
+  startTicker()
 }
 
 function startAutoRefresh() {
@@ -190,7 +164,6 @@ function killBoss(bossName) {
   if (ev) { ev.start = newStart; triggered.delete(`${ev.start}-${ev.boss}`) }
   else eventsState.push({ boss: bossName, date: newStart.slice(0,10), time: '', dur: '', start: newStart })
   eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
-  // FIX: use toCloudBosses() instead of manual map with ev.time
   saveBossesToCloud(toCloudBosses(eventsState))
   showToast(`${bossName} killed — respawns in ${Math.round(respawnMs / 3600000)}h`)
   render(eventsState)
@@ -208,7 +181,6 @@ function manualSetTime(bossName) {
     ev.start = ts.toISOString()
     triggered.delete(`${ev.start}-${ev.boss}`)
     eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
-    // FIX: use toCloudBosses() instead of manual map with ev.time
     saveBossesToCloud(toCloudBosses(eventsState))
     showToast(`${bossName} set to ${fmtTime(ev.start)}`)
     render(eventsState)
@@ -242,7 +214,7 @@ function buildCompactCard(ev, label) {
   card.innerHTML = `
     <div class="boss-initial${cdClass ? ' '+cdClass : ''}">${getInitial(names)}</div>
     <div class="boss-info">
-      <div class="boss-name">${names}</div>
+      <div class="boss-name">${toTitle(names)}</div>
       <div class="boss-meta">${fmtTime(ev.start)}${loc ? ' · '+loc : ''}</div>
       <div class="boss-countdown${cdClass ? ' '+cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
     </div>
@@ -264,7 +236,7 @@ function buildDeckCard(ev, label) {
   const dateTag = label === 'Later' ? `<div class="date-tag" style="font-size:10px;">${fmtDate(ev.start)}</div>` : ''
   card.innerHTML = `
     <div class="deck-initial${cdClass ? ' '+cdClass : ''}">${getInitial(names)}</div>
-    <div class="deck-name">${names}</div>
+    <div class="deck-name">${toTitle(names)}</div>
     ${loc ? `<div class="deck-loc">${loc}</div>` : ''}
     ${dateTag}
     <div class="deck-time">${fmtTime(ev.start)}</div>
@@ -299,6 +271,12 @@ function render(events) {
     section.appendChild(header)
     if (layout === 'deck') {
       const scroll = document.createElement('div'); scroll.className = 'deck-scroll'
+      scroll.addEventListener('wheel', e => {
+        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+        if (delta === 0) return
+        scroll.scrollLeft += delta * 3
+        e.preventDefault(); e.stopPropagation()
+      }, { passive: false })
       for (const ev of items) scroll.appendChild(buildDeckCard(ev, label))
       section.appendChild(scroll)
     } else {
@@ -310,7 +288,7 @@ function render(events) {
   }
   const upcoming = events.filter(ev => new Date(ev.start).getTime() > Date.now())
   const next = upcoming[0] || null
-  summaryEl.innerHTML = `<span>${filtered.length} event${filtered.length === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span>${next ? `<span>· Next: <strong style="color:var(--text2);font-weight:600;">${getDisplayName(next)}</strong> in ${fmtCountdown(next.start)}</span>` : ''}`
+  summaryEl.innerHTML = `<span>${filtered.length} event${filtered.length === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span>${next ? `<span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(next.start)}</span>` : ''}`
   setPill(filtered.length + ' active', 'positive')
   renderTimeline(events)
 }
@@ -343,7 +321,7 @@ function renderTimeline(events) {
     marker.style.left = pct + '%'; marker.textContent = name.charAt(0)
     marker.title = `${name} — ${fmtTime(ev.start)} (${fmtCountdown(ev.start)})`; bar.appendChild(marker)
     const lbl = document.createElement('div'); lbl.className = 'timeline-label'; lbl.style.left = pct + '%'
-    lbl.textContent = name.length > 10 ? name.slice(0, 9) + '…' : name; bar.appendChild(lbl)
+    lbl.textContent = name.length > 10 ? name.slice(0,9) + '…' : name; bar.appendChild(lbl)
   }
   wrap.appendChild(bar); timelineSec.appendChild(wrap)
 }
@@ -372,7 +350,7 @@ function updateCountdowns() {
   }
   const upcoming = eventsState.filter(ev => new Date(ev.start).getTime() > Date.now())
   const next = upcoming[0] || null
-  if (next) summaryEl.innerHTML = `<span>${eventsState.length} event${eventsState.length === 1 ? '' : 's'}</span><span>· Next: <strong style="color:var(--text2);font-weight:600;">${getDisplayName(next)}</strong> in ${fmtCountdown(next.start)}</span>`
+  if (next) summaryEl.innerHTML = `<span>${eventsState.length} event${eventsState.length === 1 ? '' : 's'}</span><span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(next.start)}</span>`
 }
 
 // ── Alarms ──
@@ -433,8 +411,8 @@ function checkSpawnCountdown() {
       spawnSubEl.textContent = 'Go go go!'; playSpawnSound(); lastSpawnSecond = 0
     }
   } else if (sec !== lastSpawnSecond && sec <= 5) {
-    const numEl  = spawnOverlay.querySelector('.spawn-number')
-    const clone  = numEl.cloneNode(false)
+    const numEl = spawnOverlay.querySelector('.spawn-number')
+    const clone = numEl.cloneNode(false)
     clone.className = 'spawn-number'; clone.textContent = sec; numEl.replaceWith(clone)
     spawnSubEl.textContent = sec === 1 ? 'Get ready!' : 'Spawning soon...'; playTick(); lastSpawnSecond = sec
   }
@@ -462,7 +440,63 @@ function startTicker() {
   }, 1000)
 }
 
-// ── Controls ──
+// ── Layout ──
+function setLayout(mode) {
+  layout = mode; localStorage.setItem('layout', mode)
+  const sel  = $('layout-mode');  if (sel)  sel.value  = mode
+  const selM = $('layout-mode-m'); if (selM) selM.value = mode
+  if (eventsState.length) render(eventsState)
+}
+
+// ── Mute ──
+function updateMuteUI() {
+  const muted = getMuted()
+  const iconOn  = $('icon-unmuted'), iconOff = $('icon-muted')
+  if (iconOn)  iconOn.style.display  = muted ? 'none' : ''
+  if (iconOff) iconOff.style.display = muted ? '' : 'none'
+  const muteBtn = $('toggle-mute')
+  if (muteBtn) muteBtn.title = muted ? 'Unmute sounds' : 'Mute sounds'
+  // update mobile button text
+  const muteBtnM = $('toggle-mute-m')
+  if (muteBtnM) muteBtnM.textContent = muted ? '🔇 Unmute' : '🔊 Mute'
+}
+
+// ── Admin UI ──
+function updateAdminUI() {
+  const iconLock   = $('icon-lock'),   iconUnlock = $('icon-unlock')
+  const adminBtnM  = $('toggle-admin-m')
+  const drawerLabel = $('admin-drawer-label')
+  if (iconLock)   iconLock.style.display   = isAdmin ? 'none' : ''
+  if (iconUnlock) iconUnlock.style.display = isAdmin ? '' : 'none'
+  if (adminBadge) adminBadge.style.display = isAdmin ? '' : 'none'
+  const adminBtn = $('toggle-admin')
+  if (adminBtn) adminBtn.title = isAdmin ? 'Logged in as Admin — click to logout' : 'Admin login'
+  if (adminBtnM) adminBtnM.textContent = isAdmin ? '🔓 Logout' : '🔒 Login'
+  if (drawerLabel) drawerLabel.textContent = isAdmin ? 'Admin ✓' : 'Admin'
+  $('admin-area').classList.toggle('visible', isAdmin)
+}
+
+// ── Hamburger ──
+const hamburgerBtn    = $('hamburger-btn')
+const hamburgerDrawer = $('hamburger-drawer')
+const hamburgerIcon   = $('hamburger-icon')
+const hamburgerClose  = $('hamburger-close')
+
+function toggleDrawer(force) {
+  const open = force !== undefined ? force : !hamburgerDrawer.classList.contains('open')
+  hamburgerDrawer.classList.toggle('open', open)
+  if (hamburgerIcon)  hamburgerIcon.style.display  = open ? 'none' : ''
+  if (hamburgerClose) hamburgerClose.style.display = open ? '' : 'none'
+}
+
+hamburgerBtn?.addEventListener('click', e => { e.stopPropagation(); toggleDrawer() })
+document.addEventListener('click', e => {
+  if (hamburgerDrawer && !hamburgerDrawer.contains(e.target) && e.target !== hamburgerBtn) {
+    toggleDrawer(false)
+  }
+})
+
+// ── Controls ── Desktop ──
 const layoutModeSel     = $('layout-mode')
 const alarmLeadSel      = $('alarm-lead')
 const alarmVolumeSlider = $('alarm-volume')
@@ -474,28 +508,127 @@ const muteBtn           = $('toggle-mute')
 const adminBtn          = $('toggle-admin')
 
 if (layoutModeSel) { layoutModeSel.value = layout; layoutModeSel.addEventListener('change', () => setLayout(layoutModeSel.value)) }
-if (alarmLeadSel)  { alarmLeadSel.value = String(alarmLeadMin); alarmLeadSel.addEventListener('change', () => { alarmLeadMin = parseInt(alarmLeadSel.value, 10); localStorage.setItem('alarmLeadMin', String(alarmLeadMin)) }) }
+if (alarmLeadSel)  {
+  alarmLeadSel.value = String(alarmLeadMin)
+  alarmLeadSel.addEventListener('change', () => {
+    alarmLeadMin = parseInt(alarmLeadSel.value, 10)
+    localStorage.setItem('alarmLeadMin', String(alarmLeadMin))
+    const m = $('alarm-lead-m'); if (m) m.value = alarmLeadSel.value
+  })
+}
 if (alarmVolumeSlider) {
   alarmVolumeSlider.value = Math.round(getVolume() * 100)
-  alarmVolumeLabel.textContent = Math.round(getVolume() * 100) + '%'
+  if (alarmVolumeLabel) alarmVolumeLabel.textContent = Math.round(getVolume() * 100) + '%'
   alarmVolumeSlider.addEventListener('input', () => {
     setVolume(parseInt(alarmVolumeSlider.value, 10) / 100)
-    alarmVolumeLabel.textContent = Math.round(getVolume() * 100) + '%'
+    if (alarmVolumeLabel) alarmVolumeLabel.textContent = Math.round(getVolume() * 100) + '%'
+    const m = $('alarm-volume-m'), ml = $('alarm-volume-label-m')
+    if (m) m.value = alarmVolumeSlider.value
+    if (ml) ml.textContent = alarmVolumeLabel?.textContent || ''
   })
 }
 if (presetSel) {
   presetSel.value = getPreset()
-  presetSel.addEventListener('change', () => { setPreset(presetSel.value); showToast('Sound: ' + presetSel.options[presetSel.selectedIndex].text) })
+  presetSel.addEventListener('change', () => {
+    setPreset(presetSel.value)
+    showToast('Sound: ' + presetSel.options[presetSel.selectedIndex].text)
+    const m = $('sound-preset-m'); if (m) m.value = presetSel.value
+  })
 }
-$('user-test-alarm').addEventListener('click', () => { ensureNotificationPermission(); playBeep(); showToast('Test alarm played') })
-$('btn-refresh').addEventListener('click', () => fetchBossesJson())
-$('test-alarm').addEventListener('click', () => { ensureNotificationPermission(); playBeep(); showToast('Test played') })
-$('copy-json').addEventListener('click', async () => {
+$('user-test-alarm')?.addEventListener('click', () => { ensureNotificationPermission(); playBeep(); showToast('Test alarm played') })
+$('btn-refresh')?.addEventListener('click', () => fetchBossesJson())
+timelineBtn?.addEventListener('click', () => { showTimeline = !showTimeline; localStorage.setItem('timeline', showTimeline); if (eventsState.length) render(eventsState) })
+muteBtn?.addEventListener('click', () => { setMuted(!getMuted()); updateMuteUI(); showToast(getMuted() ? 'Sounds muted' : 'Sounds unmuted') })
+adminBtn?.addEventListener('click', () => {
+  if (isAdmin) { isAdmin = false; sessionStorage.removeItem('isAdmin'); updateAdminUI(); if (eventsState.length) render(eventsState); showToast('Logged out'); return }
+  adminModal.classList.remove('hidden')
+  $('admin-pw').value = ''; $('admin-error').style.display = 'none'
+  setTimeout(() => $('admin-pw').focus(), 100)
+})
+
+// ── Controls ── Mobile drawer ──
+const layoutModeSelM     = $('layout-mode-m')
+const alarmLeadSelM      = $('alarm-lead-m')
+const alarmVolumeSliderM = $('alarm-volume-m')
+const alarmVolumeLabelM  = $('alarm-volume-label-m')
+const presetSelM         = $('sound-preset-m')
+
+if (layoutModeSelM) {
+  layoutModeSelM.value = layout
+  layoutModeSelM.addEventListener('change', () => setLayout(layoutModeSelM.value))
+}
+if (alarmLeadSelM) {
+  alarmLeadSelM.value = String(alarmLeadMin)
+  alarmLeadSelM.addEventListener('change', () => {
+    alarmLeadMin = parseInt(alarmLeadSelM.value, 10)
+    localStorage.setItem('alarmLeadMin', String(alarmLeadMin))
+    if (alarmLeadSel) alarmLeadSel.value = alarmLeadSelM.value
+  })
+}
+if (alarmVolumeSliderM) {
+  alarmVolumeSliderM.value = Math.round(getVolume() * 100)
+  if (alarmVolumeLabelM) alarmVolumeLabelM.textContent = Math.round(getVolume() * 100) + '%'
+  alarmVolumeSliderM.addEventListener('input', () => {
+    setVolume(parseInt(alarmVolumeSliderM.value, 10) / 100)
+    if (alarmVolumeLabelM) alarmVolumeLabelM.textContent = Math.round(getVolume() * 100) + '%'
+    if (alarmVolumeSlider) alarmVolumeSlider.value = alarmVolumeSliderM.value
+    if (alarmVolumeLabel)  alarmVolumeLabel.textContent = alarmVolumeLabelM?.textContent || ''
+  })
+}
+if (presetSelM) {
+  presetSelM.value = getPreset()
+  presetSelM.addEventListener('change', () => {
+    setPreset(presetSelM.value)
+    showToast('Sound: ' + presetSelM.options[presetSelM.selectedIndex].text)
+    if (presetSel) presetSel.value = presetSelM.value
+  })
+}
+
+$('user-test-alarm-m')?.addEventListener('click', () => {
+  ensureNotificationPermission(); playBeep(); showToast('Test alarm played'); toggleDrawer(false)
+})
+$('toggle-timeline-m')?.addEventListener('click', () => {
+  showTimeline = !showTimeline; localStorage.setItem('timeline', showTimeline)
+  if (eventsState.length) render(eventsState); toggleDrawer(false)
+})
+$('toggle-mute-m')?.addEventListener('click', () => {
+  setMuted(!getMuted()); updateMuteUI(); showToast(getMuted() ? 'Sounds muted' : 'Sounds unmuted')
+})
+$('btn-refresh-m')?.addEventListener('click', () => { fetchBossesJson(); toggleDrawer(false) })
+$('toggle-admin-m')?.addEventListener('click', () => {
+  toggleDrawer(false)
+  if (isAdmin) { isAdmin = false; sessionStorage.removeItem('isAdmin'); updateAdminUI(); if (eventsState.length) render(eventsState); showToast('Logged out'); return }
+  adminModal.classList.remove('hidden')
+  $('admin-pw').value = ''; $('admin-error').style.display = 'none'
+  setTimeout(() => $('admin-pw').focus(), 100)
+})
+
+// ── Filter ──
+bossFilter?.addEventListener('input', () => { filterText = bossFilter.value.trim(); if (eventsState.length) render(eventsState) })
+
+// ── Admin modal ──
+const ADMIN_PASS  = 'boss123'
+const adminSubmit = $('admin-submit')
+const adminCancel = $('admin-cancel')
+
+adminSubmit?.addEventListener('click', () => {
+  if ($('admin-pw').value === ADMIN_PASS) {
+    isAdmin = true; sessionStorage.setItem('isAdmin', 'true')
+    adminModal.classList.add('hidden'); updateAdminUI()
+    if (eventsState.length) render(eventsState); showToast('Admin mode activated')
+  } else { $('admin-error').style.display = 'block'; $('admin-pw').select() }
+})
+$('admin-pw')?.addEventListener('keydown', e => { if (e.key === 'Enter') adminSubmit.click(); if (e.key === 'Escape') adminCancel.click() })
+adminCancel?.addEventListener('click', () => adminModal.classList.add('hidden'))
+
+// ── Admin area buttons ──
+$('test-alarm')?.addEventListener('click', () => { ensureNotificationPermission(); playBeep(); showToast('Test played') })
+$('copy-json')?.addEventListener('click', async () => {
   if (!eventsState.length) return showToast('No events loaded')
   await navigator.clipboard.writeText(JSON.stringify(eventsState, null, 2))
   showToast('Copied to clipboard')
 })
-$('download-ics').addEventListener('click', () => {
+$('download-ics')?.addEventListener('click', () => {
   if (!eventsState.length) return showToast('No events loaded')
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Boss Timer//EN']
   for (const ev of eventsState) {
@@ -508,21 +641,18 @@ $('download-ics').addEventListener('click', () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'boss-timers.ics'; a.click(); URL.revokeObjectURL(a.href)
   showToast('Downloaded')
 })
-$('test-spawn').addEventListener('click', () => {
+$('test-spawn')?.addEventListener('click', () => {
   const spawnAt = new Date(Date.now() + 5000)
   const testEv = { boss: 'World Boss', bosses: ['Ratan','Parto','Nedra'], date: spawnAt.toISOString().slice(0,10), time: spawnAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), dur: '01:00:00', start: spawnAt.toISOString(), worldBoss: true }
   eventsState.push(testEv); eventsState.sort((a,b) => new Date(a.start)-new Date(b.start)); render(eventsState); startTicker(); showToast('Test boss spawning in 5 seconds...')
 })
-
-// Parse btn
-$('parse').addEventListener('click', async () => {
+$('parse')?.addEventListener('click', async () => {
   const adminTA = $('admin-textarea')
   const now = Date.now()
   const parsed = parseSchedule(adminTA.value)
-    .filter(ev => new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss))
+    .filter(ev => new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss) && isWithinDateLimit(ev.start))
     .sort((a, b) => new Date(a.start) - new Date(b.start))
   if (!parsed.length) return showToast('No valid events found — check your paste format')
-  // FIX: use toCloudBosses() — stores start_iso instead of localized ev.time
   const bossesJson = toCloudBosses(parsed)
   const saved = await saveBossesToCloud(bossesJson)
   if (!saved) return
@@ -532,79 +662,21 @@ $('parse').addEventListener('click', async () => {
   render(eventsState); ensureNotificationPermission(); startTicker()
 })
 
-// Layout
-function setLayout(mode) {
-  layout = mode; localStorage.setItem('layout', mode)
-  if (layoutModeSel) layoutModeSel.value = mode
-  if (eventsState.length) render(eventsState)
-}
-setLayout(layout)
-
-// Mute
-function updateMuteUI() {
-  $('icon-unmuted').style.display = getMuted() ? 'none' : ''
-  $('icon-muted').style.display   = getMuted() ? '' : 'none'
-  muteBtn.title = getMuted() ? 'Unmute sounds' : 'Mute sounds'
-}
-muteBtn.addEventListener('click', () => { setMuted(!getMuted()); updateMuteUI(); showToast(getMuted() ? 'Sounds muted' : 'Sounds unmuted') })
-updateMuteUI()
-
-// Filter
-bossFilter.addEventListener('input', () => { filterText = bossFilter.value.trim(); if (eventsState.length) render(eventsState) })
-
-// Timeline
-function updateTimelineUI() { if (eventsState.length) render(eventsState) }
-timelineBtn.addEventListener('click', () => { showTimeline = !showTimeline; localStorage.setItem('timeline', showTimeline); updateTimelineUI() })
-updateTimelineUI()
-
-// Theme (dark only)
 $('toggle-theme')?.addEventListener('click', () => showToast('Always dark mode 🖤'))
 
-// Admin
-const ADMIN_PASS = 'boss123'
-const adminPwInput = $('admin-pw')
-const adminSubmit  = $('admin-submit')
-const adminCancel  = $('admin-cancel')
-const adminError   = $('admin-error')
-
-function updateAdminUI() {
-  $('icon-lock').style.display   = isAdmin ? 'none' : ''
-  $('icon-unlock').style.display = isAdmin ? '' : 'none'
-  adminBadge.style.display = isAdmin ? '' : 'none'
-  adminBtn.title = isAdmin ? 'Logged in as Admin — click to logout' : 'Admin login'
-  $('admin-area').classList.toggle('visible', isAdmin)
-}
-adminBtn.addEventListener('click', () => {
-  if (isAdmin) { isAdmin = false; sessionStorage.removeItem('isAdmin'); updateAdminUI(); if (eventsState.length) render(eventsState); showToast('Logged out'); return }
-  adminModal.classList.remove('hidden')
-  adminPwInput.value = ''; adminError.style.display = 'none'
-  setTimeout(() => adminPwInput.focus(), 100)
-})
-adminSubmit.addEventListener('click', () => {
-  if (adminPwInput.value === ADMIN_PASS) {
-    isAdmin = true; sessionStorage.setItem('isAdmin', 'true')
-    adminModal.classList.add('hidden'); updateAdminUI()
-    if (eventsState.length) render(eventsState); showToast('Admin mode activated')
-  } else { adminError.style.display = 'block'; adminPwInput.select() }
-})
-adminPwInput.addEventListener('keydown', e => { if (e.key === 'Enter') adminSubmit.click(); if (e.key === 'Escape') adminCancel.click() })
-adminCancel.addEventListener('click', () => adminModal.classList.add('hidden'))
+// ── Init ──
+updateMuteUI()
 updateAdminUI()
+setLayout(layout)
 
-// Deck scroll with mouse wheel
-document.addEventListener('wheel', e => {
-  const el = e.target.closest?.('.deck-scroll')
-  if (!el || e.deltaY === 0) return
-  el.scrollLeft += e.deltaY; e.preventDefault()
-}, { passive: false })
-
-// ── INIT ──
 ;(function initStaticEvents() {
   const wb = generateWorldBossEvents()
   const fixed = generateFixedScheduleEvents(14)
   const existing = new Set(eventsState.map(evId))
   for (const ev of [...wb, ...fixed]) {
-    if (!existing.has(evId(ev))) { eventsState.push(ev); existing.add(evId(ev)) }
+    if (!existing.has(evId(ev)) && isWithinDateLimit(ev.start)) {
+      eventsState.push(ev); existing.add(evId(ev))
+    }
   }
   eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
 })()
@@ -615,14 +687,7 @@ startTicker()
 startAutoRefresh()
 fetchBossesJson()
 
-// Firebase presence/visitor tracking
-trackVisitor(count => {
-  const el = $('visitor-count')
-  if (el) el.textContent = count.toLocaleString()
-})
-trackOnline(count => {
-  const el = $('online-count')
-  if (el) el.textContent = count
-})
+trackVisitor(count => { const el = $('visitor-count'); if (el) el.textContent = count.toLocaleString() })
+trackOnline(count  => { const el = $('online-count');  if (el) el.textContent = count })
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
