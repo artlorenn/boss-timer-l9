@@ -69,6 +69,19 @@ const setPill   = (text, variant) => {
   pillEl.className = variant === 'positive' ? 'positive' : variant === 'negative' ? 'negative' : ''
 }
 
+// ── Helper: convert internal events to cloud-safe format ──
+// Stores start_iso (full ISO string) instead of localized time strings.
+// This is safe across all browsers/devices including Safari on iOS.
+function toCloudBosses(events) {
+  return events
+    .filter(e => !e.worldBoss && !isFixedSchedule(e.boss))
+    .map(e => ({
+      name: e.boss,
+      start_iso: e.start,    // e.g. "2025-02-27T17:08:00.000Z" — parses reliably everywhere
+      end_time: e.dur || '',
+    }))
+}
+
 // ── Firebase ──
 async function fetchBossesJson() {
   setSyncStatus('syncing', 'Loading…')
@@ -99,10 +112,42 @@ async function saveBossesToCloud(bossesJson) {
 function loadBossesFromCloud(bosses) {
   if (!Array.isArray(bosses) || !bosses.length) return
   const now = Date.now()
+
   const loaded = bosses.map(b => {
-    const start = new Date(`${b.date} ${b.start_time}`)
-    return { boss: b.name, date: b.date, time: b.start_time, dur: b.end_time || '', start: start.toISOString() }
-  }).filter(ev => new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss))
+    let start
+
+    if (b.start_iso) {
+      // New format: full ISO string, parses correctly on all browsers
+      start = new Date(b.start_iso)
+    } else if (b.date && b.start_time) {
+      // Old format fallback: "2025-02-27" + "5:08 PM"
+      // Safari requires ISO-like format; plain "YYYY-MM-DD H:MM AM" can fail.
+      // Try converting 12-hour time to 24-hour for a reliable parse.
+      const time24 = convertTo24Hour(b.start_time)
+      if (time24) {
+        start = new Date(`${b.date}T${time24}`)
+      }
+      // If that still fails, last-ditch attempt
+      if (!start || isNaN(start.getTime())) {
+        start = new Date(`${b.date} ${b.start_time}`)
+      }
+    } else {
+      return null
+    }
+
+    if (!start || isNaN(start.getTime())) {
+      console.warn('[BossTimer] Could not parse date for entry:', b)
+      return null
+    }
+
+    return {
+      boss:  b.name,
+      date:  start.toISOString().slice(0, 10),
+      time:  start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      dur:   b.end_time || '',
+      start: start.toISOString(),
+    }
+  }).filter(ev => ev && new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss))
 
   const existingIds = new Set(eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss)).map(evId))
   eventsState = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))
@@ -112,6 +157,23 @@ function loadBossesFromCloud(bosses) {
   eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
   render(eventsState)
   startTicker()
+}
+
+// Converts "5:08 PM" or "05:08 PM" → "17:08:00" for Safari-safe parsing
+function convertTo24Hour(timeStr) {
+  if (!timeStr) return null
+  const m = timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i)
+  if (!m) return null
+  let h = parseInt(m[1], 10)
+  const min = m[2]
+  const sec = m[3] || '00'
+  const period = m[4].toUpperCase()
+  if (period === 'AM') {
+    if (h === 12) h = 0
+  } else {
+    if (h !== 12) h += 12
+  }
+  return `${String(h).padStart(2, '0')}:${min}:${sec}`
 }
 
 function startAutoRefresh() {
@@ -128,9 +190,8 @@ function killBoss(bossName) {
   if (ev) { ev.start = newStart; triggered.delete(`${ev.start}-${ev.boss}`) }
   else eventsState.push({ boss: bossName, date: newStart.slice(0,10), time: '', dur: '', start: newStart })
   eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
-  const cloudBosses = eventsState.filter(e => !e.worldBoss && !isFixedSchedule(e.boss))
-    .map(e => ({ name: e.boss, date: e.date, start_time: e.time, end_time: e.dur || '' }))
-  saveBossesToCloud(cloudBosses)
+  // FIX: use toCloudBosses() instead of manual map with ev.time
+  saveBossesToCloud(toCloudBosses(eventsState))
   showToast(`${bossName} killed — respawns in ${Math.round(respawnMs / 3600000)}h`)
   render(eventsState)
 }
@@ -147,9 +208,8 @@ function manualSetTime(bossName) {
     ev.start = ts.toISOString()
     triggered.delete(`${ev.start}-${ev.boss}`)
     eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
-    const cb = eventsState.filter(e => !e.worldBoss && !isFixedSchedule(e.boss))
-      .map(e => ({ name: e.boss, date: e.date, start_time: e.time, end_time: e.dur || '' }))
-    saveBossesToCloud(cb)
+    // FIX: use toCloudBosses() instead of manual map with ev.time
+    saveBossesToCloud(toCloudBosses(eventsState))
     showToast(`${bossName} set to ${fmtTime(ev.start)}`)
     render(eventsState)
     return
@@ -462,7 +522,8 @@ $('parse').addEventListener('click', async () => {
     .filter(ev => new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss))
     .sort((a, b) => new Date(a.start) - new Date(b.start))
   if (!parsed.length) return showToast('No valid events found — check your paste format')
-  const bossesJson = parsed.map(ev => ({ name: ev.boss, date: ev.date, start_time: ev.time, end_time: ev.dur || '' }))
+  // FIX: use toCloudBosses() — stores start_iso instead of localized ev.time
+  const bossesJson = toCloudBosses(parsed)
   const saved = await saveBossesToCloud(bossesJson)
   if (!saved) return
   showToast(`✓ Saved ${parsed.length} bosses for everyone!`)
