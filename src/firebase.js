@@ -17,6 +17,41 @@ const app  = initializeApp(firebaseConfig)
 const db   = getFirestore(app)
 const rtdb = getDatabase(app)
 
+function trackPresence(basePath, onCount, label) {
+  const sid = Math.random().toString(36).slice(2, 10)
+  const connectedRef = ref(rtdb, '.info/connected')
+  const listRef = ref(rtdb, basePath)
+  const userRef = ref(rtdb, `${basePath}/${sid}`)
+
+  const ensurePresence = () => {
+    onDisconnect(userRef).remove()
+      .then(() => set(userRef, { t: serverTimestamp() }))
+      .catch(err => {
+        console.error(`[${label}] presence setup failed`, err)
+        set(userRef, { t: serverTimestamp() }).catch(innerErr => {
+          console.error(`[${label}] set failed`, innerErr)
+          onCount(0)
+        })
+      })
+  }
+
+  onCount(0)
+
+  // Try once immediately so first viewer can show as online without waiting.
+  ensurePresence()
+
+  onValue(connectedRef, snap => {
+    if (snap.val() === true) ensurePresence()
+  })
+
+  onValue(listRef, snap => {
+    onCount(snap.exists() ? Object.keys(snap.val()).length : 0)
+  }, err => {
+    console.error(`[${label}] read failed`, err)
+    onCount(0)
+  })
+}
+
 export async function trackVisitor(onCount) {
   const r = doc(db, 'stats', 'bosstimer_visitors')
   if (!sessionStorage.getItem('bosstimer_counted')) {
@@ -28,13 +63,21 @@ export async function trackVisitor(onCount) {
 }
 
 export function trackOnline(onCount) {
-  const sid = Math.random().toString(36).slice(2, 10)
-  const ur  = ref(rtdb, `presence/bosstimer/${sid}`)
-  set(ur, { t: serverTimestamp() })
-  onDisconnect(ur).remove()
-  onValue(ref(rtdb, 'presence/bosstimer'), s => {
-    onCount(s.exists() ? Object.keys(s.val()).length : 0)
-  })
+  trackPresence('presence/bosstimer', onCount, 'timer online')
+}
+
+export async function trackClassVisitor(onCount) {
+  const r = doc(db, 'stats', 'class_visitors')
+  if (!sessionStorage.getItem('class_counted')) {
+    sessionStorage.setItem('class_counted', '1')
+    await setDoc(r, { count: increment(1) }, { merge: true })
+  }
+  const s = await getDoc(r)
+  onCount(s.exists() ? (s.data().count || 0) : 0)
+}
+
+export function trackClassOnline(onCount) {
+  trackPresence('presence/class', onCount, 'class online')
 }
 
 export async function fetchSchedule() {

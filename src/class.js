@@ -1,4 +1,4 @@
-import { trackVisitor, trackOnline } from './firebase.js'
+import { trackClassVisitor, trackClassOnline } from './firebase.js'
 
 const HIDDEN_CLASSES = [
   {
@@ -278,12 +278,12 @@ function renderHiddenClasses() {
 
 renderHiddenClasses()
 
-trackVisitor((count) => {
+trackClassVisitor((count) => {
   const el = document.getElementById('visitor-count')
   if (el) el.textContent = Number(count || 0).toLocaleString()
 })
 
-trackOnline((count) => {
+trackClassOnline((count) => {
   const el = document.getElementById('online-count')
   if (el) el.textContent = String(count || 0)
 })
