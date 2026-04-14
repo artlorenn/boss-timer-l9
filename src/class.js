@@ -27,7 +27,7 @@ const HIDDEN_CLASSES = [
     tags: ["Combat", "Spell", "Enhance"],
     pairs: [
       { title: "Pair 1", skills: [{ name: "Hellfire Weapon", type: "Combat" }, { name: "Honed Weaponry", type: "Enhance" }] },
-      { title: "Pair 2", skills: [{ name: "Blink", type: "Combat" }, { name: "Power of Darkness", type: "Spell" }] },
+      { title: "Pair 2", skills: [{ name: "Blink", type: "Trick" }, { name: "Power of Darkness", type: "Spell" }] },
       { title: "Pair 3", skills: [{ name: "Polish Weapon", type: "Enhance" }, { name: "Gamble", type: "Trick" }] }
     ],
     skill: "Jumps to target within 7m and deals Combined Damage around impact, gaining Damage Immunity for 3.5 sec.",

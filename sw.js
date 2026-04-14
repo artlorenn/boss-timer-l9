@@ -1,11 +1,11 @@
-const CACHE_NAME = 'boss-timer-v2';
+const CACHE_NAME = 'boss-timer-v3';
 const ASSETS = [
   './',
   './index.html',
   './relic.html',
   './potion.html',
-  './src/style.css',
-  './src/main.js',
+  './class.html',
+  './manifest.json',
 ];
 
 
@@ -26,14 +26,32 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Network-first for HTML, cache-first for assets
+  if (e.request.method !== 'GET') return;
+
+  // Network-first for HTML navigations
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match(e.request))
+      fetch(e.request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
+          return res;
+        })
+        .catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html')))
     );
   } else {
+    // Stale-while-revalidate for static assets.
     e.respondWith(
-      caches.match(e.request).then(r => r || fetch(e.request))
+      caches.match(e.request).then((cached) => {
+        const network = fetch(e.request)
+          .then((res) => {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
+            return res;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
     );
   }
 });
