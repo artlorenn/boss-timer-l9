@@ -6,9 +6,9 @@ const HIDDEN_CLASSES = [
     classIcon: "blade",
     tags: ["Combat", "Recon", "Defense"],
     pairs: [
-      { title: "Pair 1", skills: [{ name: "Deathblow", type: "Combat" }, { name: "Time Haste", type: "Enhance" }] },
+      { title: "Pair 1", skills: [{ name: "Deathblow", type: "Enhance" }, { name: "Time Haste", type: "Trick" }] },
       { title: "Pair 2", skills: [{ name: "Secreta's Talent", type: "Recon" }, { name: "Parry", type: "Defense" }] },
-      { title: "Pair 3", skills: [{ name: "Wild Dance", type: "Combat" }, { name: "Deliberate Attack", type: "Combat" }] }
+      { title: "Pair 3", skills: [{ name: "Wild Dance", type: "Combat" }, { name: "Deliberate Attack", type: "Support" }] }
     ],
     skill: "Basic Attacks have a 25% chance of dealing Extra Combined Damage.",
     milestones: {
@@ -26,9 +26,9 @@ const HIDDEN_CLASSES = [
     classIcon: "breaker",
     tags: ["Combat", "Spell", "Enhance"],
     pairs: [
-      { title: "Pair 1", skills: [{ name: "Hellfire Weapon", type: "Combat" }, { name: "Honed Weaponry", type: "Enhance" }] },
+      { title: "Pair 1", skills: [{ name: "Hellfire Weapon", type: "Enhance" }, { name: "Honed Weaponry", type: "Recon" }] },
       { title: "Pair 2", skills: [{ name: "Blink", type: "Trick" }, { name: "Power of Darkness", type: "Spell" }] },
-      { title: "Pair 3", skills: [{ name: "Polish Weapon", type: "Enhance" }, { name: "Gamble", type: "Trick" }] }
+      { title: "Pair 3", skills: [{ name: "Polish Weapon", type: "Combat" }, { name: "Gamble", type: "Support" }] }
     ],
     skill: "Jumps to target within 7m and deals Combined Damage around impact, gaining Damage Immunity for 3.5 sec.",
     milestones: {
@@ -47,7 +47,7 @@ const HIDDEN_CLASSES = [
     tags: ["Spell", "Combat", "Vitality"],
     pairs: [
       { title: "Pair 1", skills: [{ name: "Frost Weapon", type: "Spell" }, { name: "Earth Shock", type: "Combat" }] },
-      { title: "Pair 2", skills: [{ name: "Cutting Strike", type: "Combat" }, { name: "Life Tap", type: "Vitality" }] },
+      { title: "Pair 2", skills: [{ name: "Cutting Strike", type: "Enhance" }, { name: "Life Tap", type: "Trick" }] },
       { title: "Pair 3", skills: [{ name: "Leech", type: "Vitality" }, { name: "Anatomy", type: "Support" }] }
     ],
     skill: "Deals Combined Damage in target area and inflicts Frozen for 4 sec; reducing Movement Speed for 10 sec.",
@@ -66,9 +66,9 @@ const HIDDEN_CLASSES = [
     classIcon: "guardian",
     tags: ["Vitality", "Support", "Spell"],
     pairs: [
-      { title: "Pair 1", skills: [{ name: "Create Zone", type: "Support" }, { name: "Deliberate Attack", type: "Combat" }] },
-      { title: "Pair 2", skills: [{ name: "Overcome", type: "Spell" }, { name: "Fire Spirit", type: "Spell" }] },
-      { title: "Pair 3", skills: [{ name: "Spell Infusion", type: "Support" }, { name: "Wanderer", type: "Support" }] }
+      { title: "Pair 1", skills: [{ name: "Create Zone", type: "Defense" }, { name: "Deliberate Attack", type: "Support" }] },
+      { title: "Pair 2", skills: [{ name: "Overcome", type: "Vitality" }, { name: "Fire Spirit", type: "Enhance" }] },
+      { title: "Pair 3", skills: [{ name: "Spell Infusion", type: "Spell" }, { name: "Wanderer", type: "Trick" }] }
     ],
     skill: "Landing a Basic Attack can stack All Damage and Damage to Monsters up to 20 times.",
     milestones: {
@@ -87,7 +87,7 @@ const HIDDEN_CLASSES = [
     tags: ["Combat", "Defense", "Trick"],
     pairs: [
       { title: "Pair 1", skills: [{ name: "Chase", type: "Combat" }, { name: "Defensive Stance", type: "Defense" }] },
-      { title: "Pair 2", skills: [{ name: "Deathblow", type: "Combat" }, { name: "Supersense", type: "Trick" }] },
+      { title: "Pair 2", skills: [{ name: "Deathblow", type: "Enhance" }, { name: "Supersense", type: "Recon" }] },
       { title: "Pair 3", skills: [{ name: "Install Bomb", type: "Trick" }, { name: "Secreta's Talent", type: "Recon" }] }
     ],
     skill: "At very low HP, becomes Immortal briefly and recovers HP equal to a portion of max HP.",
@@ -106,9 +106,9 @@ const HIDDEN_CLASSES = [
     classIcon: "trinity",
     tags: ["Enhance", "Trick", "Combat"],
     pairs: [
-      { title: "Pair 1", skills: [{ name: "Cutting Strike", type: "Combat" }, { name: "Magic Ignition", type: "Enhance" }] },
-      { title: "Pair 2", skills: [{ name: "Magic Circulation", type: "Enhance" }, { name: "Supersense", type: "Trick" }] },
-      { title: "Pair 3", skills: [{ name: "Weapon of Destruction", type: "Combat" }, { name: "Weak Spot Analysis", type: "Recon" }] }
+      { title: "Pair 1", skills: [{ name: "Cutting Strike", type: "Enhance" }, { name: "Magic Ignition", type: "Vitality" }] },
+      { title: "Pair 2", skills: [{ name: "Magic Circulation", type: "Vitality" }, { name: "Supersense", type: "Recon" }] },
+      { title: "Pair 3", skills: [{ name: "Weapon of Destruction", type: "Trick" }, { name: "Weak Spot Analysis", type: "Support" }] }
     ],
     skill: "Basic attack has a chance to grant Attack Speed, Defense Penetration, and Critical Strike effects.",
     milestones: {
@@ -126,9 +126,9 @@ const HIDDEN_CLASSES = [
     classIcon: "storm",
     tags: ["Defense", "Spell", "Support"],
     pairs: [
-      { title: "Pair 1", skills: [{ name: "Mirror Shield", type: "Defense" }, { name: "War Cry", type: "Support" }] },
-      { title: "Pair 2", skills: [{ name: "Ice Spirit", type: "Spell" }, { name: "Power of Darkness", type: "Spell" }] },
-      { title: "Pair 3", skills: [{ name: "Spread Venom", type: "Support" }, { name: "Magnetic Field", type: "Support" }] }
+      { title: "Pair 1", skills: [{ name: "Mirror Shield", type: "Defense" }, { name: "War Cry", type: "Vitality" }] },
+      { title: "Pair 2", skills: [{ name: "Ice Spirit", type: "Enhance" }, { name: "Power of Darkness", type: "Spell" }] },
+      { title: "Pair 3", skills: [{ name: "Spread Venom", type: "Recon" }, { name: "Magnetic Field", type: "Spell" }] }
     ],
     skill: "Summons a storm area that pulls targets, applies movement penalties, and grants immunity to status effects.",
     milestones: {
@@ -146,9 +146,9 @@ const HIDDEN_CLASSES = [
     classIcon: "blessing",
     tags: ["Vitality", "Enhance", "Trick"],
     pairs: [
-      { title: "Pair 1", skills: [{ name: "Create Zone", type: "Support" }, { name: "Lightning Spirit", type: "Enhance" }] },
-      { title: "Pair 2", skills: [{ name: "Leech", type: "Vitality" }, { name: "Time Haste", type: "Enhance" }] },
-      { title: "Pair 3", skills: [{ name: "Wanderer", type: "Support" }, { name: "Continuous Curing", type: "Support" }] }
+      { title: "Pair 1", skills: [{ name: "Create Zone", type: "Defense" }, { name: "Lightning Spirit", type: "Enhance" }] },
+      { title: "Pair 2", skills: [{ name: "Leech", type: "Vitality" }, { name: "Time Haste", type: "Trick" }] },
+      { title: "Pair 3", skills: [{ name: "Wanderer", type: "Trick" }, { name: "Continuous Curing", type: "Support" }] }
     ],
     skill: "Increases Attack Power, Movement Speed, and Status Effects Resistance in a 15m area.",
     milestones: {
