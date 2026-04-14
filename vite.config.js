@@ -7,6 +7,7 @@ export default defineConfig({
       input: {
         main:   resolve(__dirname, 'index.html'),
         relic:  resolve(__dirname, 'relic.html'),
+        class:  resolve(__dirname, 'class.html'),
         potion: resolve(__dirname, 'potion.html'),
       }
     }
