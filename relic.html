@@ -54,8 +54,8 @@ html, body {
 .tb-sep { width: 1px; height: 22px; background: var(--border2); flex-shrink: 0; }
 .spacer { flex: 1; min-width: 10px; }
 .tb-stat { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; justify-content: space-between; border: 1px solid var(--border2); border-radius: 8px; padding: 6px 10px; min-height: 36px; background: rgba(255,255,255,0.02); flex-shrink: 0; white-space: nowrap; }
-.tb-stat-visitors { min-width: 94px; }
-.tb-stat-online { min-width: 82px; }
+.tb-stat-visitors,
+.tb-stat-online { min-width: 94px; }
 .tb-stat-label { font-size: 10px; font-weight: 600; color: var(--text4); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; line-height: 1; }
 .tb-stat-val { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; color: var(--text2); white-space: nowrap; line-height: 1; }
 #body { flex: 1; display: grid; grid-template-columns: 1fr 640px; overflow: hidden; min-height: 0; }
@@ -65,7 +65,7 @@ html, body {
 #left-panel::-webkit-scrollbar-thumb, #right-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); }
 .section-label { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text4); margin-bottom: 12px; }
-.cur-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-family: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 9px; outline: none; cursor: pointer; transition: border-color .15s; flex-shrink: 0; }
+.cur-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-family: inherit; font-size: 12px; font-weight: 500; height: 36px; min-height: 36px; padding: 6px 10px; border-radius: 8px; outline: none; cursor: pointer; transition: border-color .15s; flex-shrink: 0; }
 .cur-select:hover { border-color: rgba(255,255,255,.12); }
 .cur-select option { background: #1c1c1e; }
 .relic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -145,13 +145,13 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
       <a href="/class" class="nav-link">Hidden Class</a>
     </nav>
     <div class="spacer"></div>
-    <div class="tb-stat tb-stat-visitors"><span class="tb-stat-label">Visitors</span><span class="tb-stat-val" id="total-visitors">—</span></div>
-    <div class="tb-stat tb-stat-online"><span class="tb-stat-label">Online</span><span class="tb-stat-val"><span class="live-dot"></span><span id="online-count">—</span></span></div>
-    <div class="tb-sep"></div>
     <select class="cur-select" id="cur-select" onchange="setCurrency(this.value)">
       <option value="PHP">PHP ₱</option>
       <option value="USDT">USDT</option>
     </select>
+    <div class="tb-sep"></div>
+    <div class="tb-stat tb-stat-visitors"><span class="tb-stat-label">Visitors</span><span class="tb-stat-val" id="total-visitors">—</span></div>
+    <div class="tb-stat tb-stat-online"><span class="tb-stat-label">Online</span><span class="tb-stat-val"><span class="live-dot"></span><span id="online-count">—</span></span></div>
   </div>
 
   <div id="body">
