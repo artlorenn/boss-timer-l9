@@ -128,7 +128,7 @@ const HIDDEN_CLASSES = [
     pairs: [
       { title: "Pair 1", skills: [{ name: "Mirror Shield", type: "Defense" }, { name: "War Cry", type: "Support" }] },
       { title: "Pair 2", skills: [{ name: "Ice Spirit", type: "Spell" }, { name: "Power of Darkness", type: "Spell" }] },
-      { title: "Pair 3", skills: [{ name: "Spread", type: "Support" }, { name: "Magnetic Field", type: "Support" }] }
+      { title: "Pair 3", skills: [{ name: "Spread Venom", type: "Support" }, { name: "Magnetic Field", type: "Support" }] }
     ],
     skill: "Summons a storm area that pulls targets, applies movement penalties, and grants immunity to status effects.",
     milestones: {
