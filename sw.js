@@ -1,10 +1,13 @@
-const CACHE_NAME = 'boss-timer-v1';
+const CACHE_NAME = 'boss-timer-v2';
 const ASSETS = [
   './',
   './index.html',
   './relic.html',
   './potion.html',
+  './src/style.css',
+  './src/main.js',
 ];
+
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

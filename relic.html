@@ -40,21 +40,24 @@ html, body {
   overflow: hidden; display: flex; flex-direction: column;
 }
 #topbar {
-  flex-shrink: 0; height: 56px; display: flex; align-items: center;
-  padding: 36px 24px; gap: 8px; border-bottom: 1px solid var(--border);
-  background: rgba(14,14,16,0.85); backdrop-filter: blur(var(--blur));
+  flex-shrink: 0; height: 64px; min-height: 64px; display: flex; align-items: center;
+  padding: 12px 18px; gap: 10px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(18,18,20,0.94), rgba(11,11,13,0.86)); backdrop-filter: blur(var(--blur));
   -webkit-backdrop-filter: blur(var(--blur)); overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
 #topbar::-webkit-scrollbar { display: none; }
-.page-title { font-size: 16px; font-weight: 600; letter-spacing: -.04em; color: var(--text); white-space: nowrap; flex-shrink: 0; }
-.beta-pill { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; background: rgba(255,214,10,0.12); color: var(--amber); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
-.nav-link { font-size: 12px; font-weight: 400; color: var(--text3); text-decoration: none; letter-spacing: -.01em; transition: color .15s; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
-.nav-link:hover { color: var(--blue); }
-.tb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-.spacer { flex: 1; min-width: 4px; }
-.tb-stat { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
-.tb-stat-label { font-size: 9px; font-weight: 600; color: var(--text4); letter-spacing: .06em; text-transform: uppercase; }
-.tb-stat-val { font-size: 15px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 5px; color: var(--text2); }
+.tb-brand { font-size: 16px; font-weight: 650; letter-spacing: -0.02em; color: var(--text); white-space: nowrap; flex-shrink: 0; }
+.tb-nav { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 8px; border: 1px solid var(--border2); background: rgba(255,255,255,0.02); flex-shrink: 0; }
+.nav-link { font-size: 12px; font-weight: 600; color: var(--text3); text-decoration: none; letter-spacing: 0.01em; border-radius: 8px; border: 1px solid transparent; padding: 7px 12px; transition: all .15s ease; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
+.nav-link:hover { color: var(--text2); background: rgba(255,255,255,0.05); }
+.nav-link[aria-current="page"] { color: var(--text); background: rgba(10,132,255,0.14); border-color: rgba(10,132,255,0.34); }
+.tb-sep { width: 1px; height: 22px; background: var(--border2); flex-shrink: 0; }
+.spacer { flex: 1; min-width: 10px; }
+.tb-stat { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; justify-content: space-between; border: 1px solid var(--border2); border-radius: 8px; padding: 6px 10px; min-height: 36px; background: rgba(255,255,255,0.02); flex-shrink: 0; white-space: nowrap; }
+.tb-stat-visitors { min-width: 94px; }
+.tb-stat-online { min-width: 82px; }
+.tb-stat-label { font-size: 10px; font-weight: 600; color: var(--text4); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; line-height: 1; }
+.tb-stat-val { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; color: var(--text2); white-space: nowrap; line-height: 1; }
 #body { flex: 1; display: grid; grid-template-columns: 1fr 640px; overflow: hidden; min-height: 0; }
 #left-panel { overflow-y: auto; padding: 20px 10px 20px 16px; display: flex; flex-direction: column; gap: 10px; }
 #right-panel { overflow-y: auto; padding: 20px 16px 20px 10px; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid var(--border2); }
@@ -119,7 +122,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 @media (max-width: 900px) { #body { grid-template-columns: 1fr 480px; } }
 @media (max-width: 768px) {
   #frame { inset: 6px; border-radius: 18px; }
-  #topbar { height: 52px; padding: 0 10px; gap: 6px; }
+  #topbar { height: 56px; min-height: 56px; padding: 10px 12px; gap: 8px; }
   #body { grid-template-columns: 1fr; overflow-y: auto; overflow-x: hidden; }
   #left-panel { overflow-y: visible; padding: 14px 10px 0; min-height: unset; }
   #right-panel { overflow-y: visible; padding: 10px 10px 16px; border-left: none; border-top: 1px solid var(--border2); }
@@ -135,14 +138,15 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 <body>
 <div id="frame">
   <div id="topbar">
-    <a href="/timer" class="nav-link">← Timer</a>
-    <div class="tb-sep"></div>
-    <span class="page-title">Relic Calculator</span>
-    <span class="beta-pill">Beta</span>
+    <span class="tb-brand">MiniCorp</span>
+    <nav class="tb-nav" aria-label="Primary">
+      <a href="/timer" class="nav-link">Timer</a>
+      <a href="/relic" class="nav-link" aria-current="page">Relic</a>
+      <a href="/class" class="nav-link">Hidden Class</a>
+    </nav>
     <div class="spacer"></div>
-    <div class="tb-stat"><span class="tb-stat-label">Visitors</span><span class="tb-stat-val" id="total-visitors">—</span></div>
-    <div class="tb-sep"></div>
-    <div class="tb-stat"><span class="tb-stat-label">Online</span><span class="tb-stat-val"><span class="live-dot"></span><span id="online-count">—</span></span></div>
+    <div class="tb-stat tb-stat-visitors"><span class="tb-stat-label">Visitors</span><span class="tb-stat-val" id="total-visitors">—</span></div>
+    <div class="tb-stat tb-stat-online"><span class="tb-stat-label">Online</span><span class="tb-stat-val"><span class="live-dot"></span><span id="online-count">—</span></span></div>
     <div class="tb-sep"></div>
     <select class="cur-select" id="cur-select" onchange="setCurrency(this.value)">
       <option value="PHP">PHP ₱</option>
@@ -279,7 +283,25 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   const app=getApps().length?getApp():initializeApp(cfg);
   const db=getFirestore(app);const rtdb=getDatabase(app);
   async function trackVisitor(){const r=doc(db,'stats','relic_visitors');if(!sessionStorage.getItem('relic_counted')){sessionStorage.setItem('relic_counted','1');await setDoc(r,{count:increment(1)},{merge:true});}const s=await getDoc(r);if(s.exists())document.getElementById('total-visitors').textContent=s.data().count.toLocaleString();}
-  function trackOnline(){const sid=Math.random().toString(36).slice(2,10);const ur=ref(rtdb,`presence/relic/${sid}`);set(ur,{t:serverTimestamp()});onDisconnect(ur).remove();onValue(ref(rtdb,'presence/relic'),s=>{document.getElementById('online-count').textContent=s.exists()?Object.keys(s.val()).length:0;});}
+  function trackOnline(){
+    const sid=Math.random().toString(36).slice(2,10);
+    const el=document.getElementById('online-count');
+    const start=(basePath,allowFallback)=>{
+      const userRef=ref(rtdb,`${basePath}/${sid}`);
+      const listRef=ref(rtdb,basePath);
+      set(userRef,{t:serverTimestamp()}).then(()=>onDisconnect(userRef).remove()).catch(err=>{
+        if(allowFallback){return start('presence/bosstimer',false)}
+        el.textContent='0';
+        console.error('[Relic] online set failed',err);
+      });
+      onValue(listRef,s=>{el.textContent=s.exists()?Object.keys(s.val()).length:0},err=>{
+        if(allowFallback){start('presence/bosstimer',false);return}
+        el.textContent='0';
+        console.error('[Relic] online read failed',err);
+      });
+    };
+    start('presence/relic',true);
+  }
   trackVisitor();trackOnline();
 </script>
 

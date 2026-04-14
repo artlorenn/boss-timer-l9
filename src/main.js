@@ -1,49 +1,49 @@
 import './style.css'
-import { trackVisitor, trackOnline, fetchSchedule, saveSchedule } from './firebase.js'
+import { trackVisitor, trackOnline, fetchSchedule, saveSchedule, subscribeSchedule } from './firebase.js'
 import { getBossLocation, getRespawnMs, isFixedSchedule, generateFixedScheduleEvents, generateWorldBossEvents, SOUND_PRESETS } from './data.js'
 import { parseSchedule } from './parse.js'
 import { playBeep, playTick, playSpawnSound, getMuted, setMuted, getVolume, setVolume, getPreset, setPreset } from './audio.js'
 
 // ── DOM refs ──
 const $ = id => document.getElementById(id)
-const sectionsEl  = $('sections')
-const summaryEl   = $('summary')
-const toastEl     = $('toast')
-const pillEl      = $('status-pill')
-const syncDot     = $('sync-dot')
-const syncLabel   = $('sync-label')
+const sectionsEl = $('sections')
+const summaryEl = $('summary')
+const toastEl = $('toast')
+const pillEl = $('status-pill')
+const syncDot = $('sync-dot')
+const syncLabel = $('sync-label')
 const timelineSec = $('timeline-section')
-const adminBadge  = $('admin-badge')
-const adminModal  = $('admin-modal')
+const adminBadge = $('admin-badge')
+const adminModal = $('admin-modal')
 
 // ── State ──
-let eventsState   = []
-let layout        = localStorage.getItem('layout') || 'compact'
-let alarmLeadMin  = parseInt(localStorage.getItem('alarmLeadMin') || '5', 10)
-let tickerId      = null
+let eventsState = []
+let layout = localStorage.getItem('layout') || 'compact'
+let alarmLeadMin = parseInt(localStorage.getItem('alarmLeadMin') || '5', 10)
+let tickerId = null
 let autoRefreshId = null
-let showTimeline  = localStorage.getItem('timeline') === 'true'
-let filterText    = ''
-let isAdmin       = sessionStorage.getItem('isAdmin') === 'true'
+let unsubscribeSchedule = null
+let showTimeline = localStorage.getItem('timeline') === 'true'
+let filterText = ''
+let isAdmin = sessionStorage.getItem('isAdmin') === 'true'
 const pinnedBosses = new Set(JSON.parse(localStorage.getItem('pinnedBosses') || '[]'))
-const triggered   = new Set()
-const completed   = new Set()
+const triggered = new Set()
 
 const AUTO_REFRESH_MS = 60_000
 
 // ── Helpers ──
-const evId       = ev => ev.start + '-' + ev.boss
+const evId = ev => ev.start + '-' + ev.boss
 const getInitial = name => (name || '?').charAt(0).toUpperCase()
 const fmtCountdown = iso => {
   const d = Math.max(0, new Date(iso).getTime() - Date.now())
   const h = Math.floor(d / 3.6e6)
   const m = Math.floor((d % 3.6e6) / 6e4)
   const s = Math.floor((d % 6e4) / 1e3)
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'00')}:${String(s).padStart(2,'00')}`
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
-const fmtTime = iso => new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
-const fmtDate = iso => new Date(iso).toLocaleDateString([], {month:'short',day:'numeric'})
-const localDateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+const fmtTime = iso => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const fmtDate = iso => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' })
+const localDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const getDisplayName = ev => ev.bosses ? ev.bosses.join(', ') : ev.boss
 const toTitle = str => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 const matchesFilter = ev => {
@@ -65,7 +65,7 @@ function setSyncStatus(state, text) {
   if (syncLabel) syncLabel.textContent = text
 }
 const showToast = msg => { if (toastEl) toastEl.textContent = msg }
-const setPill   = (text, variant) => {
+const setPill = (text, variant) => {
   if (!pillEl) return
   pillEl.textContent = text
   pillEl.className = variant === 'positive' ? 'positive' : variant === 'negative' ? 'negative' : ''
@@ -85,7 +85,7 @@ async function fetchBossesJson() {
     const bosses = await fetchSchedule()
     if (!bosses) { setSyncStatus('ok', 'No schedule yet'); return }
     loadBossesFromCloud(bosses)
-    setSyncStatus('ok', `Synced ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`)
+    setSyncStatus('ok', `Synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
   } catch (e) {
     setSyncStatus('error', 'Sync failed')
     console.error(e)
@@ -96,7 +96,7 @@ async function saveBossesToCloud(bossesJson) {
   setSyncStatus('syncing', 'Saving…')
   try {
     await saveSchedule(bossesJson)
-    setSyncStatus('ok', `Saved ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`)
+    setSyncStatus('ok', `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
     return true
   } catch (e) {
     setSyncStatus('error', 'Save failed')
@@ -113,7 +113,7 @@ function convertTo24Hour(timeStr) {
   const min = m[2], sec = m[3] || '00', period = m[4].toUpperCase()
   if (period === 'AM') { if (h === 12) h = 0 }
   else { if (h !== 12) h += 12 }
-  return `${String(h).padStart(2,'0')}:${min}:${sec}`
+  return `${String(h).padStart(2, '0')}:${min}:${sec}`
 }
 
 const MAX_DAYS_AHEAD = 3
@@ -121,13 +121,13 @@ function isWithinDateLimit(isoStr) {
   const evDate = new Date(isoStr)
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-  const limitEnd   = new Date(todayStart)
+  const limitEnd = new Date(todayStart)
   limitEnd.setDate(limitEnd.getDate() + MAX_DAYS_AHEAD)
   return evDate.getTime() >= todayStart.getTime() && evDate.getTime() < limitEnd.getTime()
 }
 
 function loadBossesFromCloud(bosses) {
-  if (!Array.isArray(bosses) || !bosses.length) return
+  if (!Array.isArray(bosses)) return
   const now = Date.now()
   const loaded = bosses.map(b => {
     let start
@@ -139,7 +139,7 @@ function loadBossesFromCloud(bosses) {
       if (!start || isNaN(start.getTime())) start = new Date(`${b.date} ${b.start_time}`)
     } else { return null }
     if (!start || isNaN(start.getTime())) { console.warn('[BossTimer] Could not parse:', b); return null }
-    return { boss: b.name, date: start.toISOString().slice(0,10), time: start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), dur: b.end_time || '', start: start.toISOString() }
+    return { boss: b.name, date: start.toISOString().slice(0, 10), time: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dur: b.end_time || '', start: start.toISOString() }
   }).filter(ev => ev && new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss) && isWithinDateLimit(ev.start))
 
   eventsState = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))
@@ -155,6 +155,24 @@ function startAutoRefresh() {
   autoRefreshId = setInterval(() => { if (!isAdmin) fetchBossesJson() }, AUTO_REFRESH_MS)
 }
 
+function startRealtimeSync() {
+  if (unsubscribeSchedule) unsubscribeSchedule()
+  unsubscribeSchedule = subscribeSchedule(
+    bosses => {
+      loadBossesFromCloud(bosses)
+      if (!bosses || !bosses.length) {
+        setSyncStatus('ok', 'No schedule yet')
+        return
+      }
+      setSyncStatus('ok', `Live ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
+    },
+    e => {
+      setSyncStatus('error', 'Live sync failed')
+      console.error(e)
+    }
+  )
+}
+
 // ── Kill / set time ──
 function killBoss(bossName) {
   const respawnMs = getRespawnMs(bossName)
@@ -162,7 +180,7 @@ function killBoss(bossName) {
   const newStart = new Date(Date.now() + respawnMs).toISOString()
   const ev = eventsState.find(e => e.boss === bossName)
   if (ev) { ev.start = newStart; triggered.delete(`${ev.start}-${ev.boss}`) }
-  else eventsState.push({ boss: bossName, date: newStart.slice(0,10), time: '', dur: '', start: newStart })
+  else eventsState.push({ boss: bossName, date: newStart.slice(0, 10), time: '', dur: '', start: newStart })
   eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
   saveBossesToCloud(toCloudBosses(eventsState))
   showToast(`${bossName} killed — respawns in ${Math.round(respawnMs / 3600000)}h`)
@@ -198,25 +216,25 @@ function manualSetTime(bossName) {
 // ── Cards ──
 function urgentSoon(ev) {
   const delta = new Date(ev.start).getTime() - Date.now()
-  return { urgent: delta <= 5*60*1000 && delta > 0, soon: delta <= 15*60*1000 && delta > 0 }
+  return { urgent: delta <= 5 * 60 * 1000 && delta > 0, soon: delta <= 15 * 60 * 1000 && delta > 0 }
 }
 
 function buildCompactCard(ev, label) {
   const { urgent, soon } = urgentSoon(ev)
   const names = getDisplayName(ev)
-  const loc   = getBossLocation(ev.boss || '')
+  const loc = getBossLocation(ev.boss || '')
   const cdClass = urgent ? 'urgent' : soon ? 'soon' : ''
   const card = document.createElement('div')
   card.className = `boss-card${urgent ? ' urgent' : soon ? ' soon' : ''}`
   const killBtnHtml = (isAdmin && getRespawnMs(ev.boss)) ? `<button class="kill-btn" data-boss="${ev.boss}">Killed</button>` : ''
-  const setBtnHtml  = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger" data-boss="${ev.boss}">Set time</button>` : ''
+  const setBtnHtml = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger" data-boss="${ev.boss}">Set time</button>` : ''
   const dateTag = label === 'Later' ? `<span class="date-tag">${fmtDate(ev.start)}</span>` : ''
   card.innerHTML = `
-    <div class="boss-initial${cdClass ? ' '+cdClass : ''}">${getInitial(names)}</div>
+    <div class="boss-initial${cdClass ? ' ' + cdClass : ''}">${getInitial(names)}</div>
     <div class="boss-info">
       <div class="boss-name">${toTitle(names)}</div>
-      <div class="boss-meta">${fmtTime(ev.start)}${loc ? ' · '+loc : ''}</div>
-      <div class="boss-countdown${cdClass ? ' '+cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
+      <div class="boss-meta">${fmtTime(ev.start)}${loc ? ' · ' + loc : ''}</div>
+      <div class="boss-countdown${cdClass ? ' ' + cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
     </div>
     <div class="boss-actions">${dateTag}${killBtnHtml}${setBtnHtml}</div>`
   card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss))
@@ -227,20 +245,20 @@ function buildCompactCard(ev, label) {
 function buildDeckCard(ev, label) {
   const { urgent, soon } = urgentSoon(ev)
   const names = getDisplayName(ev)
-  const loc   = getBossLocation(ev.boss || '')
+  const loc = getBossLocation(ev.boss || '')
   const cdClass = urgent ? 'urgent' : soon ? 'soon' : ''
   const card = document.createElement('div')
   card.className = `deck-card${urgent ? ' urgent' : soon ? ' soon-card' : ''}`
   const killBtnHtml = (isAdmin && getRespawnMs(ev.boss)) ? `<button class="kill-btn" data-boss="${ev.boss}">Killed</button>` : ''
-  const setBtnHtml  = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger" data-boss="${ev.boss}">Set</button>` : ''
+  const setBtnHtml = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger" data-boss="${ev.boss}">Set</button>` : ''
   const dateTag = label === 'Later' ? `<div class="date-tag" style="font-size:10px;">${fmtDate(ev.start)}</div>` : ''
   card.innerHTML = `
-    <div class="deck-initial${cdClass ? ' '+cdClass : ''}">${getInitial(names)}</div>
+    <div class="deck-initial${cdClass ? ' ' + cdClass : ''}">${getInitial(names)}</div>
     <div class="deck-name">${toTitle(names)}</div>
     ${loc ? `<div class="deck-loc">${loc}</div>` : ''}
     ${dateTag}
     <div class="deck-time">${fmtTime(ev.start)}</div>
-    <div class="deck-cd${cdClass ? ' '+cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
+    <div class="deck-cd${cdClass ? ' ' + cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
     <div class="deck-btns">${killBtnHtml}${setBtnHtml}</div>`
   card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss))
   card.querySelector('.manual-trigger')?.addEventListener('click', () => manualSetTime(ev.boss))
@@ -254,8 +272,8 @@ function render(events) {
   const filtered = events.filter(matchesFilter)
   if (!filtered.length) { setPill('No matches', 'negative'); renderTimeline(events); return }
   const todayKey = localDateKey(new Date())
-  const tmrwKey  = localDateKey(new Date(Date.now() + 864e5))
-  const buckets  = { Today: [], Tomorrow: [], Later: [] }
+  const tmrwKey = localDateKey(new Date(Date.now() + 864e5))
+  const buckets = { Today: [], Tomorrow: [], Later: [] }
   for (const ev of filtered) {
     const k = localDateKey(new Date(ev.start))
     if (k === todayKey) buckets.Today.push(ev)
@@ -266,7 +284,7 @@ function render(events) {
     const items = sortWithPins(unsorted)
     if (!items.length) continue
     const section = document.createElement('div'); section.className = 'section-wrap'
-    const header  = document.createElement('div'); header.className = 'section-header'
+    const header = document.createElement('div'); header.className = 'section-header'
     header.innerHTML = `<span class="section-label">${label}</span><span class="section-count">${items.length}</span>`
     section.appendChild(header)
     if (layout === 'deck') {
@@ -301,38 +319,38 @@ function renderTimeline(events) {
   const upcoming = events.filter(ev => new Date(ev.start).getTime() > now)
   if (!upcoming.length) return
   const startMs = now
-  const endMs   = Math.max(...upcoming.map(ev => new Date(ev.start).getTime()))
+  const endMs = Math.max(...upcoming.map(ev => new Date(ev.start).getTime()))
   const rangeMs = endMs - startMs
   if (rangeMs <= 0) return
   const header = document.createElement('div'); header.className = 'section-header'
   header.innerHTML = `<span class="section-label">Timeline</span>`
   timelineSec.appendChild(header)
   const wrap = document.createElement('div'); wrap.className = 'timeline-wrap'
-  const bar  = document.createElement('div'); bar.className  = 'timeline-bar'
+  const bar = document.createElement('div'); bar.className = 'timeline-bar'
   const nowM = document.createElement('div'); nowM.className = 'timeline-now'; nowM.style.left = '0%'; bar.appendChild(nowM)
   const nowL = document.createElement('div'); nowL.className = 'timeline-now-label'; nowL.style.left = '0%'; nowL.textContent = 'Now'; bar.appendChild(nowL)
   for (const ev of upcoming) {
-    const pct   = ((new Date(ev.start).getTime() - startMs) / rangeMs) * 100
+    const pct = ((new Date(ev.start).getTime() - startMs) / rangeMs) * 100
     const delta = new Date(ev.start).getTime() - now
-    const urgent = delta <= 5*60*1000, soon = delta <= 15*60*1000
+    const urgent = delta <= 5 * 60 * 1000, soon = delta <= 15 * 60 * 1000
     const name = getDisplayName(ev)
     const marker = document.createElement('div')
     marker.className = `timeline-marker${urgent ? ' urgent-marker' : soon ? ' soon-marker' : ''}`
     marker.style.left = pct + '%'; marker.textContent = name.charAt(0)
     marker.title = `${name} — ${fmtTime(ev.start)} (${fmtCountdown(ev.start)})`; bar.appendChild(marker)
     const lbl = document.createElement('div'); lbl.className = 'timeline-label'; lbl.style.left = pct + '%'
-    lbl.textContent = name.length > 10 ? name.slice(0,9) + '…' : name; bar.appendChild(lbl)
+    lbl.textContent = name.length > 10 ? name.slice(0, 9) + '…' : name; bar.appendChild(lbl)
   }
   wrap.appendChild(bar); timelineSec.appendChild(wrap)
 }
 
 function updateCountdowns() {
   for (const ev of eventsState) {
-    const els   = document.querySelectorAll(`[data-cd="${evId(ev)}"]`)
-    const cd    = fmtCountdown(ev.start)
+    const els = document.querySelectorAll(`[data-cd="${evId(ev)}"]`)
+    const cd = fmtCountdown(ev.start)
     const delta = new Date(ev.start).getTime() - Date.now()
-    const urgent = delta <= 5*60*1000 && delta > 0
-    const soon   = delta <= 15*60*1000 && delta > 0
+    const urgent = delta <= 5 * 60 * 1000 && delta > 0
+    const soon = delta <= 15 * 60 * 1000 && delta > 0
     for (const el of els) {
       el.textContent = cd
       el.classList.remove('urgent', 'soon')
@@ -344,13 +362,14 @@ function updateCountdowns() {
         if (urgent) card.classList.add('urgent')
         else if (soon) card.classList.add(card.classList.contains('deck-card') ? 'soon-card' : 'soon')
         const init = card.querySelector('.boss-initial,.deck-initial')
-        if (init) { init.classList.remove('urgent','soon'); if (urgent) init.classList.add('urgent'); else if (soon) init.classList.add('soon') }
+        if (init) { init.classList.remove('urgent', 'soon'); if (urgent) init.classList.add('urgent'); else if (soon) init.classList.add('soon') }
       }
     }
   }
   const upcoming = eventsState.filter(ev => new Date(ev.start).getTime() > Date.now())
   const next = upcoming[0] || null
-  if (next) summaryEl.innerHTML = `<span>${eventsState.length} event${eventsState.length === 1 ? '' : 's'}</span><span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(next.start)}</span>`
+  const filtered = filterText ? eventsState.filter(matchesFilter) : eventsState
+  if (next) summaryEl.innerHTML = `<span>${filtered.length} event${filtered.length === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span><span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(next.start)}</span>`
 }
 
 // ── Alarms ──
@@ -364,7 +383,7 @@ function ensureNotificationPermission() {
 
 function triggerAlarm(ev) {
   const name = getDisplayName(ev)
-  const msg  = `${name} spawning in ${alarmLeadMin} min (${fmtTime(ev.start)})`
+  const msg = `${name} spawning in ${alarmLeadMin} min (${fmtTime(ev.start)})`
   showToast(msg); setPill('Alarm: ' + name, 'negative'); playBeep()
   if (Notification.permission === 'granted') new Notification('Boss Timer', { body: msg })
 }
@@ -382,9 +401,9 @@ function checkAlarms() {
 
 // ── Spawn overlay ──
 let spawnCountdownActive = null, spawnedEvent = null, lastSpawnSecond = -1
-const spawnOverlay    = $('spawn-overlay')
+const spawnOverlay = $('spawn-overlay')
 const spawnBossNameEl = $('spawn-boss-name')
-const spawnSubEl      = $('spawn-sub')
+const spawnSubEl = $('spawn-sub')
 
 function checkSpawnCountdown() {
   const now = Date.now()
@@ -399,8 +418,8 @@ function checkSpawnCountdown() {
   }
   if (!nearest) { if (spawnCountdownActive) { spawnOverlay.classList.remove('active'); spawnCountdownActive = null; lastSpawnSecond = -1 } return }
   const delta = new Date(nearest.start).getTime() - now
-  const sec   = Math.ceil(delta / 1000)
-  const name  = getDisplayName(nearest)
+  const sec = Math.ceil(delta / 1000)
+  const name = getDisplayName(nearest)
   if (!spawnOverlay.classList.contains('active')) spawnOverlay.classList.add('active')
   spawnCountdownActive = nearest; spawnBossNameEl.textContent = name
   if (sec <= 0) {
@@ -422,7 +441,7 @@ function prunePastEvents() {
   const now = Date.now()
   const remaining = []; let changed = false
   for (const ev of eventsState) {
-    if (new Date(ev.start).getTime() <= now) { completed.add(ev.boss); changed = true; continue }
+    if (new Date(ev.start).getTime() <= now) { changed = true; continue }
     remaining.push(ev)
   }
   if (changed) eventsState = remaining
@@ -443,7 +462,7 @@ function startTicker() {
 // ── Layout ──
 function setLayout(mode) {
   layout = mode; localStorage.setItem('layout', mode)
-  const sel  = $('layout-mode');  if (sel)  sel.value  = mode
+  const sel = $('layout-mode'); if (sel) sel.value = mode
   const selM = $('layout-mode-m'); if (selM) selM.value = mode
   if (eventsState.length) render(eventsState)
 }
@@ -451,8 +470,8 @@ function setLayout(mode) {
 // ── Mute ──
 function updateMuteUI() {
   const muted = getMuted()
-  const iconOn  = $('icon-unmuted'), iconOff = $('icon-muted')
-  if (iconOn)  iconOn.style.display  = muted ? 'none' : ''
+  const iconOn = $('icon-unmuted'), iconOff = $('icon-muted')
+  if (iconOn) iconOn.style.display = muted ? 'none' : ''
   if (iconOff) iconOff.style.display = muted ? '' : 'none'
   const muteBtn = $('toggle-mute')
   if (muteBtn) muteBtn.title = muted ? 'Unmute sounds' : 'Mute sounds'
@@ -463,10 +482,10 @@ function updateMuteUI() {
 
 // ── Admin UI ──
 function updateAdminUI() {
-  const iconLock   = $('icon-lock'),   iconUnlock = $('icon-unlock')
-  const adminBtnM  = $('toggle-admin-m')
+  const iconLock = $('icon-lock'), iconUnlock = $('icon-unlock')
+  const adminBtnM = $('toggle-admin-m')
   const drawerLabel = $('admin-drawer-label')
-  if (iconLock)   iconLock.style.display   = isAdmin ? 'none' : ''
+  if (iconLock) iconLock.style.display = isAdmin ? 'none' : ''
   if (iconUnlock) iconUnlock.style.display = isAdmin ? '' : 'none'
   if (adminBadge) adminBadge.style.display = isAdmin ? '' : 'none'
   const adminBtn = $('toggle-admin')
@@ -477,15 +496,15 @@ function updateAdminUI() {
 }
 
 // ── Hamburger ──
-const hamburgerBtn    = $('hamburger-btn')
+const hamburgerBtn = $('hamburger-btn')
 const hamburgerDrawer = $('hamburger-drawer')
-const hamburgerIcon   = $('hamburger-icon')
-const hamburgerClose  = $('hamburger-close')
+const hamburgerIcon = $('hamburger-icon')
+const hamburgerClose = $('hamburger-close')
 
 function toggleDrawer(force) {
   const open = force !== undefined ? force : !hamburgerDrawer.classList.contains('open')
   hamburgerDrawer.classList.toggle('open', open)
-  if (hamburgerIcon)  hamburgerIcon.style.display  = open ? 'none' : ''
+  if (hamburgerIcon) hamburgerIcon.style.display = open ? 'none' : ''
   if (hamburgerClose) hamburgerClose.style.display = open ? '' : 'none'
 }
 
@@ -497,18 +516,18 @@ document.addEventListener('click', e => {
 })
 
 // ── Controls ── Desktop ──
-const layoutModeSel     = $('layout-mode')
-const alarmLeadSel      = $('alarm-lead')
+const layoutModeSel = $('layout-mode')
+const alarmLeadSel = $('alarm-lead')
 const alarmVolumeSlider = $('alarm-volume')
-const alarmVolumeLabel  = $('alarm-volume-label')
-const presetSel         = $('sound-preset')
-const bossFilter        = $('boss-filter')
-const timelineBtn       = $('toggle-timeline')
-const muteBtn           = $('toggle-mute')
-const adminBtn          = $('toggle-admin')
+const alarmVolumeLabel = $('alarm-volume-label')
+const presetSel = $('sound-preset')
+const bossFilter = $('boss-filter')
+const timelineBtn = $('toggle-timeline')
+const muteBtn = $('toggle-mute')
+const adminBtn = $('toggle-admin')
 
 if (layoutModeSel) { layoutModeSel.value = layout; layoutModeSel.addEventListener('change', () => setLayout(layoutModeSel.value)) }
-if (alarmLeadSel)  {
+if (alarmLeadSel) {
   alarmLeadSel.value = String(alarmLeadMin)
   alarmLeadSel.addEventListener('change', () => {
     alarmLeadMin = parseInt(alarmLeadSel.value, 10)
@@ -547,11 +566,11 @@ adminBtn?.addEventListener('click', () => {
 })
 
 // ── Controls ── Mobile drawer ──
-const layoutModeSelM     = $('layout-mode-m')
-const alarmLeadSelM      = $('alarm-lead-m')
+const layoutModeSelM = $('layout-mode-m')
+const alarmLeadSelM = $('alarm-lead-m')
 const alarmVolumeSliderM = $('alarm-volume-m')
-const alarmVolumeLabelM  = $('alarm-volume-label-m')
-const presetSelM         = $('sound-preset-m')
+const alarmVolumeLabelM = $('alarm-volume-label-m')
+const presetSelM = $('sound-preset-m')
 
 if (layoutModeSelM) {
   layoutModeSelM.value = layout
@@ -572,7 +591,7 @@ if (alarmVolumeSliderM) {
     setVolume(parseInt(alarmVolumeSliderM.value, 10) / 100)
     if (alarmVolumeLabelM) alarmVolumeLabelM.textContent = Math.round(getVolume() * 100) + '%'
     if (alarmVolumeSlider) alarmVolumeSlider.value = alarmVolumeSliderM.value
-    if (alarmVolumeLabel)  alarmVolumeLabel.textContent = alarmVolumeLabelM?.textContent || ''
+    if (alarmVolumeLabel) alarmVolumeLabel.textContent = alarmVolumeLabelM?.textContent || ''
   })
 }
 if (presetSelM) {
@@ -607,7 +626,7 @@ $('toggle-admin-m')?.addEventListener('click', () => {
 bossFilter?.addEventListener('input', () => { filterText = bossFilter.value.trim(); if (eventsState.length) render(eventsState) })
 
 // ── Admin modal ──
-const ADMIN_PASS  = 'boss123'
+const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || 'boss123'
 const adminSubmit = $('admin-submit')
 const adminCancel = $('admin-cancel')
 
@@ -632,9 +651,9 @@ $('download-ics')?.addEventListener('click', () => {
   if (!eventsState.length) return showToast('No events loaded')
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Boss Timer//EN']
   for (const ev of eventsState) {
-    const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z')
-    const start = new Date(ev.start).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z')
-    lines.push('BEGIN:VEVENT', `UID:${start}-${ev.boss.replace(/\s+/g,'-')}`, `DTSTAMP:${stamp}`, `DTSTART:${start}`, `DTEND:${start}`, `SUMMARY:${ev.boss}`, 'END:VEVENT')
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+    const start = new Date(ev.start).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+    lines.push('BEGIN:VEVENT', `UID:${start}-${ev.boss.replace(/\s+/g, '-')}`, `DTSTAMP:${stamp}`, `DTSTART:${start}`, `DTEND:${start}`, `SUMMARY:${ev.boss}`, 'END:VEVENT')
   }
   lines.push('END:VCALENDAR')
   const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' })
@@ -643,8 +662,8 @@ $('download-ics')?.addEventListener('click', () => {
 })
 $('test-spawn')?.addEventListener('click', () => {
   const spawnAt = new Date(Date.now() + 5000)
-  const testEv = { boss: 'World Boss', bosses: ['Ratan','Parto','Nedra'], date: spawnAt.toISOString().slice(0,10), time: spawnAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), dur: '01:00:00', start: spawnAt.toISOString(), worldBoss: true }
-  eventsState.push(testEv); eventsState.sort((a,b) => new Date(a.start)-new Date(b.start)); render(eventsState); startTicker(); showToast('Test boss spawning in 5 seconds...')
+  const testEv = { boss: 'World Boss', bosses: ['Ratan', 'Parto', 'Nedra'], date: spawnAt.toISOString().slice(0, 10), time: spawnAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dur: '01:00:00', start: spawnAt.toISOString(), worldBoss: true }
+  eventsState.push(testEv); eventsState.sort((a, b) => new Date(a.start) - new Date(b.start)); render(eventsState); startTicker(); showToast('Test boss spawning in 5 seconds...')
 })
 $('parse')?.addEventListener('click', async () => {
   const adminTA = $('admin-textarea')
@@ -658,36 +677,42 @@ $('parse')?.addEventListener('click', async () => {
   if (!saved) return
   showToast(`✓ Saved ${parsed.length} bosses for everyone!`)
   const worldFixed = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))
-  eventsState = [...worldFixed, ...parsed]; eventsState.sort((a,b) => new Date(a.start)-new Date(b.start))
+  eventsState = [...worldFixed, ...parsed]; eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
   render(eventsState); ensureNotificationPermission(); startTicker()
 })
 
 $('toggle-theme')?.addEventListener('click', () => showToast('Always dark mode 🖤'))
+$('toggle-layout')?.addEventListener('click', () => {
+  const next = layout === 'compact' ? 'deck' : 'compact'
+  setLayout(next)
+  $('toggle-layout').textContent = next === 'deck' ? 'Compact' : 'Deck'
+})
 
 // ── Init ──
 updateMuteUI()
 updateAdminUI()
 setLayout(layout)
 
-;(function initStaticEvents() {
-  const wb = generateWorldBossEvents()
-  const fixed = generateFixedScheduleEvents(14)
-  const existing = new Set(eventsState.map(evId))
-  for (const ev of [...wb, ...fixed]) {
-    if (!existing.has(evId(ev)) && isWithinDateLimit(ev.start)) {
-      eventsState.push(ev); existing.add(evId(ev))
+  ; (function initStaticEvents() {
+    const wb = generateWorldBossEvents()
+    const fixed = generateFixedScheduleEvents(14)
+    const existing = new Set(eventsState.map(evId))
+    for (const ev of [...wb, ...fixed]) {
+      if (!existing.has(evId(ev)) && isWithinDateLimit(ev.start)) {
+        eventsState.push(ev); existing.add(evId(ev))
+      }
     }
-  }
-  eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
-})()
+    eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
+  })()
 
 render(eventsState)
 ensureNotificationPermission()
 startTicker()
+startRealtimeSync()
 startAutoRefresh()
 fetchBossesJson()
 
 trackVisitor(count => { const el = $('visitor-count'); if (el) el.textContent = count.toLocaleString() })
-trackOnline(count  => { const el = $('online-count');  if (el) el.textContent = count })
+trackOnline(count => { const el = $('online-count'); if (el) el.textContent = count })
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => { })

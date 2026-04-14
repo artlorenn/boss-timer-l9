@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hidden Class Guide</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    :root {
+      --bg: #000000;
+      --bg2: #0c0c0e;
+      --surface: rgba(26,26,28,0.9);
+      --surface2: rgba(38,38,42,0.7);
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.04);
+      --text: #ffffff;
+      --text2: rgba(255,255,255,0.55);
+      --text3: rgba(255,255,255,0.28);
+      --text4: rgba(255,255,255,0.10);
+      --amber: #ffd60a;
+      --blue: #0a84ff;
+      --radius: 8px;
+      --radius-sm: 8px;
+      --blur: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    #frame {
+      position: fixed;
+      inset: 10px;
+      border-radius: 8px;
+      background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 0 0 1px rgba(0,0,0,1), 0 40px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #topbar {
+      flex-shrink: 0;
+      height: 64px;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 12px 18px;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18,18,20,0.94), rgba(11,11,13,0.86));
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+
+    #topbar::-webkit-scrollbar { display: none; }
+
+    .tb-brand {
+      font-size: 16px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tb-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+    }
+
+    .nav-link {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      padding: 7px 12px;
+      transition: all .15s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .nav-link:hover {
+      color: var(--text2);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .nav-link[aria-current="page"] {
+      color: var(--text);
+      background: rgba(10,132,255,0.14);
+      border-color: rgba(10,132,255,0.34);
+    }
+
+    .tb-sep {
+      width: 1px;
+      height: 22px;
+      background: var(--border2);
+      flex-shrink: 0;
+    }
+
+    .tb-stat {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 7px;
+      justify-content: space-between;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      min-height: 36px;
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .tb-stat-visitors { min-width: 94px; }
+    .tb-stat-online { min-width: 82px; }
+
+    .tb-stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text4);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .tb-stat-val {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text2);
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #30d158;
+      animation: pulse-dot 2s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    .spacer { flex: 1; min-width: 10px; }
+
+    .section-wrap { margin-bottom: 18px; overflow: visible; }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding: 0 2px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text4);
+    }
+
+    .section-count { font-size: 10px; color: var(--text4); }
+
+    #class-main {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 26px 26px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    #class-main::-webkit-scrollbar { width: 2px; }
+    #class-main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 8px; }
+
+    .hero-card {
+      background: radial-gradient(circle at top right, rgba(10,132,255,0.14), transparent 45%), var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px;
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      box-shadow: 0 1px 8px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .hero-sub {
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.6;
+      max-width: 860px;
+    }
+
+    .ability-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (min-width: 1600px) {
+      .ability-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 1180px) {
+      .ability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .ability-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px;
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      box-shadow: 0 1px 8px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: box-shadow .2s, border-color .2s;
+    }
+
+    .ability-card:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.1);
+    }
+
+    .ability-head {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      min-height: 92px;
+    }
+
+    .class-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      min-height: 42px;
+    }
+
+    .class-glyph {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,.04);
+      color: #cfd6e6;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .class-glyph svg {
+      width: 19px;
+      height: 19px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .class-glyph.blade { color: #ff8a80; background: rgba(255,69,58,.12); border-color: rgba(255,69,58,.25); }
+    .class-glyph.breaker { color: #ffa657; background: rgba(255,140,0,.12); border-color: rgba(255,140,0,.25); }
+    .class-glyph.frost { color: #7ec8ff; background: rgba(10,132,255,.14); border-color: rgba(10,132,255,.25); }
+    .class-glyph.guardian { color: #8df5d8; background: rgba(90,210,180,.12); border-color: rgba(90,210,180,.25); }
+    .class-glyph.immortal { color: #f6a6c8; background: rgba(255,124,201,.12); border-color: rgba(255,124,201,.25); }
+    .class-glyph.trinity { color: #ffe08a; background: rgba(255,214,10,.12); border-color: rgba(255,214,10,.25); }
+    .class-glyph.storm { color: #9ec0ff; background: rgba(123,178,255,.12); border-color: rgba(123,178,255,.25); }
+    .class-glyph.blessing { color: #9ff29f; background: rgba(48,209,88,.12); border-color: rgba(48,209,88,.25); }
+
+    .class-name {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .tag-line {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+    }
+
+    .type-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 5px 12px 5px 6px;
+      background: rgba(255,255,255,.03);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .03em;
+      color: var(--text2);
+      width: 100%;
+      min-height: 30px;
+      justify-content: flex-start;
+      white-space: nowrap;
+    }
+
+    .type-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,.12);
+      color: #121212;
+      line-height: 1;
+    }
+
+    .type-chip.Combat .type-icon { background: #d94944; }
+    .type-chip.Recon .type-icon { background: #bf5af2; }
+    .type-chip.Spell .type-icon { background: #4f8dff; }
+    .type-chip.Support .type-icon { background: #b38b7a; }
+    .type-chip.Defense .type-icon { background: #4cc5c4; }
+    .type-chip.Enhance .type-icon { background: #d59b1c; }
+    .type-chip.Trick .type-icon { background: #d3d40f; }
+    .type-chip.Vitality .type-icon { background: #7cc85a; }
+
+    .ability-pairs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .pair {
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 8px;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .pair-top {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+
+    .pair-label {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--text);
+    }
+
+    .pair-skill-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pair-skill-card {
+      min-height: 74px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 14px 14px 13px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      color: #111214;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 8px 18px rgba(0,0,0,.14);
+    }
+
+    .pair-skill-type {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      opacity: .9;
+    }
+
+    .pair-skill-name {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+    }
+
+    .pair-skill-Combat { background: #e24d48; }
+    .pair-skill-Recon { background: #b56dd8; }
+    .pair-skill-Spell { background: #4d87f5; }
+    .pair-skill-Defense { background: #56c4c5; }
+    .pair-skill-Enhance { background: #d5a11d; }
+    .pair-skill-Support { background: #b38b7a; }
+    .pair-skill-Vitality { background: #6fc95e; }
+    .pair-skill-Trick { background: #d3d40f; }
+
+    .pair-skill-Combat .pair-skill-type,
+    .pair-skill-Combat .pair-skill-name,
+    .pair-skill-Recon .pair-skill-type,
+    .pair-skill-Recon .pair-skill-name,
+    .pair-skill-Spell .pair-skill-type,
+    .pair-skill-Spell .pair-skill-name,
+    .pair-skill-Defense .pair-skill-type,
+    .pair-skill-Defense .pair-skill-name,
+    .pair-skill-Enhance .pair-skill-type,
+    .pair-skill-Enhance .pair-skill-name,
+    .pair-skill-Support .pair-skill-type,
+    .pair-skill-Support .pair-skill-name,
+    .pair-skill-Vitality .pair-skill-type,
+    .pair-skill-Vitality .pair-skill-name,
+    .pair-skill-Trick .pair-skill-type,
+    .pair-skill-Trick .pair-skill-name {
+      color: #121212;
+    }
+
+    .skill-box {
+      border: 1px solid rgba(10,132,255,.22);
+      border-radius: 8px;
+      padding: 16px;
+      background: rgba(10,132,255,.06);
+    }
+
+    .skill-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--blue);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .skill-text {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text2);
+    }
+
+    .milestone-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,.05);
+    }
+
+    @media (min-width: 1600px) {
+      .milestone-grid { grid-template-columns: 1fr; }
+    }
+
+    .milestone {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      align-items: center;
+      column-gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 10px 2px;
+      min-height: 72px;
+    }
+
+    .ms-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 0;
+      min-width: 0;
+    }
+
+    .ms-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: 10px;
+      font-weight: 700;
+      color: #d7deef;
+      line-height: 1;
+      flex-shrink: 0;
+      background: rgba(255,255,255,.06);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .ms-icon svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .ms-icon.ms-100 { color: #aebad0; }
+    .ms-icon.ms-200 { color: #8ab8ff; }
+    .ms-icon.ms-300 { color: #70d6e2; }
+    .ms-icon.ms-400 { color: #8ddd7b; }
+    .ms-icon.ms-500 { color: #e8cb72; }
+    .ms-icon.ms-600 { color: #f6ad6c; }
+    .ms-icon.ms-700 { color: #f08492; }
+
+    .ms-level {
+      font-size: 26px;
+      color: var(--amber);
+      font-weight: 700;
+      margin-bottom: 0;
+      letter-spacing: -.03em;
+      line-height: 1;
+      width: 54px;
+      font-variant-numeric: tabular-nums;
+      text-align: left;
+    }
+
+    .ms-stat {
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.35;
+      white-space: pre-line;
+      min-width: 0;
+    }
+
+    .ms-value {
+      color: #78de77;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1200px) {
+      .ability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 900px) {
+      .pair-skill-card { min-height: 96px; }
+    }
+
+    @media (max-width: 640px) {
+      #topbar {
+        height: 56px;
+        min-height: 56px;
+        padding: 10px 12px;
+        gap: 8px;
+      }
+      .tb-nav { padding: 2px; }
+      .nav-link { padding: 6px 10px; }
+      .tb-stat { padding: 5px 8px; }
+      #class-main { padding: 12px 12px 16px; }
+      .ability-grid { grid-template-columns: 1fr; }
+      .ability-head { min-height: 0; }
+      .tag-line { grid-template-columns: 1fr; }
+      .class-name { font-size: 20px; }
+      .ms-stat { font-size: 13px; }
+      .pair-skill-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="frame">
+    <div id="topbar">
+      <span class="tb-brand">MiniCorp</span>
+      <nav class="tb-nav" aria-label="Primary">
+        <a href="/timer" class="nav-link">Timer</a>
+        <a href="/relic" class="nav-link">Relic</a>
+        <a href="/class" class="nav-link" aria-current="page">Hidden Class</a>
+      </nav>
+      <div class="spacer"></div>
+    </div>
+
+    <div id="class-main">
+      <section class="hero-card">
+        <h1 class="hero-title">Hidden Ability Guide</h1>
+        <p class="hero-sub">Complete hidden class reference for all 8 classes, including pair composition, skill type mapping, and milestone progression from 100 to 700.</p>
+      </section>
+
+      <section class="section-wrap">
+        <div class="section-header">
+          <span class="section-label">Hidden Abilities</span>
+          <span class="section-count" id="ability-count">0</span>
+        </div>
+        <div id="ability-grid" class="ability-grid"></div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="/src/class.js"></script>
+</body>
+</html>

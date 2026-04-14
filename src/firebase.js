@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore, doc, getDoc, setDoc, increment } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, setDoc, increment, onSnapshot } from 'firebase/firestore'
 import { getDatabase, ref, set, onValue, onDisconnect, serverTimestamp } from 'firebase/database'
 
 const firebaseConfig = {
@@ -47,5 +47,19 @@ export async function saveSchedule(bossesJson) {
   await setDoc(doc(db, 'bosstimer', 'schedule'), {
     bosses: bossesJson,
     updatedAt: Date.now()
+  })
+}
+
+export function subscribeSchedule(onBosses, onError) {
+  const scheduleRef = doc(db, 'bosstimer', 'schedule')
+  return onSnapshot(scheduleRef, snap => {
+    if (!snap.exists()) {
+      onBosses(null)
+      return
+    }
+    const data = snap.data()
+    onBosses(data?.bosses || [])
+  }, err => {
+    if (onError) onError(err)
   })
 }
