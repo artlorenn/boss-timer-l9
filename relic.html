@@ -1001,7 +1001,9 @@ async function updateMarketStats(forceRefresh=false){
     const sym=currency==='PHP'?'₱':'';
     const suf=currency==='PHP'?' PHP':' USDT';
     const fmtPrice=v=>currency==='PHP'?v.toFixed(2):v.toFixed(4);
-    const fmtUnit=v=>currency==='PHP'?v.toFixed(4):v.toFixed(6);
+    const convertedSym=currency==='PHP'?'':'₱';
+    const convertedSuf=currency==='PHP'?' USDT':' PHP';
+    const fmtConverted=v=>currency==='PHP'?v.toFixed(4):v.toFixed(2);
     const usdtThreshold=getUsdtAlertThreshold();
     const usdtMatches=(usdtThreshold===null)
       ? []
@@ -1056,14 +1058,14 @@ async function updateMarketStats(forceRefresh=false){
     html+='<thead><tr>';
     html+='<th>#</th>';
     html+='<th>Price/Chest</th>';
-    html+='<th>Per Piece</th>';
+    html+='<th>Converted</th>';
     html+='</tr></thead>';
     html+='<tbody>';
     
     for(let i=0;i<listings.length;i++){
       const l=listings[i];
       const price=currency==='PHP'?l.pricePhp:l.priceUsdt;
-      const unitPrice=currency==='PHP'?l.unitPricePhp:l.unitPriceUsdt;
+      const convertedPrice=currency==='PHP'?l.priceUsdt:l.pricePhp;
       const priceVar=((price-cheapest)/cheapest)*100;
       const isAlertHit=marketAlertState.enabled&&usdtThreshold!==null&&Number.isFinite(l?.priceUsdt)&&l.priceUsdt<=usdtThreshold;
       const bgColor=isAlertHit
@@ -1073,7 +1075,7 @@ async function updateMarketStats(forceRefresh=false){
       html+='<tr style="background:'+bgColor+';">';
       html+='<td class="market-cell-rank">'+l.rank+'</td>';
       html+='<td class="market-cell-price">'+sym+fmtPrice(price)+suf+'</td>';
-      html+='<td class="market-cell-unit">'+sym+fmtUnit(unitPrice)+suf+'</td>';
+      html+='<td class="market-cell-unit">'+(Number.isFinite(convertedPrice)?(convertedSym+fmtConverted(convertedPrice)+convertedSuf):'—')+'</td>';
       html+='</tr>';
     }
     
