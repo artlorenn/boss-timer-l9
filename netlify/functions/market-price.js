@@ -12,11 +12,14 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/
 // USD → PHP conversion fallback (in case API never returns PHP)
 const USD_TO_PHP = 57.5;
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
+  console.log('Market Price function called');
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
 
-  const tier  = (event.queryStringParameters?.tier || 't1').toLowerCase();
-  const chest = CHESTS[tier] || CHESTS.t1;
+  const tier   = (event.queryStringParameters?.tier || 't1').toLowerCase();
+  const limit  = Math.min(parseInt(event.queryStringParameters?.limit || '5', 10), 30);
+  const chest  = CHESTS[tier] || CHESTS.t1;
+  const tierKey = tier.toUpperCase();
 
   try {
     // ── Step 1: session cookie ──
@@ -40,7 +43,7 @@ exports.handler = async (event) => {
         .join('; ');
       if (cookies) cookieHeader += `; ${cookies}`;
     } catch (err) {
-      console.warn('Cookie fetch failed:', err.message);
+      console.warn('Cookie fetch failed:', err?.message);
     }
 
     // ── Step 2: market listings — request PHP fiat explicitly ──
@@ -61,7 +64,7 @@ exports.handler = async (event) => {
         keyword:      chest.keyword,
         sort:         'PRICE_ASC',
         realmCode:    'NEW_REALM',
-        fiatCurrency: 'PHP',   // explicit PHP request
+        fiatCurrency: 'PHP',
         country:      'PH',
       }),
       signal: AbortSignal.timeout(8000),
@@ -69,44 +72,67 @@ exports.handler = async (event) => {
 
     if (!res.ok) throw new Error(`Market API returned ${res.status}`);
 
-    const data     = await res.json();
-    const items    = Array.isArray(data.content) ? data.content : [];
-    const cheapest = items.find(i => i?.item?.name === chest.keyword && !i?.isOrderInProgress) ?? null;
+    const data  = await res.json();
+    const items = (Array.isArray(data.content) ? data.content : [])
+      .filter(i => i?.item?.name === chest.keyword && !i?.isOrderInProgress)
+      .slice(0, limit);
 
-    console.log('fiatPriceInfo:', JSON.stringify(cheapest?.fiatPriceInfo));
+    const listings = items.map((item, idx) => {
+      const usdt    = item?.cryptoPriceInfo?.price ?? 0;
+      const fiat    = item?.fiatPriceInfo;
+      const phpRaw  = fiat?.currencyType === 'PHP'
+        ? fiat.price
+        : fiat?.price
+          ? Math.round(fiat.price * USD_TO_PHP * 100) / 100
+          : 0;
 
-    const usdt    = cheapest?.cryptoPriceInfo?.price ?? null;
-    const fiat    = cheapest?.fiatPriceInfo;
-    // use PHP if the API returned it, otherwise convert from USD
-    const phpRaw  = fiat?.currencyType === 'PHP'
-      ? fiat.price
-      : fiat?.price
-        ? Math.round(fiat.price * USD_TO_PHP * 100) / 100
-        : null;
+      return {
+        rank:            idx + 1,
+        seller:          item?.seller?.userName || 'Unknown',
+        quantity:        item?.quantity || 0,
+        priceUsdt:       usdt,
+        pricePhp:        phpRaw,
+        unitPriceUsdt:   usdt / chest.pieces,
+        unitPricePhp:    phpRaw / chest.pieces,
+        fiatCurrency:    fiat?.currencyType ?? 'USD',
+      };
+    });
+
+    const cheapest = listings[0] || null;
+    const singlePriceUsdt = cheapest?.priceUsdt ?? null;
+    const singlePricePhp = cheapest?.pricePhp ?? null;
+    const singleFiatCurrency = cheapest?.fiatCurrency ?? 'USD';
 
     return {
       statusCode: 200,
       headers: CORS,
       body: JSON.stringify({
         type: 'UPDATE',
-        data: cheapest ? {
-          [tier.toUpperCase()]: {
-            pieces:      chest.pieces,
-            price:       usdt,
-            pricePhp:    phpRaw,
-            fiatCurrency: fiat?.currencyType ?? 'USD',
-            lastUpdated: Date.now(),
-          },
-        } : null,
+        tier: tierKey,
+        pieces: chest.pieces,
+        count: listings.length,
+        listings: listings,
+        data: cheapest
+          ? {
+              [tierKey]: {
+                pieces: chest.pieces,
+                price: singlePriceUsdt,
+                pricePhp: singlePricePhp,
+                fiatCurrency: singleFiatCurrency,
+                lastUpdated: Date.now(),
+              },
+            }
+          : null,
+        lastUpdated: Date.now(),
       }),
     };
 
   } catch (e) {
-    console.error('Handler error:', e.message);
+    console.error('Handler error:', e?.message || e);
     return {
       statusCode: 500,
       headers: CORS,
-      body: JSON.stringify({ error: e.message }),
+      body: JSON.stringify({ error: e?.message || 'Unknown error' }),
     };
   }
 };
