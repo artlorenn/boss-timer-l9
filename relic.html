@@ -977,6 +977,7 @@ async function updateMarketStats(forceRefresh=false){
   const chestInfo=CHESTS[tier];
   const display=$('market-stats-display');
   const meta=$('market-stats-meta');
+  const hasRenderedData=Boolean(display.querySelector('.market-stats-content'));
   
   if(!chestInfo){
     display.innerHTML='<div style="color:var(--text4);font-size:12px;">Invalid tier selected</div>';
@@ -985,13 +986,13 @@ async function updateMarketStats(forceRefresh=false){
   }
   
   setStatsRefreshState(true);
-  if(meta)meta.textContent='Loading latest listings...';
-  display.innerHTML='<div style="color:var(--text4);font-size:12px;">Loading market data...</div>';
+  if(meta)meta.textContent=hasRenderedData?'Refreshing latest listings...':'Loading latest listings...';
+  if(!hasRenderedData)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Loading market data...</div>';
   try{
     const data=await fetchMarketStatsData(tier,limit,forceRefresh);
     if(!data||!data.listings||data.listings.length===0){
-      display.innerHTML='<div style="color:var(--text4);font-size:12px;">Market data unavailable</div>';
-      if(meta)meta.textContent='No listings available right now';
+      if(!hasRenderedData)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Market data unavailable</div>';
+      if(meta)meta.textContent=hasRenderedData?'No new listings • showing previous data':'No listings available right now';
       if(marketAlertState.enabled)setUsdtAlertStatus('No listings available for alert scan','var(--text3)');
       return;
     }
@@ -1086,8 +1087,8 @@ async function updateMarketStats(forceRefresh=false){
     }
   }catch(e){
     console.warn('Market stats render error:',e);
-    display.innerHTML='<div style="color:var(--text4);font-size:12px;">Unable to render market statistics</div>';
-    if(meta)meta.textContent='Failed to update listings';
+    if(!hasRenderedData)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Unable to render market statistics</div>';
+    if(meta)meta.textContent=hasRenderedData?'Refresh failed • showing previous data':'Failed to update listings';
   }finally{
     setStatsRefreshState(false);
   }
