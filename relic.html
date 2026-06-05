@@ -537,6 +537,39 @@ const RELICS=[
 ];
 const COLOR_HEX={red:'#ff453a',blue:'#0a84ff',green:'#30d158',amber:'#ffd60a'};
 const BAR_BG={red:'rgba(255,69,58,0.15)',blue:'rgba(10,132,255,0.15)',green:'rgba(48,209,88,0.15)',amber:'rgba(255,214,10,0.15)'};
+const DESTRUCTION_ATTACK_TOTALS=(()=>{
+  const anchors=[
+    [1,0],
+    [20,90],
+    [21,97],
+    [47,339],
+    [48,351],
+    [52,401],
+    [53,413],
+    [60,510],
+    [61,525],
+    [80,830],
+    [81,848],
+    [89,992],
+    [96,1160],
+    [97,1192],
+    [100,1300],
+  ];
+  const totals=Array(101).fill(0);
+  for(let i=0;i<anchors.length-1;i++){
+    const [fromLevel,fromTotal]=anchors[i];
+    const [toLevel,toTotal]=anchors[i+1];
+    const span=toLevel-fromLevel;
+    for(let level=fromLevel;level<=toLevel;level++){
+      if(level===fromLevel){totals[level]=fromTotal;continue;}
+      if(level===toLevel){totals[level]=toTotal;continue;}
+      const ratio=(level-fromLevel)/span;
+      totals[level]=Math.round(fromTotal+(toTotal-fromTotal)*ratio);
+    }
+  }
+  return totals;
+})();
+const LIFE_HP_TOTALS=DESTRUCTION_ATTACK_TOTALS.map(v=>v*10);
 
 const CHESTS={t1:{label:'T1 Chest',pieces:1000},t2:{label:'T2 Chest',pieces:5000},t3:{label:'T3 Chest',pieces:10000},t4:{label:'T4 Chest',pieces:50000},t5:{label:'T5 Chest',pieces:100000}};
 
@@ -614,9 +647,12 @@ function getMilestones(id,from,to){
   return ms;
 }
 function getDestructionAttack(from,to){
-  let atk=0;
-  for(let l=from;l<to;l++){let a=3+Math.floor((l-1)/5);if(l%5===0)a++;atk+=a;}
-  return atk;
+  if(from>=to||from<1||to>100) return 0;
+  return DESTRUCTION_ATTACK_TOTALS[to]-DESTRUCTION_ATTACK_TOTALS[from];
+}
+function getLifeHp(from,to){
+  if(from>=to||from<1||to>100) return 0;
+  return LIFE_HP_TOTALS[to]-LIFE_HP_TOTALS[from];
 }
 function getProtectionDef(from,to){
   let def=0;
@@ -647,6 +683,7 @@ function recalcAll(){
 
     let bonusStatName=null,bonusGained=0,bonusCP=0;
     if(r.id==='destruction'){bonusStatName='Attack';bonusGained=getDestructionAttack(from,to);bonusCP=bonusGained*10;}
+    else if(r.id==='life'){bonusStatName='HP';bonusGained=getLifeHp(from,to);bonusCP=Math.floor(bonusGained/10);}
     else if(r.id==='protection'){bonusStatName='Defense';bonusGained=getProtectionDef(from,to);bonusCP=bonusGained*8;}
 
     const totalCP=mCP+bonusCP;
