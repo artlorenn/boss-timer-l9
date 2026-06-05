@@ -212,7 +212,12 @@ html, body {
 .section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
 .section-label { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text6); }
 .section-count { font-size: 10px; color: var(--text4); }
-.section-wrap  { margin-bottom: 18px; overflow: visible; }
+.section-wrap  {
+  margin-bottom: 18px;
+  overflow: visible;
+  content-visibility: auto;
+  contain-intrinsic-size: 360px;
+}
 
 /* ── BOSS GRID ── */
 .boss-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 6px; }
@@ -225,6 +230,8 @@ html, body {
   box-shadow: 0 1px 8px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04);
   display: flex; align-items: center; gap: 12px;
   transition: box-shadow .2s, border-color .2s; position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 72px;
 }
 .boss-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06); }
 .boss-card.urgent { border-color: rgba(255,69,58,.3); }
@@ -276,6 +283,8 @@ html, body {
   display: flex; flex-direction: column; align-items: center;
   padding: 28px 14px 18px; gap: 6px; cursor: default; scroll-snap-align: start;
   transition: box-shadow .2s, transform .2s, border-color .2s;
+  content-visibility: auto;
+  contain-intrinsic-size: 220px;
 }
 .deck-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06); }
 .deck-card.urgent    { border-color: rgba(255,69,58,.3); }

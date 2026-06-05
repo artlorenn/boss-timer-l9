@@ -101,7 +101,15 @@ export function generateFixedScheduleEvents(daysAhead = 14) {
         const [hh, mm] = slot.time.split(':').map(Number)
         const dt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm, 0, 0)
         if (dt.getTime() < Date.now()) continue
-        events.push({ boss, start: dt.toISOString(), date: dt.toISOString().slice(0,10), time: dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), dur: '00:30:00', worldBoss: false })
+        events.push({
+          boss,
+          start: dt.toISOString(),
+          startMs: dt.getTime(),
+          date: dt.toISOString().slice(0,10),
+          time: dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+          dur: '00:30:00',
+          worldBoss: false
+        })
       }
     }
   }
@@ -115,7 +123,16 @@ export function generateWorldBossEvents() {
     for (const hour of WORLD_BOSS_HOURS) {
       const dt = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hour, 0, 0)
       if (dt.getTime() <= now) continue
-      events.push({ boss: 'World Boss', bosses: [...WORLD_BOSSES], date: dt.toISOString().slice(0,10), time: dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), dur: '01:00:00', start: dt.toISOString(), worldBoss: true })
+      events.push({
+        boss: 'World Boss',
+        bosses: [...WORLD_BOSSES],
+        date: dt.toISOString().slice(0,10),
+        time: dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+        dur: '01:00:00',
+        start: dt.toISOString(),
+        startMs: dt.getTime(),
+        worldBoss: true
+      })
     }
   }
   return events

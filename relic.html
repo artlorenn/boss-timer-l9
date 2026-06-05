@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relic Calculator</title>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <style>
 :root {
   --bg:        #000000;
@@ -64,13 +65,13 @@ html, body {
 #right-panel .right-panel-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 #left-panel::-webkit-scrollbar, #right-panel::-webkit-scrollbar { width: 2px; }
 #left-panel::-webkit-scrollbar-thumb, #right-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); content-visibility: auto; contain-intrinsic-size: 560px; }
 .section-label { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text4); margin-bottom: 12px; }
 .cur-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-family: inherit; font-size: 12px; font-weight: 500; height: 36px; min-height: 36px; padding: 6px 10px; border-radius: 8px; outline: none; cursor: pointer; transition: border-color .15s; flex-shrink: 0; }
 .cur-select:hover { border-color: rgba(255,255,255,.12); }
 .cur-select option { background: #1c1c1e; }
 .relic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.relic-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .2s; }
+.relic-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .2s; content-visibility: auto; contain-intrinsic-size: 110px; }
 .relic-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07); }
 .relic-name { font-size: 13px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 10px; }
 .relic-name.red   { color: var(--red);   }
@@ -469,7 +470,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
               </select>
             </div>
             <div class="market-alert-inline">
-              <div class="market-alert-label">Ping If <= USDT</div>
+              <div class="market-alert-label">Ping If &lt;= USDT</div>
               <div class="market-alert-inline-row">
                 <input id="usdt-alert-threshold" class="market-alert-input" type="number" min="0.01" step="0.01" value="0.20" onchange="onUsdtAlertThresholdChange()">
                 <button id="usdt-alert-toggle" class="stats-refresh-btn market-alert-btn" onclick="toggleUsdtAlert()">Alert Off</button>
@@ -486,33 +487,15 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 </div>
 
 <script type="module">
-  import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, doc, getDoc, setDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  import { getDatabase, ref, set, onValue, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-  const cfg={apiKey:"AIzaSyAyotrWoly1Xd8qg8-eq97EJoP2Mx8V1To",authDomain:"boss-timer2.firebaseapp.com",projectId:"boss-timer2",storageBucket:"boss-timer2.firebasestorage.app",messagingSenderId:"1089834357623",appId:"1:1089834357623:web:3f66c8bfb8aa208eb98772",measurementId:"G-70XPG1283P",databaseURL:"https://boss-timer2-default-rtdb.asia-southeast1.firebasedatabase.app"};
-  const app=getApps().length?getApp():initializeApp(cfg);
-  const db=getFirestore(app);const rtdb=getDatabase(app);
-  async function trackVisitor(){const r=doc(db,'stats','relic_visitors');if(!sessionStorage.getItem('relic_counted')){sessionStorage.setItem('relic_counted','1');await setDoc(r,{count:increment(1)},{merge:true});}const s=await getDoc(r);if(s.exists())document.getElementById('total-visitors').textContent=s.data().count.toLocaleString();}
-  function trackOnline(){
-    const sid=Math.random().toString(36).slice(2,10);
-    const el=document.getElementById('online-count');
-    const start=(basePath,allowFallback)=>{
-      const userRef=ref(rtdb,`${basePath}/${sid}`);
-      const listRef=ref(rtdb,basePath);
-      set(userRef,{t:serverTimestamp()}).then(()=>onDisconnect(userRef).remove()).catch(err=>{
-        if(allowFallback){return start('presence/bosstimer',false)}
-        el.textContent='0';
-        console.error('[Relic] online set failed',err);
-      });
-      onValue(listRef,s=>{el.textContent=s.exists()?Object.keys(s.val()).length:0},err=>{
-        if(allowFallback){start('presence/bosstimer',false);return}
-        el.textContent='0';
-        console.error('[Relic] online read failed',err);
-      });
-    };
-    start('presence/relic',true);
-  }
-  trackVisitor();trackOnline();
+  import { trackVisitorCount, trackOnlineCount } from '/src/firebase.js';
+  trackVisitorCount('relic_visitors', 'relic_counted', count => {
+    const el = document.getElementById('total-visitors');
+    if (el) el.textContent = Number(count || 0).toLocaleString();
+  }, 'relic visitor');
+  trackOnlineCount('presence/relic', count => {
+    const el = document.getElementById('online-count');
+    if (el) el.textContent = String(count || 0);
+  }, 'relic online', 'presence/bosstimer');
 </script>
 
 <script>
@@ -583,7 +566,7 @@ function renderLivePriceStatus(){
   const c=cache[tier];
   if(!c)return;
   const price=currency==='PHP'?c.php:c.usdt;
-  const text=currency==='PHP' ? `₱${price.toFixed(2)}` : `${price.toFixed(4)} USDT`;
+  const text=currency==='PHP' ? `₱${price.toFixed(2)}` : `${price.toFixed(2)} USDT`;
   el.innerHTML=`<span class="live-badge"><span class="live-dot"></span>Live</span><span style="font-size:12px;color:var(--text2);font-weight:500;font-variant-numeric:tabular-nums;">${text} / chest</span>`;
 }
 
@@ -716,7 +699,7 @@ function updateBarGraph(){
   const entries=RELICS.map(r=>{const f=parseInt($(`${r.id}-current`)?.value)||1,t=parseInt($(`${r.id}-target`)?.value)||1;return{...r,cost:f<t?getCost(f,t,r.id):0};});
   const max=Math.max(...entries.map(e=>e.cost),1);
   c.innerHTML=entries.map(e=>{
-    const pct=(e.cost/max*100).toFixed(1),val=toCur(e.cost),hex=COLOR_HEX[e.color];
+    const pct=(e.cost/max*100).toFixed(2),val=toCur(e.cost),hex=COLOR_HEX[e.color];
     return`<div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;align-items:baseline;">
         <span style="font-size:13px;font-weight:500;color:${hex};">${e.name}</span>
@@ -1000,10 +983,10 @@ async function updateMarketStats(forceRefresh=false){
     const listings=data.listings;
     const sym=currency==='PHP'?'₱':'';
     const suf=currency==='PHP'?' PHP':' USDT';
-    const fmtPrice=v=>currency==='PHP'?v.toFixed(2):v.toFixed(4);
+    const fmtPrice=v=>v.toFixed(2);
     const convertedSym=currency==='PHP'?'':'₱';
     const convertedSuf=currency==='PHP'?' USDT':' PHP';
-    const fmtConverted=v=>currency==='PHP'?v.toFixed(4):v.toFixed(2);
+    const fmtConverted=v=>v.toFixed(2);
     const usdtThreshold=getUsdtAlertThreshold();
     const usdtMatches=(usdtThreshold===null)
       ? []
@@ -1048,7 +1031,7 @@ async function updateMarketStats(forceRefresh=false){
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
     html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Floor (Best Ask)</div><div style="font-size:13px;font-weight:400;color:var(--green);line-height:1.2;">'+sym+fmtPrice(cheapest)+suf+'</div></div>';
     html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Median (Fair)</div><div style="font-size:13px;font-weight:400;color:var(--text2);line-height:1.2;">'+sym+fmtPrice(medianPrice)+suf+'</div></div>';
-    html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Discount vs Median</div><div style="font-size:13px;font-weight:400;color:'+(floorDiscountPct>=4?'var(--green)':floorDiscountPct>=2?'var(--amber)':'var(--text2)')+';line-height:1.2;">'+floorDiscountPct.toFixed(1)+'%</div></div>';
+    html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Discount vs Median</div><div style="font-size:13px;font-weight:400;color:'+(floorDiscountPct>=4?'var(--green)':floorDiscountPct>=2?'var(--amber)':'var(--text2)')+';line-height:1.2;">'+floorDiscountPct.toFixed(2)+'%</div></div>';
     html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Near-Floor Depth</div><div style="font-size:13px;font-weight:400;color:var(--text2);line-height:1.2;">'+nearFloorCount+'/'+listings.length+'</div></div>';
     html+='</div>';
     html+='</div>';
@@ -1085,7 +1068,7 @@ async function updateMarketStats(forceRefresh=false){
     display.innerHTML=html;
     if(meta){
       const now=new Date();
-      meta.textContent=`Showing ${listings.length} listings • Floor ${floorDiscountPct.toFixed(1)}% below median • Updated ${now.toLocaleTimeString()}`;
+      meta.textContent=`Showing ${listings.length} listings • Floor ${floorDiscountPct.toFixed(2)}% below median • Updated ${now.toLocaleTimeString()}`;
     }
   }catch(e){
     console.warn('Market stats render error:',e);

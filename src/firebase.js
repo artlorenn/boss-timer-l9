@@ -1,7 +1,3 @@
-import { initializeApp } from 'firebase/app'
-import { getFirestore, doc, getDoc, setDoc, increment, onSnapshot } from 'firebase/firestore'
-import { getDatabase, ref, set, onValue, onDisconnect, serverTimestamp } from 'firebase/database'
-
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -13,87 +9,136 @@ const firebaseConfig = {
   databaseURL:       import.meta.env.VITE_FIREBASE_DATABASE_URL,
 }
 
-const app  = initializeApp(firebaseConfig)
-const db   = getFirestore(app)
-const rtdb = getDatabase(app)
+let firebaseSdkPromise = null
 
-function trackPresence(basePath, onCount, label) {
-  const sid = Math.random().toString(36).slice(2, 10)
-  const connectedRef = ref(rtdb, '.info/connected')
-  const listRef = ref(rtdb, basePath)
-  const userRef = ref(rtdb, `${basePath}/${sid}`)
-
-  const ensurePresence = () => {
-    onDisconnect(userRef).remove()
-      .then(() => set(userRef, { t: serverTimestamp() }))
-      .catch(err => {
-        console.error(`[${label}] presence setup failed`, err)
-        set(userRef, { t: serverTimestamp() }).catch(innerErr => {
-          console.error(`[${label}] set failed`, innerErr)
-          onCount(0)
-        })
-      })
+async function loadFirebaseSdk() {
+  if (!firebaseSdkPromise) {
+    firebaseSdkPromise = Promise.all([
+      import('firebase/app'),
+      import('firebase/firestore'),
+      import('firebase/database'),
+    ]).then(([appMod, firestoreMod, databaseMod]) => {
+      const app = appMod.initializeApp(firebaseConfig)
+      return {
+        db: firestoreMod.getFirestore(app),
+        rtdb: databaseMod.getDatabase(app),
+        doc: firestoreMod.doc,
+        getDoc: firestoreMod.getDoc,
+        setDoc: firestoreMod.setDoc,
+        increment: firestoreMod.increment,
+        onSnapshot: firestoreMod.onSnapshot,
+        ref: databaseMod.ref,
+        set: databaseMod.set,
+        onValue: databaseMod.onValue,
+        onDisconnect: databaseMod.onDisconnect,
+        serverTimestamp: databaseMod.serverTimestamp,
+      }
+    })
   }
+  return firebaseSdkPromise
+}
 
-  onCount(0)
-
-  // Try once immediately so first viewer can show as online without waiting.
-  ensurePresence()
-
-  onValue(connectedRef, snap => {
-    if (snap.val() === true) ensurePresence()
-  })
-
-  onValue(listRef, snap => {
-    onCount(snap.exists() ? Object.keys(snap.val()).length : 0)
-  }, err => {
-    console.error(`[${label}] read failed`, err)
+async function trackCounter(counterDoc, sessionKey, onCount, label) {
+  try {
+    const { db, doc, getDoc, setDoc, increment } = await loadFirebaseSdk()
+    const r = doc(db, 'stats', counterDoc)
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, '1')
+      await setDoc(r, { count: increment(1) }, { merge: true })
+    }
+    const s = await getDoc(r)
+    if (s.exists()) onCount(s.data().count)
+  } catch (err) {
+    console.error(`[${label}] tracking failed`, err)
     onCount(0)
-  })
+  }
+}
+
+async function trackPresence(basePath, onCount, label, fallbackBasePath = null) {
+  try {
+    const { rtdb, ref, set, onValue, onDisconnect, serverTimestamp } = await loadFirebaseSdk()
+    const sid = Math.random().toString(36).slice(2, 10)
+    const connectedRef = ref(rtdb, '.info/connected')
+    const listRef = ref(rtdb, basePath)
+    const userRef = ref(rtdb, `${basePath}/${sid}`)
+
+    const ensurePresence = () => {
+      onDisconnect(userRef).remove()
+        .then(() => set(userRef, { t: serverTimestamp() }))
+        .catch(err => {
+          console.error(`[${label}] presence setup failed`, err)
+          set(userRef, { t: serverTimestamp() }).catch(innerErr => {
+            console.error(`[${label}] set failed`, innerErr)
+            onCount(0)
+          })
+        })
+    }
+
+    onCount(0)
+    ensurePresence()
+
+    onValue(connectedRef, snap => {
+      if (snap.val() === true) ensurePresence()
+    })
+
+    onValue(listRef, snap => {
+      onCount(snap.exists() ? Object.keys(snap.val()).length : 0)
+    }, err => {
+      console.error(`[${label}] read failed`, err)
+      onCount(0)
+    })
+  } catch (err) {
+    if (fallbackBasePath) {
+      console.warn(`[${label}] presence setup failed; falling back to ${fallbackBasePath}`, err)
+      await trackPresence(fallbackBasePath, onCount, label)
+      return
+    }
+    console.error(`[${label}] presence setup failed`, err)
+    onCount(0)
+  }
 }
 
 export async function trackVisitor(onCount) {
-  const r = doc(db, 'stats', 'bosstimer_visitors')
-  if (!sessionStorage.getItem('bosstimer_counted')) {
-    sessionStorage.setItem('bosstimer_counted', '1')
-    await setDoc(r, { count: increment(1) }, { merge: true })
-  }
-  const s = await getDoc(r)
-  if (s.exists()) onCount(s.data().count)
+  await trackCounter('bosstimer_visitors', 'bosstimer_counted', onCount, 'timer visitor')
 }
 
-export function trackOnline(onCount) {
-  trackPresence('presence/bosstimer', onCount, 'timer online')
+export async function trackOnline(onCount) {
+  await trackPresence('presence/bosstimer', onCount, 'timer online')
 }
 
 export async function trackClassVisitor(onCount) {
-  const r = doc(db, 'stats', 'class_visitors')
-  if (!sessionStorage.getItem('class_counted')) {
-    sessionStorage.setItem('class_counted', '1')
-    await setDoc(r, { count: increment(1) }, { merge: true })
-  }
-  const s = await getDoc(r)
-  onCount(s.exists() ? (s.data().count || 0) : 0)
+  await trackCounter('class_visitors', 'class_counted', onCount, 'class visitor')
 }
 
-export function trackClassOnline(onCount) {
-  trackPresence('presence/class', onCount, 'class online')
+export async function trackClassOnline(onCount) {
+  await trackPresence('presence/class', onCount, 'class online')
+}
+
+export async function trackVisitorCount(counterDoc, sessionKey, onCount, label = 'visitor') {
+  await trackCounter(counterDoc, sessionKey, onCount, label)
+}
+
+export async function trackOnlineCount(basePath, onCount, label = 'online', fallbackBasePath = null) {
+  await trackPresence(basePath, onCount, label, fallbackBasePath)
 }
 
 export async function fetchSchedule() {
+  const { db, doc, getDoc } = await loadFirebaseSdk()
   const snap = await getDoc(doc(db, 'bosstimer', 'schedule'))
   if (!snap.exists()) return null
   return snap.data().bosses || []
 }
 
 export async function saveSchedule(bossesJson) {
+  const { db, doc, setDoc } = await loadFirebaseSdk()
   await setDoc(doc(db, 'bosstimer', 'schedule'), {
     bosses: bossesJson,
     updatedAt: Date.now()
   })
 }
 
-export function subscribeSchedule(onBosses, onError) {
+export async function subscribeSchedule(onBosses, onError) {
+  const { db, doc, onSnapshot } = await loadFirebaseSdk()
   const scheduleRef = doc(db, 'bosstimer', 'schedule')
   return onSnapshot(scheduleRef, snap => {
     if (!snap.exists()) {

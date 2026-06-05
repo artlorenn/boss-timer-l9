@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hidden Class Guide</title>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
   <style>
     :root {
       --bg: #000000;
@@ -231,6 +232,8 @@
       flex-direction: column;
       gap: 16px;
       transition: box-shadow .2s, border-color .2s;
+      content-visibility: auto;
+      contain-intrinsic-size: 760px;
     }
 
     .ability-card:hover {

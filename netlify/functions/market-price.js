@@ -8,6 +8,11 @@ const CHESTS = {
 
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
+const REALM_CODE = 'OLD_REALM';
+const MARKET_ORIGIN = 'https://l9asia.nextmarket.games';
+const MARKETPLACE_URL = `${MARKET_ORIGIN}/marketplace?viewType=fiat&realmCode=${REALM_CODE}`;
+const MARKET_API_URL = 'https://api.nextmarket.games/l9asia/v1/sale/c2c?page=0';
+const round2 = (value) => Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
 
 // USD → PHP conversion fallback (in case API never returns PHP)
 const USD_TO_PHP = 57.5;
@@ -25,7 +30,7 @@ export const handler = async (event) => {
     // ── Step 1: session cookie ──
     let cookieHeader = 'lng=en-US; country=PH; currency=PHP';
     try {
-      const sessionRes = await fetch('https://l9asia.nextmarket.games/', {
+      const sessionRes = await fetch(MARKETPLACE_URL, {
         headers: {
           'User-Agent':       UA,
           'Accept':           'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -47,14 +52,14 @@ export const handler = async (event) => {
     }
 
     // ── Step 2: market listings — request PHP fiat explicitly ──
-    const res = await fetch('https://api.nextmarket.games/l9asia/v1/sale/c2c?page=0', {
+    const res = await fetch(MARKET_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type':    'application/json',
         'Accept':          'application/json, text/plain, */*',
         'Accept-Language': 'en-PH,en;q=0.9',
-        'Origin':          'https://l9asia.nextmarket.games',
-        'Referer':         'https://l9asia.nextmarket.games/',
+        'Origin':          MARKET_ORIGIN,
+        'Referer':         MARKETPLACE_URL,
         'User-Agent':      UA,
         'Cookie':          cookieHeader,
         'X-Country-Code':  'PH',
@@ -63,7 +68,7 @@ export const handler = async (event) => {
       body: JSON.stringify({
         keyword:      chest.keyword,
         sort:         'PRICE_ASC',
-        realmCode:    'NEW_REALM',
+        realmCode:    REALM_CODE,
         fiatCurrency: 'PHP',
         country:      'PH',
       }),
@@ -85,15 +90,17 @@ export const handler = async (event) => {
         : fiat?.price
           ? Math.round(fiat.price * USD_TO_PHP * 100) / 100
           : 0;
+      const priceUsdt = round2(usdt);
+      const pricePhp = round2(phpRaw);
 
       return {
         rank:            idx + 1,
         seller:          item?.seller?.userName || 'Unknown',
         quantity:        item?.quantity || 0,
-        priceUsdt:       usdt,
-        pricePhp:        phpRaw,
-        unitPriceUsdt:   usdt / chest.pieces,
-        unitPricePhp:    phpRaw / chest.pieces,
+        priceUsdt:       priceUsdt,
+        pricePhp:        pricePhp,
+        unitPriceUsdt:   round2(priceUsdt / chest.pieces),
+        unitPricePhp:    round2(pricePhp / chest.pieces),
         fiatCurrency:    fiat?.currencyType ?? 'USD',
       };
     });

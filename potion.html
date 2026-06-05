@@ -1,510 +1,760 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Potion Calculator</title>
-<style>
-:root {
-  --bg:        #000000;
-  --bg2:       #0a0a0a;
-  --surface:   rgba(28,28,30,0.8);
-  --surface2:  rgba(44,44,46,0.6);
-  --border:    rgba(255,255,255,0.08);
-  --border2:   rgba(255,255,255,0.05);
-  --text:      #ffffff;
-  --text2:     rgba(255,255,255,0.6);
-  --text3:     rgba(255,255,255,0.3);
-  --text4:     rgba(255,255,255,0.12);
-  --red:       #ff453a;
-  --blue:      #0a84ff;
-  --green:     #30d158;
-  --amber:     #ffd60a;
-  --purple:    #bf5af2;
-  --radius:    14px;
-  --radius-sm: 10px;
-  --blur:      20px;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniCorp - Potion Calculator</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --bg2: #0c0c0e;
+      --surface: rgba(26,26,28,0.9);
+      --surface2: rgba(38,38,42,0.7);
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.04);
+      --text: #ffffff;
+      --text2: rgba(255,255,255,0.55);
+      --text3: rgba(255,255,255,0.28);
+      --text4: rgba(255,255,255,0.10);
+      --blue: #0a84ff;
+      --green: #30d158;
+      --amber: #ffd60a;
+      --red: #ff453a;
+      --radius: 8px;
+      --radius-sm: 8px;
+      --blur: 24px;
+    }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  width: 100%; height: 100%;
-  background: var(--bg);
-  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
-  color: var(--text);
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-}
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
 
-/* ── FRAME ── */
-#frame {
-  position: fixed;
-  inset: 10px;
-  border-radius: 22px;
-  background: var(--bg2);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,1),
-    0 40px 80px rgba(0,0,0,0.85),
-    inset 0 1px 0 rgba(255,255,255,0.05);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+    #frame {
+      position: fixed;
+      inset: 10px;
+      border-radius: 22px;
+      background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 0 0 1px rgba(0,0,0,1), 0 40px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
 
-/* ── TOP BAR ── */
-#topbar {
-  flex-shrink: 0;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  gap: 16px;
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
-  background: rgba(14,14,16,0.85);
-}
+    #topbar {
+      flex-shrink: 0;
+      height: 64px;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 12px 18px;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18,18,20,0.94), rgba(11,11,13,0.86));
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
 
-.nav-link {
-  font-size: 12px; font-weight: 400;
-  color: var(--text3);
-  text-decoration: none;
-  letter-spacing: -.01em;
-  transition: color .15s;
-}
-.nav-link:hover { color: var(--blue); }
+    #topbar::-webkit-scrollbar { display: none; }
 
-.page-title {
-  font-size: 16px; font-weight: 600;
-  letter-spacing: -.04em;
-  color: var(--text);
-}
+    .tb-brand {
+      font-size: 16px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
 
-.beta-pill {
-  font-size: 9px; font-weight: 700;
-  padding: 2px 7px; border-radius: 20px;
-  background: rgba(255,214,10,0.12);
-  color: var(--amber);
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
+    .tb-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+    }
 
-.tb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-.spacer { flex: 1; }
+    .nav-link {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      padding: 7px 12px;
+      transition: all .15s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
 
-/* ── MAIN SCROLL ── */
-#main {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-#main::-webkit-scrollbar { width: 2px; }
-#main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+    .nav-link:hover {
+      color: var(--text2);
+      background: rgba(255,255,255,0.05);
+    }
 
-.row { display: flex; gap: 8px; }
-.row .card { flex: 1; }
+    .nav-link[aria-current="page"] {
+      color: var(--text);
+      background: rgba(10,132,255,0.14);
+      border-color: rgba(10,132,255,0.34);
+    }
 
-/* ── GLASS CARD ── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
-  box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
-}
+    .spacer { flex: 1; min-width: 10px; }
 
-.section-label {
-  font-size: 10px; font-weight: 600;
-  letter-spacing: .06em; text-transform: uppercase;
-  color: var(--text4); margin-bottom: 14px;
-}
+    .tb-stat {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 7px;
+      justify-content: space-between;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      min-height: 36px;
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
 
-/* ── STAT CELLS ── */
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-}
+    .tb-stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text4);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      line-height: 1;
+    }
 
-.stat-cell {
-  background: rgba(255,255,255,.03);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-  text-align: center;
-}
-.stat-cell-label {
-  font-size: 10px; font-weight: 500;
-  color: var(--text4); margin-bottom: 6px;
-  letter-spacing: .04em; text-transform: uppercase;
-}
-.stat-cell-val {
-  font-size: 30px; font-weight: 700;
-  letter-spacing: -.05em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.stat-cell-sub {
-  font-size: 11px; color: var(--text3);
-  margin-top: 4px; letter-spacing: -.01em;
-}
+    .tb-stat-val {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text2);
+      white-space: nowrap;
+      line-height: 1;
+    }
 
-/* ── INPUTS ── */
-.field-label {
-  font-size: 11px; font-weight: 500;
-  color: var(--text3); margin-bottom: 5px;
-  letter-spacing: -.01em;
-}
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-.num-wrap { display: flex; align-items: center; }
-.num-btn {
-  width: 32px; height: 36px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; user-select: none;
-  font-size: 16px; font-weight: 400;
-  color: var(--text3);
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--border);
-  transition: all .15s;
-  flex-shrink: 0;
-}
-.num-btn:hover { color: var(--text2); background: rgba(255,255,255,.07); }
-.num-btn:active { transform: scale(.93); }
-.num-btn.minus { border-radius: 8px 0 0 8px; border-right: none; }
-.num-btn.plus  { border-radius: 0 8px 8px 0; border-left: none; }
-.num-wrap input {
-  height: 36px;
-  border: 1px solid var(--border);
-  border-left: none; border-right: none;
-  background: rgba(255,255,255,.04);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 15px; font-weight: 600;
-  text-align: center; outline: none;
-  letter-spacing: -.02em;
-  -moz-appearance: textfield;
-  font-variant-numeric: tabular-nums;
-  width: 80px;
-}
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    #main::-webkit-scrollbar { width: 2px; }
+    #main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 8px; }
 
-/* ── INLINE SENTENCE ROW ── */
-.sentence-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.sentence-row span {
-  font-size: 13px;
-  color: var(--text3);
-}
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      box-shadow: 0 1px 8px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04);
+    }
 
-/* ── RATE BADGE ── */
-.rate-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(191,90,242,0.1);
-  border: 1px solid rgba(191,90,242,0.2);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 13px; font-weight: 600;
-  color: var(--purple);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -.02em;
-  margin-left: auto;
-}
-.rate-label { font-size: 10px; font-weight: 500; color: rgba(191,90,242,0.6); }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text4);
+      margin-bottom: 12px;
+    }
 
-/* ── PRESET BUTTONS ── */
-.preset-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-.preset-btn {
-  height: 30px; padding: 0 12px;
-  border-radius: 8px;
-  font-size: 12px; font-weight: 500;
-  cursor: pointer;
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--border);
-  color: var(--text3);
-  transition: all .15s;
-  font-family: inherit;
-  letter-spacing: -.01em;
-}
-.preset-btn:hover { background: rgba(255,255,255,.08); color: var(--text2); border-color: rgba(255,255,255,.12); }
-.preset-btn.active {
-  background: rgba(191,90,242,0.12);
-  border-color: rgba(191,90,242,0.3);
-  color: var(--purple);
-}
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
 
-/* ── BAR ── */
-.bar-track {
-  height: 14px;
-  background: rgba(255,255,255,.04);
-  border-radius: 5px;
-  overflow: hidden;
-  border: 1px solid var(--border2);
-  margin: 10px 0 6px;
-}
-.bar-fill {
-  height: 100%;
-  border-radius: 5px;
-  transition: width .4s cubic-bezier(.25,.46,.45,.94), background .3s;
-}
-.bar-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--text4);
-  font-variant-numeric: tabular-nums;
-}
+    .summary-cell {
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.03);
+      padding: 12px;
+      min-height: 86px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
 
-/* span full width - unused */
-</style>
+    .summary-name {
+      font-size: 10px;
+      color: var(--text4);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .summary-value {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -.04em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .summary-sub {
+      font-size: 11px;
+      color: var(--text3);
+    }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+    }
+
+    .sentence-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--text3);
+      font-size: 13px;
+    }
+
+    .num-wrap {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .num-btn {
+      width: 30px;
+      height: 34px;
+      border: 1px solid var(--border);
+      color: var(--text3);
+      background: rgba(255,255,255,.04);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      user-select: none;
+      transition: all .15s ease;
+      font-family: inherit;
+    }
+
+    .num-btn:hover {
+      color: var(--text2);
+      background: rgba(255,255,255,.07);
+    }
+
+    .num-btn.minus {
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+    }
+
+    .num-btn.plus {
+      border-left: none;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .num-wrap input {
+      width: 72px;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-left: none;
+      border-right: none;
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      outline: none;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+      -moz-appearance: textfield;
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .duration-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 6px;
+      background: rgba(255,255,255,.02);
+    }
+
+    .duration-part {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .unit {
+      font-size: 11px;
+      color: var(--text4);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .rate-row {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .rate-caption {
+      font-size: 11px;
+      color: var(--text4);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .rate-pill {
+      border: 1px solid rgba(10,132,255,.34);
+      background: rgba(10,132,255,.14);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #72b9ff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .preset-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .preset-btn {
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text3);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all .15s ease;
+    }
+
+    .preset-btn:hover {
+      background: rgba(255,255,255,.08);
+      color: var(--text2);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    .preset-btn.active {
+      background: rgba(10,132,255,.14);
+      border-color: rgba(10,132,255,.34);
+      color: #72b9ff;
+    }
+
+    .bar-track {
+      height: 14px;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      background: rgba(255,255,255,.04);
+      overflow: hidden;
+      margin: 10px 0 6px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 8px;
+      background: var(--green);
+      transition: width .35s ease, background .25s ease;
+    }
+
+    .bar-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text4);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .03em;
+    }
+
+    .session-line {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 8px;
+    }
+
+    @media (max-width: 980px) {
+      .layout-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      #topbar {
+        height: 56px;
+        min-height: 56px;
+        padding: 10px 12px;
+        gap: 8px;
+      }
+
+      .tb-nav { padding: 2px; }
+      .nav-link { padding: 6px 10px; }
+      .tb-stat { display: none; }
+
+      #main {
+        padding: 12px;
+        gap: 10px;
+      }
+
+      .summary-grid { grid-template-columns: 1fr; }
+      .summary-value { font-size: 24px; }
+
+      .num-wrap input { width: 64px; }
+      .duration-wrap { width: 100%; justify-content: space-between; }
+    }
+  </style>
 </head>
 <body>
-
-<div id="frame">
-
-  <!-- TOP BAR -->
-  <div id="topbar">
-    <a href="/timer" class="nav-link">← Timer</a>
-    <div class="tb-sep"></div>
-    <a href="/relic" class="nav-link">← Relic</a>
-    <div class="tb-sep"></div>
-    <span class="page-title">Potion Calculator</span>
-    <span class="beta-pill">Beta</span>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- MAIN -->
-  <div id="main">
-
-    <!-- Stat cells -->
-    <div class="stat-grid">
-      <div class="stat-cell">
-        <div class="stat-cell-label">Inventory Lasts</div>
-        <div class="stat-cell-val" id="time-lasts" style="color:var(--blue);">—</div>
-        <div class="stat-cell-sub">at current rate</div>
-      </div>
-      <div class="stat-cell">
-        <div class="stat-cell-label">Pots Remaining</div>
-        <div class="stat-cell-val" id="pots-remaining" style="color:var(--green);">—</div>
-        <div class="stat-cell-sub" id="remaining-label">after session</div>
-      </div>
-      <div class="stat-cell">
-        <div class="stat-cell-label">Session Cost</div>
-        <div class="stat-cell-val" id="session-cost" style="color:var(--amber);">—</div>
-        <div class="stat-cell-sub" id="session-label">pots needed</div>
+  <div id="frame">
+    <div id="topbar">
+      <span class="tb-brand">MiniCorp</span>
+      <nav class="tb-nav" aria-label="Primary">
+        <a href="/timer" class="nav-link">Timer</a>
+        <a href="/relic" class="nav-link">Relic</a>
+        <a href="/class" class="nav-link">Hidden Class</a>
+        <a href="/potion" class="nav-link" aria-current="page">Potion</a>
+      </nav>
+      <div class="spacer"></div>
+      <div class="tb-stat">
+        <span class="tb-stat-label">Tool</span>
+        <span class="tb-stat-val">Potion Calc</span>
       </div>
     </div>
 
-    <!-- Measure + Inventory side by side -->
-    <div class="row">
-      <div class="card">
-        <div class="section-label">Measure Your Rate</div>
-        <div class="sentence-row" style="margin-bottom:12px;">
-          <span>I used</span>
-          <div class="num-wrap">
-            <span class="num-btn minus" data-target="pots-used" data-dir="down">−</span>
-            <input id="pots-used" type="number" min="1" step="1" value="42">
-            <span class="num-btn plus" data-target="pots-used" data-dir="up">+</span>
+    <main id="main">
+      <section class="card">
+        <div class="section-label">Potion Forecast</div>
+        <div class="summary-grid">
+          <div class="summary-cell">
+            <div class="summary-name">Inventory Lasts</div>
+            <div class="summary-value" id="time-lasts" style="color:var(--blue);">--</div>
+            <div class="summary-sub">at current usage rate</div>
           </div>
-          <span>pots in</span>
-          <div class="num-wrap">
-            <span class="num-btn minus" data-target="time-span" data-dir="down">−</span>
-            <input id="time-span" type="number" min="1" step="1" value="6">
-            <span class="num-btn plus" data-target="time-span" data-dir="up">+</span>
+          <div class="summary-cell">
+            <div class="summary-name">Session Cost</div>
+            <div class="summary-value" id="session-cost" style="color:var(--amber);">0</div>
+            <div class="summary-sub" id="session-label">for 1h 0m 0s</div>
           </div>
-          <span>minutes</span>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:11px;color:var(--text4);">Consumption rate</span>
-          <div class="rate-badge">
-            <span id="rate-display">7.0/min</span>
-            <span class="rate-label">/ min</span>
+          <div class="summary-cell">
+            <div class="summary-name">Pots Remaining</div>
+            <div class="summary-value" id="pots-remaining" style="color:var(--green);">0</div>
+            <div class="summary-sub" id="remaining-label">after session</div>
           </div>
         </div>
+      </section>
+
+      <div class="layout-grid">
+        <section class="card">
+          <div class="section-label">Measure Consumption</div>
+          <div class="sentence-row" style="margin-bottom:10px;">
+            <span>Used</span>
+            <div class="num-wrap">
+              <button type="button" class="num-btn minus" data-target="pots-used" data-dir="down" data-step="1">-</button>
+              <input id="pots-used" type="number" min="0" step="1" value="42" />
+              <button type="button" class="num-btn plus" data-target="pots-used" data-dir="up" data-step="1">+</button>
+            </div>
+            <span>pots in</span>
+            <div class="duration-wrap" aria-label="Measurement duration">
+              <div class="duration-part">
+                <div class="num-wrap">
+                  <button type="button" class="num-btn minus" data-target="measure-mins" data-dir="down" data-step="1">-</button>
+                  <input id="measure-mins" type="number" min="0" step="1" value="6" />
+                  <button type="button" class="num-btn plus" data-target="measure-mins" data-dir="up" data-step="1">+</button>
+                </div>
+                <span class="unit">min</span>
+              </div>
+              <div class="duration-part">
+                <div class="num-wrap">
+                  <button type="button" class="num-btn minus" data-target="measure-secs" data-dir="down" data-step="5">-</button>
+                  <input id="measure-secs" type="number" min="0" max="59" step="1" value="0" />
+                  <button type="button" class="num-btn plus" data-target="measure-secs" data-dir="up" data-step="5">+</button>
+                </div>
+                <span class="unit">sec</span>
+              </div>
+            </div>
+          </div>
+          <div class="rate-row">
+            <span class="rate-caption">Calculated rate</span>
+            <span id="rate-display" class="rate-pill">0.00 / min</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-label">Inventory</div>
+          <div class="stack">
+            <div class="sentence-row">
+              <span>Current stock</span>
+              <div class="num-wrap">
+                <button type="button" class="num-btn minus" data-target="total-pots" data-dir="down" data-step="10">-</button>
+                <input id="total-pots" type="number" min="0" step="10" value="500" style="width:96px;" />
+                <button type="button" class="num-btn plus" data-target="total-pots" data-dir="up" data-step="10">+</button>
+              </div>
+              <span>potions</span>
+            </div>
+            <div class="session-line">Tip: you can now set both minutes and seconds for exact timing.</div>
+          </div>
+        </section>
       </div>
 
-      <div class="card">
-        <div class="section-label">Inventory</div>
+      <section class="card">
+        <div class="section-label">Session Duration</div>
+        <div class="preset-wrap">
+          <button type="button" class="preset-btn" data-mins="15" data-secs="0">15m</button>
+          <button type="button" class="preset-btn" data-mins="30" data-secs="0">30m</button>
+          <button type="button" class="preset-btn" data-mins="45" data-secs="0">45m</button>
+          <button type="button" class="preset-btn active" data-mins="60" data-secs="0">1h</button>
+          <button type="button" class="preset-btn" data-mins="120" data-secs="0">2h</button>
+          <button type="button" class="preset-btn" data-mins="180" data-secs="0">3h</button>
+        </div>
         <div class="sentence-row">
-          <span>I have</span>
-          <div class="num-wrap">
-            <span class="num-btn minus" data-target="total-pots" data-dir="down">−</span>
-            <input id="total-pots" type="number" min="0" step="10" value="500" style="width:100px;">
-            <span class="num-btn plus" data-target="total-pots" data-dir="up">+</span>
+          <span>Custom duration</span>
+          <div class="duration-wrap" aria-label="Session duration">
+            <div class="duration-part">
+              <div class="num-wrap">
+                <button type="button" class="num-btn minus" data-target="session-mins" data-dir="down" data-step="1">-</button>
+                <input id="session-mins" type="number" min="0" step="1" value="60" />
+                <button type="button" class="num-btn plus" data-target="session-mins" data-dir="up" data-step="1">+</button>
+              </div>
+              <span class="unit">min</span>
+            </div>
+            <div class="duration-part">
+              <div class="num-wrap">
+                <button type="button" class="num-btn minus" data-target="session-secs" data-dir="down" data-step="5">-</button>
+                <input id="session-secs" type="number" min="0" max="59" step="1" value="0" />
+                <button type="button" class="num-btn plus" data-target="session-secs" data-dir="up" data-step="5">+</button>
+              </div>
+              <span class="unit">sec</span>
+            </div>
           </div>
-          <span>potions total</span>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Session estimate -->
-    <div class="card">
-      <div class="section-label">Estimate for Session of</div>
-      <div class="preset-wrap">
-        <button class="preset-btn" data-mins="15">15 min</button>
-        <button class="preset-btn" data-mins="30">30 min</button>
-        <button class="preset-btn active" data-mins="60">1 hour</button>
-        <button class="preset-btn" data-mins="120">2 hours</button>
-        <button class="preset-btn" data-mins="180">3 hours</button>
-        <button class="preset-btn" data-mins="360">6 hours</button>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:4px;">
-          <span style="font-size:11px;color:var(--text4);">or</span>
-          <div class="num-wrap">
-            <span class="num-btn minus" data-target="session-mins" data-dir="down" style="width:26px;height:28px;font-size:13px;">−</span>
-            <input id="session-mins" type="number" min="1" step="1" value="60" style="width:60px;height:28px;font-size:13px;">
-            <span class="num-btn plus" data-target="session-mins" data-dir="up" style="width:26px;height:28px;font-size:13px;">+</span>
-          </div>
-          <span style="font-size:11px;color:var(--text4);">min</span>
+      <section class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div class="section-label" style="margin-bottom:0;">Inventory Usage</div>
+          <span id="bar-pct" style="font-size:12px;color:var(--text3);font-weight:600;font-variant-numeric:tabular-nums;">0.00%</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Bar -->
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div class="section-label" style="margin-bottom:0;">Inventory Usage</div>
-        <span id="bar-pct" style="font-size:12px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;">0%</span>
-      </div>
-      <div class="bar-track">
-        <div id="bar-fill" class="bar-fill" style="width:0%;background:var(--green);"></div>
-      </div>
-      <div class="bar-labels">
-        <span>0</span>
-        <span id="bar-total-label">500 pots</span>
-      </div>
-    </div>
-
+        <div class="bar-track">
+          <div id="bar-fill" class="bar-fill"></div>
+        </div>
+        <div class="bar-meta">
+          <span>0</span>
+          <span id="bar-total-label">500 pots</span>
+        </div>
+      </section>
+    </main>
   </div>
-</div>
 
-<script>
-const $ = id => document.getElementById(id);
+  <script>
+    const $ = id => document.getElementById(id);
+    const INPUT_IDS = ['pots-used', 'measure-mins', 'measure-secs', 'total-pots', 'session-mins', 'session-secs'];
 
-function calc() {
-  const used     = parseFloat($('pots-used').value)    || 0;
-  const span     = parseFloat($('time-span').value)    || 1;
-  const inv      = parseFloat($('total-pots').value)   || 0;
-  const sessMins = parseFloat($('session-mins').value) || 0;
+    function parseNum(value, fallback = 0) {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
 
-  // Rate
-  const rate = used / span;
-  const rateStr = rate % 1 === 0 ? `${rate}` : rate.toFixed(1);
-  $('rate-display').textContent = rateStr;
+    function clamp(value, min, max) {
+      let next = value;
+      if (Number.isFinite(min)) next = Math.max(min, next);
+      if (Number.isFinite(max)) next = Math.min(max, next);
+      return next;
+    }
 
-  // Inventory lasts
-  if (rate > 0) {
-    const totalMins = inv / rate;
-    const h = Math.floor(totalMins / 60);
-    const m = Math.floor(totalMins % 60);
-    $('time-lasts').textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
-  } else {
-    $('time-lasts').textContent = '∞';
-  }
+    function normalizeMinutesSeconds(minId, secId) {
+      const minEl = $(minId);
+      const secEl = $(secId);
+      let mins = Math.max(0, Math.floor(parseNum(minEl.value, 0)));
+      let secs = Math.floor(parseNum(secEl.value, 0));
 
-  // Session cost & remaining
-  const sessCost  = Math.ceil(rate * sessMins);
-  const remaining = inv - sessCost;
+      if (secs >= 60) {
+        mins += Math.floor(secs / 60);
+        secs = secs % 60;
+      }
 
-  $('session-cost').textContent    = sessCost.toLocaleString();
-  $('pots-remaining').textContent  = remaining.toLocaleString();
+      if (secs < 0) {
+        const borrow = Math.ceil(Math.abs(secs) / 60);
+        mins = Math.max(0, mins - borrow);
+        secs += borrow * 60;
+      }
 
-  const sessLabel = fmtDuration(sessMins);
-  $('session-label').textContent = `for ${sessLabel}`;
+      minEl.value = String(mins);
+      secEl.value = String(clamp(secs, 0, 59));
+    }
 
-  if (remaining < 0) {
-    $('pots-remaining').style.color = 'var(--red)';
-    $('remaining-label').textContent = `short ${Math.abs(remaining).toLocaleString()} pots!`;
-    $('remaining-label').style.color = 'var(--red)';
-  } else {
-    $('pots-remaining').style.color = 'var(--green)';
-    $('remaining-label').textContent = `after ${sessLabel} session`;
-    $('remaining-label').style.color = '';
-  }
+    function getTotalMinutes(minId, secId) {
+      normalizeMinutesSeconds(minId, secId);
+      const mins = parseNum($(minId).value, 0);
+      const secs = parseNum($(secId).value, 0);
+      return mins + (secs / 60);
+    }
 
-  // Bar
-  const pct = inv > 0 ? Math.min(100, (sessCost / inv) * 100) : 0;
-  $('bar-fill').style.width = pct + '%';
-  $('bar-pct').textContent  = Math.round(pct) + '%';
-  $('bar-total-label').textContent = Math.round(inv).toLocaleString() + ' pots';
+    function fmtDuration(totalMinutes) {
+      if (!Number.isFinite(totalMinutes) || totalMinutes < 0) return '0m 0s';
+      const totalSeconds = Math.max(0, Math.round(totalMinutes * 60));
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      const parts = [];
+      if (h > 0) parts.push(`${h}h`);
+      if (h > 0 || m > 0) parts.push(`${m}m`);
+      parts.push(`${s}s`);
+      return parts.join(' ');
+    }
 
-  if (pct > 100) {
-    $('bar-fill').style.background = 'var(--red)';
-  } else if (pct > 75) {
-    $('bar-fill').style.background = 'linear-gradient(90deg, var(--amber), var(--red))';
-  } else if (pct > 50) {
-    $('bar-fill').style.background = 'linear-gradient(90deg, var(--green), var(--amber))';
-  } else {
-    $('bar-fill').style.background = 'var(--green)';
-  }
-}
+    function syncPresetState() {
+      const mins = Math.floor(parseNum($('session-mins').value, 0));
+      const secs = Math.floor(parseNum($('session-secs').value, 0));
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        const bMins = parseInt(btn.dataset.mins || '0', 10);
+        const bSecs = parseInt(btn.dataset.secs || '0', 10);
+        btn.classList.toggle('active', mins === bMins && secs === bSecs);
+      });
+    }
 
-function fmtDuration(mins) {
-  const h = Math.floor(mins / 60);
-  const m = Math.round(mins % 60);
-  if (h > 0 && m > 0) return `${h}h ${m}m`;
-  if (h > 0) return `${h}h`;
-  return `${m}m`;
-}
+    function calc() {
+      normalizeMinutesSeconds('measure-mins', 'measure-secs');
+      normalizeMinutesSeconds('session-mins', 'session-secs');
 
-// Spinners
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.num-btn');
-  if (!btn) return;
-  const inp  = document.getElementById(btn.dataset.target);
-  if (!inp) return;
-  const step = parseFloat(inp.step) || 1;
-  const min  = parseFloat(inp.min);
-  const max  = parseFloat(inp.max);
-  let val    = parseFloat(inp.value) || 0;
-  val += btn.dataset.dir === 'up' ? step : -step;
-  if (!isNaN(min)) val = Math.max(min, val);
-  if (!isNaN(max)) val = Math.min(max, val);
-  inp.value = parseFloat(val.toFixed(2));
-  calc();
-});
+      const used = Math.max(0, parseNum($('pots-used').value, 0));
+      const inventory = Math.max(0, parseNum($('total-pots').value, 0));
+      const measureMinutes = getTotalMinutes('measure-mins', 'measure-secs');
+      const sessionMinutes = getTotalMinutes('session-mins', 'session-secs');
 
-// Inputs
-['pots-used','time-span','total-pots','session-mins'].forEach(id => {
-  $(id).addEventListener('input', calc);
-  $(id).addEventListener('change', () => {
-    const el  = $(id);
-    const min = parseFloat(el.min);
-    if (!isNaN(min) && parseFloat(el.value) < min) el.value = min;
+      const safeMeasureMinutes = Math.max(measureMinutes, 1 / 60);
+      const rate = used / safeMeasureMinutes;
+      $('rate-display').textContent = `${rate.toFixed(2)} / min`;
+
+      if (rate > 0) {
+        const lastsMinutes = inventory / rate;
+        $('time-lasts').textContent = fmtDuration(lastsMinutes);
+      } else {
+        $('time-lasts').textContent = 'Infinity';
+      }
+
+      const sessionCost = Math.ceil(rate * sessionMinutes);
+      const remaining = inventory - sessionCost;
+      const sessionDuration = fmtDuration(sessionMinutes);
+
+      $('session-cost').textContent = Math.max(0, sessionCost).toLocaleString();
+      $('pots-remaining').textContent = remaining.toLocaleString();
+      $('session-label').textContent = `for ${sessionDuration}`;
+
+      if (remaining < 0) {
+        $('pots-remaining').style.color = 'var(--red)';
+        $('remaining-label').textContent = `short ${Math.abs(remaining).toLocaleString()} pots`; 
+        $('remaining-label').style.color = 'var(--red)';
+      } else {
+        $('pots-remaining').style.color = 'var(--green)';
+        $('remaining-label').textContent = `after ${sessionDuration} session`;
+        $('remaining-label').style.color = '';
+      }
+
+      const usagePct = inventory > 0 ? (sessionCost / inventory) * 100 : 0;
+      const clampedPct = Math.max(0, Math.min(100, usagePct));
+      $('bar-fill').style.width = `${clampedPct}%`;
+      $('bar-pct').textContent = `${usagePct.toFixed(2)}%`;
+      $('bar-total-label').textContent = `${Math.round(inventory).toLocaleString()} pots`;
+
+      if (usagePct > 100) {
+        $('bar-fill').style.background = 'var(--red)';
+      } else if (usagePct > 75) {
+        $('bar-fill').style.background = 'linear-gradient(90deg, var(--amber), var(--red))';
+      } else if (usagePct > 50) {
+        $('bar-fill').style.background = 'linear-gradient(90deg, var(--green), var(--amber))';
+      } else {
+        $('bar-fill').style.background = 'var(--green)';
+      }
+    }
+
+    document.addEventListener('click', event => {
+      const btn = event.target.closest('.num-btn');
+      if (!btn) return;
+
+      const target = btn.dataset.target;
+      const input = $(target);
+      if (!input) return;
+
+      const minAttr = input.hasAttribute('min') ? parseNum(input.min, 0) : Number.NEGATIVE_INFINITY;
+      const maxAttr = input.hasAttribute('max') ? parseNum(input.max, Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+      const step = parseNum(btn.dataset.step, parseNum(input.step, 1));
+      const dir = btn.dataset.dir === 'down' ? -1 : 1;
+      const next = clamp(parseNum(input.value, 0) + (dir * step), minAttr, maxAttr);
+
+      input.value = String(Math.round(next));
+
+      if (target === 'session-mins' || target === 'session-secs') syncPresetState();
+      calc();
+    });
+
+    INPUT_IDS.forEach(id => {
+      const input = $(id);
+      input.addEventListener('input', () => {
+        if (id === 'session-mins' || id === 'session-secs') syncPresetState();
+        calc();
+      });
+
+      input.addEventListener('change', () => {
+        const minAttr = input.hasAttribute('min') ? parseNum(input.min, 0) : Number.NEGATIVE_INFINITY;
+        const maxAttr = input.hasAttribute('max') ? parseNum(input.max, Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+        const clamped = clamp(parseNum(input.value, 0), minAttr, maxAttr);
+        input.value = String(Math.round(clamped));
+        if (id === 'session-mins' || id === 'session-secs') syncPresetState();
+        calc();
+      });
+    });
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $('session-mins').value = btn.dataset.mins || '0';
+        $('session-secs').value = btn.dataset.secs || '0';
+        syncPresetState();
+        calc();
+      });
+    });
+
+    syncPresetState();
     calc();
-  });
-});
-
-// Presets
-document.querySelectorAll('.preset-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    $('session-mins').value = btn.dataset.mins;
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    calc();
-  });
-});
-
-$('session-mins').addEventListener('input', () => {
-  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-});
-
-calc();
-</script>
+  </script>
 </body>
 </html>

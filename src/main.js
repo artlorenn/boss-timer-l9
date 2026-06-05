@@ -1,6 +1,6 @@
 import './style.css'
 import { trackVisitor, trackOnline, fetchSchedule, saveSchedule, subscribeSchedule } from './firebase.js'
-import { getBossLocation, getRespawnMs, isFixedSchedule, generateFixedScheduleEvents, generateWorldBossEvents, SOUND_PRESETS } from './data.js'
+import { getBossLocation, getRespawnMs, isFixedSchedule, generateFixedScheduleEvents, generateWorldBossEvents } from './data.js'
 import { parseSchedule } from './parse.js'
 import { playBeep, playTick, playSpawnSound, getMuted, setMuted, getVolume, setVolume, getPreset, setPreset } from './audio.js'
 
@@ -28,24 +28,48 @@ let filterText = ''
 let isAdmin = sessionStorage.getItem('isAdmin') === 'true'
 const pinnedBosses = new Set(JSON.parse(localStorage.getItem('pinnedBosses') || '[]'))
 const triggered = new Set()
+const countdownRegistry = new Map()
+let visibleEventCount = 0
+let lastCloudSignature = ''
 
-const AUTO_REFRESH_MS = 60_000
+const AUTO_REFRESH_MS = 5 * 60_000
 
 // ── Helpers ──
 const evId = ev => ev.start + '-' + ev.boss
+const getStartMs = ev => ev.startMs ?? new Date(ev.start).getTime()
+const compareByStartMs = (a, b) => getStartMs(a) - getStartMs(b)
+function setEventStart(ev, start) {
+  const dt = typeof start === 'number' ? new Date(start) : new Date(start)
+  if (Number.isNaN(dt.getTime())) return false
+  const iso = dt.toISOString()
+  ev.start = iso
+  ev.startMs = dt.getTime()
+  ev.date = iso.slice(0, 10)
+  ev.time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return true
+}
 const getInitial = name => (name || '?').charAt(0).toUpperCase()
-const fmtCountdown = iso => {
-  const d = Math.max(0, new Date(iso).getTime() - Date.now())
+const fmtCountdown = value => {
+  const startMs = typeof value === 'number' ? value : new Date(value).getTime()
+  const d = Math.max(0, startMs - Date.now())
   const h = Math.floor(d / 3.6e6)
   const m = Math.floor((d % 3.6e6) / 6e4)
   const s = Math.floor((d % 6e4) / 1e3)
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
-const fmtTime = iso => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-const fmtDate = iso => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' })
+const fmtTime = value => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const fmtDate = value => new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' })
 const localDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const getDisplayName = ev => ev.bosses ? ev.bosses.join(', ') : ev.boss
 const toTitle = str => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+function registerEventNodes(ev, card, countdownEl, initialEl) {
+  const id = evId(ev)
+  const entry = countdownRegistry.get(id) || { cards: [], countdowns: [], initials: [] }
+  if (card) entry.cards.push(card)
+  if (countdownEl) entry.countdowns.push(countdownEl)
+  if (initialEl) entry.initials.push(initialEl)
+  countdownRegistry.set(id, entry)
+}
 const matchesFilter = ev => {
   if (!filterText) return true
   const q = filterText.toLowerCase()
@@ -56,7 +80,7 @@ const sortWithPins = items => [...items].sort((a, b) => {
   const bP = pinnedBosses.has(b.boss) || (b.bosses && b.bosses.some(n => pinnedBosses.has(n)))
   if (aP && !bP) return -1
   if (!aP && bP) return 1
-  return new Date(a.start) - new Date(b.start)
+  return compareByStartMs(a, b)
 })
 
 // ── Sync UI ──
@@ -128,6 +152,9 @@ function isWithinDateLimit(isoStr) {
 
 function loadBossesFromCloud(bosses) {
   if (!Array.isArray(bosses)) return
+  const signature = JSON.stringify(bosses)
+  if (signature === lastCloudSignature) return
+  lastCloudSignature = signature
   const now = Date.now()
   const loaded = bosses.map(b => {
     let start
@@ -139,13 +166,13 @@ function loadBossesFromCloud(bosses) {
       if (!start || isNaN(start.getTime())) start = new Date(`${b.date} ${b.start_time}`)
     } else { return null }
     if (!start || isNaN(start.getTime())) { console.warn('[BossTimer] Could not parse:', b); return null }
-    return { boss: b.name, date: start.toISOString().slice(0, 10), time: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dur: b.end_time || '', start: start.toISOString() }
-  }).filter(ev => ev && new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss) && isWithinDateLimit(ev.start))
+    return { boss: b.name, date: start.toISOString().slice(0, 10), time: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dur: b.end_time || '', start: start.toISOString(), startMs: start.getTime() }
+  }).filter(ev => ev && ev.startMs > now && !isFixedSchedule(ev.boss) && isWithinDateLimit(ev.startMs))
 
   eventsState = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))
   const existingIds = new Set(eventsState.map(evId))
   for (const ev of loaded) { if (!existingIds.has(evId(ev))) eventsState.push(ev) }
-  eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
+  eventsState.sort(compareByStartMs)
   render(eventsState)
   startTicker()
 }
@@ -155,22 +182,30 @@ function startAutoRefresh() {
   autoRefreshId = setInterval(() => { if (!isAdmin) fetchBossesJson() }, AUTO_REFRESH_MS)
 }
 
-function startRealtimeSync() {
+async function startRealtimeSync() {
   if (unsubscribeSchedule) unsubscribeSchedule()
-  unsubscribeSchedule = subscribeSchedule(
-    bosses => {
-      loadBossesFromCloud(bosses)
-      if (!bosses || !bosses.length) {
-        setSyncStatus('ok', 'No schedule yet')
-        return
+  unsubscribeSchedule = null
+  try {
+    unsubscribeSchedule = await subscribeSchedule(
+      bosses => {
+        loadBossesFromCloud(bosses)
+        if (!bosses || !bosses.length) {
+          setSyncStatus('ok', 'No schedule yet')
+          return
+        }
+        setSyncStatus('ok', `Live ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
+      },
+      e => {
+        setSyncStatus('error', 'Live sync failed')
+        console.error(e)
+        fetchBossesJson()
       }
-      setSyncStatus('ok', `Live ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
-    },
-    e => {
-      setSyncStatus('error', 'Live sync failed')
-      console.error(e)
-    }
-  )
+    )
+  } catch (e) {
+    setSyncStatus('error', 'Live sync failed')
+    console.error(e)
+    fetchBossesJson()
+  }
 }
 
 // ── Kill / set time ──
@@ -179,9 +214,16 @@ function killBoss(bossName) {
   if (!respawnMs) return
   const newStart = new Date(Date.now() + respawnMs).toISOString()
   const ev = eventsState.find(e => e.boss === bossName)
-  if (ev) { ev.start = newStart; triggered.delete(`${ev.start}-${ev.boss}`) }
-  else eventsState.push({ boss: bossName, date: newStart.slice(0, 10), time: '', dur: '', start: newStart })
-  eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
+  if (ev) {
+    const oldId = evId(ev)
+    setEventStart(ev, newStart)
+    triggered.delete(oldId)
+  } else {
+    const nextEv = { boss: bossName, date: '', time: '', dur: '', start: '', startMs: 0 }
+    setEventStart(nextEv, newStart)
+    eventsState.push(nextEv)
+  }
+  eventsState.sort(compareByStartMs)
   saveBossesToCloud(toCloudBosses(eventsState))
   showToast(`${bossName} killed — respawns in ${Math.round(respawnMs / 3600000)}h`)
   render(eventsState)
@@ -196,11 +238,12 @@ function manualSetTime(bossName) {
     const ts = new Date(inp.value)
     if (!inp.value || isNaN(ts)) { existing.remove(); return showToast('Cancelled') }
     if (ts.getTime() <= Date.now()) return showToast('Time must be in the future')
-    ev.start = ts.toISOString()
-    triggered.delete(`${ev.start}-${ev.boss}`)
-    eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
+    const oldId = evId(ev)
+    setEventStart(ev, ts)
+    triggered.delete(oldId)
+    eventsState.sort(compareByStartMs)
     saveBossesToCloud(toCloudBosses(eventsState))
-    showToast(`${bossName} set to ${fmtTime(ev.start)}`)
+    showToast(`${bossName} set to ${fmtTime(ev.startMs)}`)
     render(eventsState)
     return
   }
@@ -215,7 +258,7 @@ function manualSetTime(bossName) {
 
 // ── Cards ──
 function urgentSoon(ev) {
-  const delta = new Date(ev.start).getTime() - Date.now()
+  const delta = getStartMs(ev) - Date.now()
   return { urgent: delta <= 5 * 60 * 1000 && delta > 0, soon: delta <= 15 * 60 * 1000 && delta > 0 }
 }
 
@@ -228,15 +271,18 @@ function buildCompactCard(ev, label) {
   card.className = `boss-card${urgent ? ' urgent' : soon ? ' soon' : ''}`
   const killBtnHtml = (isAdmin && getRespawnMs(ev.boss)) ? `<button class="kill-btn" data-boss="${ev.boss}">Killed</button>` : ''
   const setBtnHtml = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger" data-boss="${ev.boss}">Set time</button>` : ''
-  const dateTag = label === 'Later' ? `<span class="date-tag">${fmtDate(ev.start)}</span>` : ''
+  const dateTag = label === 'Later' ? `<span class="date-tag">${fmtDate(ev.startMs)}</span>` : ''
   card.innerHTML = `
     <div class="boss-initial${cdClass ? ' ' + cdClass : ''}">${getInitial(names)}</div>
     <div class="boss-info">
       <div class="boss-name">${toTitle(names)}</div>
-      <div class="boss-meta">${fmtTime(ev.start)}${loc ? ' · ' + loc : ''}</div>
-      <div class="boss-countdown${cdClass ? ' ' + cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
+      <div class="boss-meta">${fmtTime(ev.startMs)}${loc ? ' · ' + loc : ''}</div>
+      <div class="boss-countdown${cdClass ? ' ' + cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.startMs)}</div>
     </div>
     <div class="boss-actions">${dateTag}${killBtnHtml}${setBtnHtml}</div>`
+  const countdownEl = card.querySelector('.boss-countdown')
+  const initialEl = card.querySelector('.boss-initial')
+  registerEventNodes(ev, card, countdownEl, initialEl)
   card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss))
   card.querySelector('.manual-trigger')?.addEventListener('click', () => manualSetTime(ev.boss))
   return card
@@ -251,15 +297,18 @@ function buildDeckCard(ev, label) {
   card.className = `deck-card${urgent ? ' urgent' : soon ? ' soon-card' : ''}`
   const killBtnHtml = (isAdmin && getRespawnMs(ev.boss)) ? `<button class="kill-btn" data-boss="${ev.boss}">Killed</button>` : ''
   const setBtnHtml = (isAdmin && !ev.worldBoss && !isFixedSchedule(ev.boss)) ? `<button class="set-btn manual-trigger" data-boss="${ev.boss}">Set</button>` : ''
-  const dateTag = label === 'Later' ? `<div class="date-tag" style="font-size:10px;">${fmtDate(ev.start)}</div>` : ''
+  const dateTag = label === 'Later' ? `<div class="date-tag" style="font-size:10px;">${fmtDate(ev.startMs)}</div>` : ''
   card.innerHTML = `
     <div class="deck-initial${cdClass ? ' ' + cdClass : ''}">${getInitial(names)}</div>
     <div class="deck-name">${toTitle(names)}</div>
     ${loc ? `<div class="deck-loc">${loc}</div>` : ''}
     ${dateTag}
-    <div class="deck-time">${fmtTime(ev.start)}</div>
-    <div class="deck-cd${cdClass ? ' ' + cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.start)}</div>
+    <div class="deck-time">${fmtTime(ev.startMs)}</div>
+    <div class="deck-cd${cdClass ? ' ' + cdClass : ''}" data-cd="${evId(ev)}">${fmtCountdown(ev.startMs)}</div>
     <div class="deck-btns">${killBtnHtml}${setBtnHtml}</div>`
+  const countdownEl = card.querySelector('.deck-cd')
+  const initialEl = card.querySelector('.deck-initial')
+  registerEventNodes(ev, card, countdownEl, initialEl)
   card.querySelector('.kill-btn')?.addEventListener('click', () => killBoss(ev.boss))
   card.querySelector('.manual-trigger')?.addEventListener('click', () => manualSetTime(ev.boss))
   return card
@@ -268,14 +317,17 @@ function buildDeckCard(ev, label) {
 // ── Render ──
 function render(events) {
   sectionsEl.innerHTML = ''; summaryEl.innerHTML = ''
-  if (!events.length) { setPill('No events', 'negative'); return }
+  countdownRegistry.clear()
+  visibleEventCount = 0
+  if (!events.length) { setPill('No events', 'negative'); renderTimeline(events); return }
   const filtered = events.filter(matchesFilter)
+  visibleEventCount = filtered.length
   if (!filtered.length) { setPill('No matches', 'negative'); renderTimeline(events); return }
   const todayKey = localDateKey(new Date())
   const tmrwKey = localDateKey(new Date(Date.now() + 864e5))
   const buckets = { Today: [], Tomorrow: [], Later: [] }
   for (const ev of filtered) {
-    const k = localDateKey(new Date(ev.start))
+    const k = localDateKey(new Date(getStartMs(ev)))
     if (k === todayKey) buckets.Today.push(ev)
     else if (k === tmrwKey) buckets.Tomorrow.push(ev)
     else buckets.Later.push(ev)
@@ -304,24 +356,25 @@ function render(events) {
     }
     sectionsEl.appendChild(section)
   }
-  const upcoming = events.filter(ev => new Date(ev.start).getTime() > Date.now())
-  const next = upcoming[0] || null
-  summaryEl.innerHTML = `<span>${filtered.length} event${filtered.length === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span>${next ? `<span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(next.start)}</span>` : ''}`
-  setPill(filtered.length + ' active', 'positive')
+  const next = events[0] || null
+  summaryEl.innerHTML = `<span>${visibleEventCount} event${visibleEventCount === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span>${next ? `<span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(getStartMs(next))}</span>` : ''}`
+  setPill(visibleEventCount + ' active', 'positive')
   renderTimeline(events)
 }
 
 function renderTimeline(events) {
   timelineSec.innerHTML = ''
   if (!showTimeline || !events.length) { timelineSec.style.display = 'none'; return }
-  timelineSec.style.display = ''
   const now = Date.now()
-  const upcoming = events.filter(ev => new Date(ev.start).getTime() > now)
-  if (!upcoming.length) return
+  let startIndex = 0
+  while (startIndex < events.length && getStartMs(events[startIndex]) <= now) startIndex++
+  if (startIndex >= events.length) { timelineSec.style.display = 'none'; return }
+  timelineSec.style.display = ''
+  const upcoming = events.slice(startIndex)
   const startMs = now
-  const endMs = Math.max(...upcoming.map(ev => new Date(ev.start).getTime()))
+  const endMs = getStartMs(upcoming[upcoming.length - 1])
   const rangeMs = endMs - startMs
-  if (rangeMs <= 0) return
+  if (rangeMs <= 0) { timelineSec.style.display = 'none'; return }
   const header = document.createElement('div'); header.className = 'section-header'
   header.innerHTML = `<span class="section-label">Timeline</span>`
   timelineSec.appendChild(header)
@@ -330,14 +383,15 @@ function renderTimeline(events) {
   const nowM = document.createElement('div'); nowM.className = 'timeline-now'; nowM.style.left = '0%'; bar.appendChild(nowM)
   const nowL = document.createElement('div'); nowL.className = 'timeline-now-label'; nowL.style.left = '0%'; nowL.textContent = 'Now'; bar.appendChild(nowL)
   for (const ev of upcoming) {
-    const pct = ((new Date(ev.start).getTime() - startMs) / rangeMs) * 100
-    const delta = new Date(ev.start).getTime() - now
+    const evMs = getStartMs(ev)
+    const pct = ((evMs - startMs) / rangeMs) * 100
+    const delta = evMs - now
     const urgent = delta <= 5 * 60 * 1000, soon = delta <= 15 * 60 * 1000
     const name = getDisplayName(ev)
     const marker = document.createElement('div')
     marker.className = `timeline-marker${urgent ? ' urgent-marker' : soon ? ' soon-marker' : ''}`
     marker.style.left = pct + '%'; marker.textContent = name.charAt(0)
-    marker.title = `${name} — ${fmtTime(ev.start)} (${fmtCountdown(ev.start)})`; bar.appendChild(marker)
+    marker.title = `${name} — ${fmtTime(evMs)} (${fmtCountdown(evMs)})`; bar.appendChild(marker)
     const lbl = document.createElement('div'); lbl.className = 'timeline-label'; lbl.style.left = pct + '%'
     lbl.textContent = name.length > 10 ? name.slice(0, 9) + '…' : name; bar.appendChild(lbl)
   }
@@ -345,31 +399,37 @@ function renderTimeline(events) {
 }
 
 function updateCountdowns() {
+  const now = Date.now()
   for (const ev of eventsState) {
-    const els = document.querySelectorAll(`[data-cd="${evId(ev)}"]`)
-    const cd = fmtCountdown(ev.start)
-    const delta = new Date(ev.start).getTime() - Date.now()
+    const entry = countdownRegistry.get(evId(ev))
+    if (!entry) continue
+    const startMs = getStartMs(ev)
+    const cd = fmtCountdown(startMs)
+    const delta = startMs - now
     const urgent = delta <= 5 * 60 * 1000 && delta > 0
     const soon = delta <= 15 * 60 * 1000 && delta > 0
-    for (const el of els) {
+    for (const el of entry.countdowns) {
       el.textContent = cd
       el.classList.remove('urgent', 'soon')
       if (urgent) el.classList.add('urgent')
       else if (soon) el.classList.add('soon')
-      const card = el.closest('.boss-card') || el.closest('.deck-card')
-      if (card) {
-        card.classList.remove('urgent', 'soon', 'soon-card')
-        if (urgent) card.classList.add('urgent')
-        else if (soon) card.classList.add(card.classList.contains('deck-card') ? 'soon-card' : 'soon')
-        const init = card.querySelector('.boss-initial,.deck-initial')
-        if (init) { init.classList.remove('urgent', 'soon'); if (urgent) init.classList.add('urgent'); else if (soon) init.classList.add('soon') }
-      }
+    }
+    for (const card of entry.cards) {
+      card.classList.remove('urgent', 'soon', 'soon-card')
+      if (urgent) card.classList.add('urgent')
+      else if (soon) card.classList.add(card.classList.contains('deck-card') ? 'soon-card' : 'soon')
+    }
+    for (const init of entry.initials) {
+      init.classList.remove('urgent', 'soon')
+      if (urgent) init.classList.add('urgent')
+      else if (soon) init.classList.add('soon')
     }
   }
-  const upcoming = eventsState.filter(ev => new Date(ev.start).getTime() > Date.now())
-  const next = upcoming[0] || null
-  const filtered = filterText ? eventsState.filter(matchesFilter) : eventsState
-  if (next) summaryEl.innerHTML = `<span>${filtered.length} event${filtered.length === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span><span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(next.start)}</span>`
+  const next = eventsState[0] || null
+  if (next) {
+    if (visibleEventCount === 0 && filterText) summaryEl.innerHTML = '<span>No matches</span>'
+    else summaryEl.innerHTML = `<span>${visibleEventCount} event${visibleEventCount === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span><span>· Next: <strong style="color:var(--text2);font-weight:600;">${toTitle(getDisplayName(next))}</strong> in ${fmtCountdown(getStartMs(next))}</span>`
+  }
 }
 
 // ── Alarms ──
@@ -383,18 +443,22 @@ function ensureNotificationPermission() {
 
 function triggerAlarm(ev) {
   const name = getDisplayName(ev)
-  const msg = `${name} spawning in ${alarmLeadMin} min (${fmtTime(ev.start)})`
+  const msg = `${name} spawning in ${alarmLeadMin} min (${fmtTime(ev.startMs)})`
   showToast(msg); setPill('Alarm: ' + name, 'negative'); playBeep()
   if (Notification.permission === 'granted') new Notification('Boss Timer', { body: msg })
 }
 
 function checkAlarms() {
   const now = Date.now()
+  const leadMs = alarmLeadMin * 60 * 1000
   for (const ev of eventsState) {
-    const id = `${ev.start}-${ev.boss}`
+    const delta = getStartMs(ev) - now
+    if (delta <= 0) continue
+    if (delta > leadMs) break
+    const id = evId(ev)
     if (triggered.has(id)) continue
-    const delta = new Date(ev.start).getTime() - now
-    if (delta <= alarmLeadMin * 60 * 1000 && delta > 0) { triggered.add(id); triggerAlarm(ev) }
+    triggered.add(id)
+    triggerAlarm(ev)
   }
   checkSpawnCountdown()
 }
@@ -403,49 +467,61 @@ function checkAlarms() {
 let spawnCountdownActive = null, spawnedEvent = null, lastSpawnSecond = -1
 const spawnOverlay = $('spawn-overlay')
 const spawnBossNameEl = $('spawn-boss-name')
+let spawnNumberEl = $('spawn-number')
 const spawnSubEl = $('spawn-sub')
 
 function checkSpawnCountdown() {
   const now = Date.now()
-  let nearest = null, nearestDelta = Infinity
-  for (const ev of eventsState) {
-    const delta = new Date(ev.start).getTime() - now
-    if (delta > -3000 && delta < 6000 && Math.abs(delta) < nearestDelta) { nearest = ev; nearestDelta = Math.abs(delta) }
+  const future = eventsState[0] || null
+  const futureMs = future ? getStartMs(future) : Infinity
+  const futureDelta = futureMs - now
+  const spawnedAlive = spawnedEvent && (now - getStartMs(spawnedEvent) < 3000)
+  let nearest = null
+
+  if (future && futureDelta > -3000 && futureDelta < 6000) nearest = future
+  if (spawnedAlive) {
+    const spawnedDelta = now - getStartMs(spawnedEvent)
+    if (!nearest || spawnedDelta < Math.abs(futureDelta)) nearest = spawnedEvent
   }
-  if (!nearest && spawnedEvent) {
-    if (now - new Date(spawnedEvent.start).getTime() < 3000) nearest = spawnedEvent
-    else { spawnOverlay.classList.remove('active'); spawnedEvent = spawnCountdownActive = null; lastSpawnSecond = -1; return }
+
+  if (!nearest) {
+    if (spawnCountdownActive) {
+      spawnOverlay.classList.remove('active')
+      spawnCountdownActive = null
+      lastSpawnSecond = -1
+    }
+    if (spawnedEvent && now - getStartMs(spawnedEvent) >= 3000) spawnedEvent = null
+    return
   }
-  if (!nearest) { if (spawnCountdownActive) { spawnOverlay.classList.remove('active'); spawnCountdownActive = null; lastSpawnSecond = -1 } return }
-  const delta = new Date(nearest.start).getTime() - now
+
+  const startMs = getStartMs(nearest)
+  const delta = startMs - now
   const sec = Math.ceil(delta / 1000)
   const name = getDisplayName(nearest)
   if (!spawnOverlay.classList.contains('active')) spawnOverlay.classList.add('active')
-  spawnCountdownActive = nearest; spawnBossNameEl.textContent = name
+  spawnCountdownActive = nearest
+  spawnBossNameEl.textContent = name
   if (sec <= 0) {
     if (lastSpawnSecond !== 0) {
       spawnedEvent = nearest
-      const numEl = spawnOverlay.querySelector('.spawn-number')
-      numEl.className = 'spawn-number spawned'; numEl.textContent = 'SPAWNED!'
+      spawnNumberEl.className = 'spawn-number spawned'; spawnNumberEl.textContent = 'SPAWNED!'
       spawnSubEl.textContent = 'Go go go!'; playSpawnSound(); lastSpawnSecond = 0
     }
   } else if (sec !== lastSpawnSecond && sec <= 5) {
-    const numEl = spawnOverlay.querySelector('.spawn-number')
-    const clone = numEl.cloneNode(false)
-    clone.className = 'spawn-number'; clone.textContent = sec; numEl.replaceWith(clone)
+    const clone = spawnNumberEl.cloneNode(false)
+    clone.className = 'spawn-number'; clone.textContent = sec; spawnNumberEl.replaceWith(clone)
+    spawnNumberEl = clone
     spawnSubEl.textContent = sec === 1 ? 'Get ready!' : 'Spawning soon...'; playTick(); lastSpawnSecond = sec
   }
 }
 
 function prunePastEvents() {
   const now = Date.now()
-  const remaining = []; let changed = false
-  for (const ev of eventsState) {
-    if (new Date(ev.start).getTime() <= now) { changed = true; continue }
-    remaining.push(ev)
-  }
-  if (changed) eventsState = remaining
-  return changed
+  let firstFuture = 0
+  while (firstFuture < eventsState.length && getStartMs(eventsState[firstFuture]) <= now) firstFuture++
+  if (!firstFuture) return false
+  eventsState = eventsState.slice(firstFuture)
+  return true
 }
 
 function startTicker() {
@@ -652,7 +728,7 @@ $('download-ics')?.addEventListener('click', () => {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Boss Timer//EN']
   for (const ev of eventsState) {
     const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
-    const start = new Date(ev.start).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+    const start = new Date(getStartMs(ev)).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
     lines.push('BEGIN:VEVENT', `UID:${start}-${ev.boss.replace(/\s+/g, '-')}`, `DTSTAMP:${stamp}`, `DTSTART:${start}`, `DTEND:${start}`, `SUMMARY:${ev.boss}`, 'END:VEVENT')
   }
   lines.push('END:VCALENDAR')
@@ -662,22 +738,23 @@ $('download-ics')?.addEventListener('click', () => {
 })
 $('test-spawn')?.addEventListener('click', () => {
   const spawnAt = new Date(Date.now() + 5000)
-  const testEv = { boss: 'World Boss', bosses: ['Ratan', 'Parto', 'Nedra'], date: spawnAt.toISOString().slice(0, 10), time: spawnAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dur: '01:00:00', start: spawnAt.toISOString(), worldBoss: true }
-  eventsState.push(testEv); eventsState.sort((a, b) => new Date(a.start) - new Date(b.start)); render(eventsState); startTicker(); showToast('Test boss spawning in 5 seconds...')
+  const testEv = { boss: 'World Boss', bosses: ['Ratan', 'Parto', 'Nedra'], date: '', time: '', dur: '01:00:00', start: '', startMs: 0, worldBoss: true }
+  setEventStart(testEv, spawnAt)
+  eventsState.push(testEv); eventsState.sort(compareByStartMs); render(eventsState); startTicker(); showToast('Test boss spawning in 5 seconds...')
 })
 $('parse')?.addEventListener('click', async () => {
   const adminTA = $('admin-textarea')
   const now = Date.now()
   const parsed = parseSchedule(adminTA.value)
-    .filter(ev => new Date(ev.start).getTime() > now && !isFixedSchedule(ev.boss) && isWithinDateLimit(ev.start))
-    .sort((a, b) => new Date(a.start) - new Date(b.start))
+    .filter(ev => getStartMs(ev) > now && !isFixedSchedule(ev.boss) && isWithinDateLimit(ev.startMs ?? ev.start))
+    .sort(compareByStartMs)
   if (!parsed.length) return showToast('No valid events found — check your paste format')
   const bossesJson = toCloudBosses(parsed)
   const saved = await saveBossesToCloud(bossesJson)
   if (!saved) return
   showToast(`✓ Saved ${parsed.length} bosses for everyone!`)
   const worldFixed = eventsState.filter(e => e.worldBoss || isFixedSchedule(e.boss))
-  eventsState = [...worldFixed, ...parsed]; eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
+  eventsState = [...worldFixed, ...parsed]; eventsState.sort(compareByStartMs)
   render(eventsState); ensureNotificationPermission(); startTicker()
 })
 
@@ -694,23 +771,22 @@ updateAdminUI()
 setLayout(layout)
 
   ; (function initStaticEvents() {
-    const wb = generateWorldBossEvents()
-    const fixed = generateFixedScheduleEvents(14)
-    const existing = new Set(eventsState.map(evId))
-    for (const ev of [...wb, ...fixed]) {
-      if (!existing.has(evId(ev)) && isWithinDateLimit(ev.start)) {
-        eventsState.push(ev); existing.add(evId(ev))
-      }
+  const wb = generateWorldBossEvents()
+  const fixed = generateFixedScheduleEvents(14)
+  const existing = new Set(eventsState.map(evId))
+  for (const ev of [...wb, ...fixed]) {
+    if (!existing.has(evId(ev)) && isWithinDateLimit(ev.startMs ?? ev.start)) {
+      eventsState.push(ev); existing.add(evId(ev))
     }
-    eventsState.sort((a, b) => new Date(a.start) - new Date(b.start))
-  })()
+  }
+  eventsState.sort(compareByStartMs)
+})()
 
 render(eventsState)
 ensureNotificationPermission()
 startTicker()
 startRealtimeSync()
 startAutoRefresh()
-fetchBossesJson()
 
 trackVisitor(count => { const el = $('visitor-count'); if (el) el.textContent = count.toLocaleString() })
 trackOnline(count => { const el = $('online-count'); if (el) el.textContent = count })

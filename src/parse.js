@@ -54,6 +54,7 @@ function makeEvent(bossName, dt, dur = '00:30:00', extra = {}) {
     time: dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     dur,
     start: dt.toISOString(),
+    startMs: dt.getTime(),
     ...extra,
   }
 }
