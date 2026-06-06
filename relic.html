@@ -346,7 +346,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-stats-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.34); }
 .market-stats-table {
   width: 100%;
-  min-width: 580px;
+  min-width: 520px;
   border-collapse: collapse;
   table-layout: auto;
 }
@@ -375,11 +375,9 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-stats-table th:nth-child(1),
 .market-stats-table td:nth-child(1) { min-width: 250px; text-align: left; }
 .market-stats-table th:nth-child(2),
-.market-stats-table td:nth-child(2) { width: 58px; text-align: center; }
+.market-stats-table td:nth-child(2) { text-align: right; min-width: 120px; }
 .market-stats-table th:nth-child(3),
-.market-stats-table td:nth-child(3) { text-align: right; min-width: 120px; }
-.market-stats-table th:nth-child(4),
-.market-stats-table td:nth-child(4) { text-align: right; min-width: 130px; }
+.market-stats-table td:nth-child(3) { text-align: right; min-width: 130px; }
 .market-stats-table tr:last-child td { border-bottom: none; }
 .market-cell-rank { color: var(--text3); font-weight: 400; }
 .market-cell-price { color: rgba(255,255,255,0.50); font-weight: 400; font-variant-numeric: tabular-nums; }
@@ -672,11 +670,11 @@ const DESTRUCTION_ATTACK_TOTALS=(()=>{
 const LIFE_HP_TOTALS=DESTRUCTION_ATTACK_TOTALS.map(v=>v*10);
 
 const CHESTS={
-  t1:{label:'T1 Temporal Piece Chest x1,000',pieces:1000},
-  t2:{label:'T2 Temporal Piece Chest x5,000',pieces:5000},
-  t3:{label:'T3 Temporal Piece Chest x10,000',pieces:10000},
-  t4:{label:'T4 Temporal Piece Chest x50,000',pieces:50000},
-  t5:{label:'T5 Temporal Piece Chest x100,000',pieces:100000},
+  t1:{label:'T1 Temporal Piece Chest x1,000',pieces:1000,color:'#ffffff'},
+  t2:{label:'T2 Temporal Piece Chest x5,000',pieces:5000,color:'#34d361'},
+  t3:{label:'T3 Temporal Piece Chest x10,000',pieces:10000,color:'#3b9cff'},
+  t4:{label:'T4 Temporal Piece Chest x50,000',pieces:50000,color:'#9d66ff'},
+  t5:{label:'T5 Temporal Piece Chest x100,000',pieces:100000,color:'#ff9500'},
 };
 
 let phpPerPiece=null,usdtPerPiece=null,currency='USDT';
@@ -865,6 +863,7 @@ function updateChestAnalysis(gT){
   const tier=$('chest-select').value,chest=CHESTS[tier];
   const needed=gT>0?Math.ceil(gT/chest.pieces):0;
   $('chest-label').textContent=chest.label;
+  $('chest-label').style.color=chest.color;
   $('chest-sublabel').textContent=`x${chest.pieces.toLocaleString()} Pieces / Chest`;
   $('chests-needed').textContent=needed>0?needed.toLocaleString():'0';
   const cached=cache[tier];
@@ -1227,7 +1226,6 @@ async function updateMarketStats(forceRefresh=false){
     html+='<table class="market-stats-table">';
     html+='<thead><tr>';
     html+='<th>Item</th>';
-    html+='<th>Qty</th>';
     html+='<th>Price/Chest</th>';
     html+='<th>Converted</th>';
     html+='</tr></thead>';
@@ -1244,16 +1242,15 @@ async function updateMarketStats(forceRefresh=false){
       const bgColor=isAlertHit
         ? 'rgba(48,209,88,.16)'
         : (i===0?'rgba(48,209,88,.10)':edgeVsMedian>=5?'rgba(255,214,10,.08)':edgeVsMedian<0?'rgba(255,69,58,.06)':'transparent');
-      const qty=Math.max(1,Number(l.quantity)||1);
       const rowName=l.itemName||chestInfo.label;
       const rowImg=l.imageUrl||DEFAULT_CHEST_IMAGE;
+      const rowColor=chestInfo.color||'#34d361';
       
       html+='<tr style="background:'+bgColor+';">';
       html+='<td><div class="market-list-item">';
       html+='<img class="market-list-img" src="'+rowImg+'" alt="">';
-      html+='<div><div class="market-list-name">'+rowName+'</div><div class="market-list-sub"><span class="market-row-tag '+tagClass+'">'+tagText+'</span><span class="market-cell-unit">'+(edgeVsMedian>=0?'+':'')+pctText(edgeVsMedian)+' vs median</span></div></div>';
+      html+='<div><div class="market-list-name" style="color:'+rowColor+';">'+rowName+'</div><div class="market-list-sub"><span class="market-row-tag '+tagClass+'">'+tagText+'</span><span class="market-cell-unit">'+(edgeVsMedian>=0?'+':'')+pctText(edgeVsMedian)+' vs median</span></div></div>';
       html+='</div></td>';
-      html+='<td class="market-cell-price">'+qty+'</td>';
       html+='<td class="market-cell-price">'+(Number.isFinite(l.pricePhp)?'&#8369;'+fmtPrice(l.pricePhp):'--')+'</td>';
       html+='<td class="market-cell-unit">'+(Number.isFinite(l.priceUsdt)?'&#8776;'+fmtPrice(l.priceUsdt)+' USDT':'--')+'</td>';
       html+='</tr>';
