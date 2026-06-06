@@ -13,9 +13,27 @@ const MARKET_ORIGIN = 'https://l9asia.nextmarket.games';
 const MARKETPLACE_URL = `${MARKET_ORIGIN}/marketplace?viewType=fiat&realmCode=${REALM_CODE}`;
 const MARKET_API_URL = 'https://api.nextmarket.games/l9asia/v1/sale/c2c?page=0';
 const round2 = (value) => Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
+const round6 = (value) => Number.isFinite(value) ? Math.round(value * 1000000) / 1000000 : 0;
 
-// USD → PHP conversion fallback (in case API never returns PHP)
-const USD_TO_PHP = 57.5;
+// Used only when the live USDT → PHP rate endpoint is unavailable.
+const FALLBACK_USDT_TO_PHP = 56.5;
+const EXCHANGE_RATE_URL = 'https://api.coinbase.com/v2/exchange-rates?currency=USDT';
+
+async function getUsdtToPhpRate() {
+  try {
+    const res = await fetch(EXCHANGE_RATE_URL, {
+      headers: { 'Accept': 'application/json', 'User-Agent': UA },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) throw new Error(`Exchange rate API returned ${res.status}`);
+    const data = await res.json();
+    const rate = Number(data?.data?.rates?.PHP);
+    if (Number.isFinite(rate) && rate > 0) return rate;
+  } catch (err) {
+    console.warn('USDT/PHP rate fetch failed:', err?.message);
+  }
+  return FALLBACK_USDT_TO_PHP;
+}
 
 export const handler = async (event) => {
   console.log('Market Price function called');
@@ -78,6 +96,7 @@ export const handler = async (event) => {
     if (!res.ok) throw new Error(`Market API returned ${res.status}`);
 
     const data  = await res.json();
+    const usdtToPhp = await getUsdtToPhpRate();
     const items = (Array.isArray(data.content) ? data.content : [])
       .filter(i => i?.item?.name === chest.keyword && !i?.isOrderInProgress)
       .slice(0, limit);
@@ -85,23 +104,21 @@ export const handler = async (event) => {
     const listings = items.map((item, idx) => {
       const usdt    = item?.cryptoPriceInfo?.price ?? 0;
       const fiat    = item?.fiatPriceInfo;
-      const phpRaw  = fiat?.currencyType === 'PHP'
-        ? fiat.price
-        : fiat?.price
-          ? Math.round(fiat.price * USD_TO_PHP * 100) / 100
-          : 0;
       const priceUsdt = round2(usdt);
-      const pricePhp = round2(phpRaw);
+      const pricePhp = round2(usdt * usdtToPhp);
 
       return {
         rank:            idx + 1,
         seller:          item?.seller?.userName || 'Unknown',
-        quantity:        item?.quantity || 0,
+        quantity:        item?.quantity || item?.item?.amount || 1,
+        itemName:        item?.item?.name || chest.keyword,
+        imageUrl:        item?.item?.imageUrl || '',
         priceUsdt:       priceUsdt,
         pricePhp:        pricePhp,
-        unitPriceUsdt:   round2(priceUsdt / chest.pieces),
-        unitPricePhp:    round2(pricePhp / chest.pieces),
+        unitPriceUsdt:   round6(priceUsdt / chest.pieces),
+        unitPricePhp:    round6(pricePhp / chest.pieces),
         fiatCurrency:    fiat?.currencyType ?? 'USD',
+        conversionRate:  round6(usdtToPhp),
       };
     });
 
@@ -126,6 +143,7 @@ export const handler = async (event) => {
                 price: singlePriceUsdt,
                 pricePhp: singlePricePhp,
                 fiatCurrency: singleFiatCurrency,
+                conversionRate: round6(usdtToPhp),
                 lastUpdated: Date.now(),
               },
             }

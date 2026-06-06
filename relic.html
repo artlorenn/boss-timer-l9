@@ -238,6 +238,99 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   flex: 1 1 auto;
   min-height: 0;
 }
+.market-snipe-metrics {
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  padding: 10px 12px;
+  min-width: 0;
+}
+.market-metric-label {
+  color: var(--text4);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.market-snipe-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px 12px;
+}
+.market-metric-value {
+  margin-top: 2px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.market-metric-value.good { color: var(--green); }
+.market-metric-value.warn { color: var(--amber); }
+.market-metric-value.dim { color: var(--text3); }
+.market-row-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  background: rgba(255,255,255,.04);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.market-row-tag.alert {
+  color: var(--green);
+  border-color: rgba(48,209,88,.35);
+  background: rgba(48,209,88,.12);
+}
+.market-row-tag.floor {
+  color: var(--green);
+  border-color: rgba(48,209,88,.25);
+  background: rgba(48,209,88,.08);
+}
+.market-row-tag.deal {
+  color: var(--amber);
+  border-color: rgba(255,214,10,.28);
+  background: rgba(255,214,10,.08);
+}
+.market-row-tag.high {
+  color: var(--red);
+  border-color: rgba(255,69,58,.24);
+  background: rgba(255,69,58,.07);
+}
+.market-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.market-list-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgba(255,255,255,.06);
+  flex: 0 0 auto;
+}
+.market-list-name {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: normal;
+}
+.market-list-sub {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 .market-stats-table-wrap {
   overflow: auto;
   border-radius: 8px;
@@ -253,7 +346,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-stats-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.34); }
 .market-stats-table {
   width: 100%;
-  min-width: 460px;
+  min-width: 580px;
   border-collapse: collapse;
   table-layout: auto;
 }
@@ -280,11 +373,13 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   font-size: 12px;
 }
 .market-stats-table th:nth-child(1),
-.market-stats-table td:nth-child(1) { width: 56px; text-align: center; }
+.market-stats-table td:nth-child(1) { min-width: 250px; text-align: left; }
 .market-stats-table th:nth-child(2),
-.market-stats-table td:nth-child(2) { text-align: right; min-width: 170px; }
+.market-stats-table td:nth-child(2) { width: 58px; text-align: center; }
 .market-stats-table th:nth-child(3),
-.market-stats-table td:nth-child(3) { text-align: right; min-width: 170px; }
+.market-stats-table td:nth-child(3) { text-align: right; min-width: 120px; }
+.market-stats-table th:nth-child(4),
+.market-stats-table td:nth-child(4) { text-align: right; min-width: 130px; }
 .market-stats-table tr:last-child td { border-bottom: none; }
 .market-cell-rank { color: var(--text3); font-weight: 400; }
 .market-cell-price { color: rgba(255,255,255,0.50); font-weight: 400; font-variant-numeric: tabular-nums; }
@@ -298,9 +393,10 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   #right-panel { overflow-y: visible; padding: 10px 10px 16px; border-left: none; border-top: 1px solid var(--border2); }
   #right-panel .right-panel-main { min-height: unset; }
   .right-market-stats, .market-stats-display, .market-stats-content, .market-stats-table-wrap { flex: none; min-height: unset; }
+  .market-snipe-metrics { grid-template-columns: 1fr 1fr; }
   .market-stats-controls { grid-template-columns: 1fr; }
   .market-alert-inline-row { grid-template-columns: 1fr auto; }
-  .market-stats-table { min-width: 380px; }
+  .market-stats-table { min-width: 640px; }
   .relic-grid { gap: 6px; } .relic-card { padding: 10px 12px; } .relic-name { font-size: 12px; margin-bottom: 8px; }
   .num-btn { width: 26px; height: 32px; font-size: 14px; } .num-wrap input { height: 32px; font-size: 13px; }
   .grand-grid { gap: 6px; } .grand-cell { padding: 8px 10px; } .grand-cell-val { font-size: 16px; } .grand-cell-label { font-size: 9px; }
@@ -467,6 +563,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
                 <option value="5">5 Chests</option>
                 <option value="10">10 Chests</option>
                 <option value="15">15 Chests</option>
+                <option value="30">30 Chests</option>
               </select>
             </div>
             <div class="market-alert-inline">
@@ -551,8 +648,11 @@ const DESTRUCTION_ATTACK_TOTALS=(()=>{
     [80,830],
     [81,848],
     [89,992],
-    [96,1160],
-    [97,1192],
+    [95,1122],
+    [96,1156],
+    [97,1190],
+    [98,1226],
+    [99,1262],
     [100,1300],
   ];
   const totals=Array(101).fill(0);
@@ -575,6 +675,7 @@ const CHESTS={t1:{label:'T1 Chest',pieces:1000},t2:{label:'T2 Chest',pieces:5000
 
 let phpPerPiece=null,usdtPerPiece=null,currency='USDT';
 const cache={};
+const DEFAULT_CHEST_IMAGE='https://obs-store-prod.line-scdn.net/0hWTQwhi8xCHtsDhaQ6gp3LDZRAgIEYh9uCjwCAx9eCh9fbBQsFRQbdkhdIEIKbRMtDTtESBJlNCAKXylsFhcfdkhvMEodayosGTg-YgJcCTAcbSZRURchTw91ChFJQj8/webp_s100x100';
 
 function setCurrency(cur){
   currency=cur;
@@ -826,7 +927,7 @@ document.addEventListener('change',e=>{
 });
 
 const marketStatsCache={};
-const marketAlertState={enabled:false,intervalId:null,lastMatchKey:'',beepCooldownUntil:0};
+const marketAlertState={enabled:false,intervalId:null,lastMatchKey:'',beepCooldownUntil:0,thresholdMode:'auto',lastTier:null};
 
 function fmtUsdt(value){
   if(!Number.isFinite(value)) return '0';
@@ -839,6 +940,29 @@ function getUsdtAlertThreshold(){
   const n=parseFloat(input.value);
   if(!Number.isFinite(n)||n<=0)return null;
   return Math.round(n*100)/100;
+}
+
+function getAutoUsdtThreshold(floorUsdt){
+  if(!Number.isFinite(floorUsdt)||floorUsdt<=0)return null;
+  return Math.max(1,Math.round(floorUsdt*100)-1)/100;
+}
+
+function syncAutoUsdtAlertThreshold(floorUsdt,tier){
+  const input=$('usdt-alert-threshold');
+  if(!input)return null;
+  if(marketAlertState.lastTier!==tier){
+    marketAlertState.lastTier=tier;
+    marketAlertState.thresholdMode='auto';
+    marketAlertState.lastMatchKey='';
+  }
+  if(marketAlertState.thresholdMode!=='auto')return getUsdtAlertThreshold();
+  const autoThreshold=getAutoUsdtThreshold(floorUsdt);
+  if(autoThreshold===null)return getUsdtAlertThreshold();
+  if(getUsdtAlertThreshold()!==autoThreshold){
+    input.value=autoThreshold.toFixed(2);
+    marketAlertState.lastMatchKey='';
+  }
+  return autoThreshold;
 }
 
 function setUsdtAlertStatus(text,color='var(--text4)'){
@@ -941,6 +1065,7 @@ function onUsdtAlertThresholdChange(){
   if(!Number.isFinite(n)||n<=0)n=0.01;
   n=Math.round(n*100)/100;
   input.value=n.toFixed(2);
+  marketAlertState.thresholdMode='manual';
   marketAlertState.lastMatchKey='';
   if(marketAlertState.enabled){
     setUsdtAlertStatus(`Watching for listings <= ${fmtUsdt(n)} USDT`, 'var(--amber)');
@@ -1024,6 +1149,11 @@ async function updateMarketStats(forceRefresh=false){
     const convertedSym=currency==='PHP'?'':'₱';
     const convertedSuf=currency==='PHP'?' USDT':' PHP';
     const fmtConverted=v=>v.toFixed(2);
+    const usdtPrices=listings
+      .map(l=>l.priceUsdt)
+      .filter(p=>typeof p==='number'&&Number.isFinite(p))
+      .sort((a,b)=>a-b);
+    syncAutoUsdtAlertThreshold(usdtPrices[0]??null,tier);
     const usdtThreshold=getUsdtAlertThreshold();
     const usdtMatches=(usdtThreshold===null)
       ? []
@@ -1061,22 +1191,37 @@ async function updateMarketStats(forceRefresh=false){
     const floorDiscountPct=medianPrice>0?((medianPrice-cheapest)/medianPrice)*100:0;
     const nearFloorThreshold=cheapest*1.02;
     const nearFloorCount=prices.filter(p=>p<=nearFloorThreshold).length;
-    
+    const nextPrice=prices[1]??null;
+    const nextGapPct=nextPrice&&cheapest>0?((nextPrice-cheapest)/cheapest)*100:0;
+    const usdtMid=Math.floor(usdtPrices.length/2);
+    const medianUsdt=usdtPrices.length%2===0
+      ? ((usdtPrices[usdtMid-1]??0)+(usdtPrices[usdtMid]??0))/2
+      : (usdtPrices[usdtMid]??0);
+    const thresholdHitCount=usdtThreshold===null?0:usdtPrices.filter(p=>p<=usdtThreshold).length;
+    const conversionRate=Number(listings.find(l=>Number.isFinite(l?.conversionRate))?.conversionRate);
+    const rateText=Number.isFinite(conversionRate)?conversionRate.toFixed(2):'--';
+    const moneyText=(value,mode=currency)=>{
+      if(!Number.isFinite(value))return '--';
+      return (mode==='PHP'?sym:'')+fmtPrice(value)+(mode==='PHP'?' PHP':' USDT');
+    };
+    const convertedText=value=>Number.isFinite(value)?(convertedSym+fmtConverted(value)+convertedSuf):'--';
+    const pctText=value=>Number.isFinite(value)?value.toFixed(2)+'%':'--';
     let html='<div class="market-stats-content">';
     
-    html+='<div style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;">';
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
-    html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Floor (Best Ask)</div><div style="font-size:13px;font-weight:400;color:var(--green);line-height:1.2;">'+sym+fmtPrice(cheapest)+suf+'</div></div>';
-    html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Median (Fair)</div><div style="font-size:13px;font-weight:400;color:var(--text2);line-height:1.2;">'+sym+fmtPrice(medianPrice)+suf+'</div></div>';
-    html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Discount vs Median</div><div style="font-size:13px;font-weight:400;color:'+(floorDiscountPct>=4?'var(--green)':floorDiscountPct>=2?'var(--amber)':'var(--text2)')+';line-height:1.2;">'+floorDiscountPct.toFixed(2)+'%</div></div>';
-    html+='<div><div style="color:var(--text4);font-size:11px;margin-bottom:2px;">Near-Floor Depth</div><div style="font-size:13px;font-weight:400;color:var(--text2);line-height:1.2;">'+nearFloorCount+'/'+listings.length+'</div></div>';
-    html+='</div>';
+    html+='<div class="market-snipe-metrics">';
+    html+='<div><div class="market-metric-label">Floor</div><div class="market-metric-value good">'+moneyText(cheapest)+'</div></div>';
+    html+='<div><div class="market-metric-label">Next Gap</div><div class="market-metric-value '+(nextGapPct>=4?'good':nextGapPct>=2?'warn':'dim')+'">'+pctText(nextGapPct)+'</div></div>';
+    html+='<div><div class="market-metric-label">Median</div><div class="market-metric-value">'+moneyText(medianPrice)+'</div></div>';
+    html+='<div><div class="market-metric-label">Alert Hits</div><div class="market-metric-value '+(thresholdHitCount>0?'good':'dim')+'">'+thresholdHitCount+'/'+listings.length+'</div></div>';
+    html+='<div><div class="market-metric-label">Under Median</div><div class="market-metric-value '+(floorDiscountPct>=4?'good':floorDiscountPct>=2?'warn':'dim')+'">'+pctText(floorDiscountPct)+'</div></div>';
+    html+='<div><div class="market-metric-label">Rate</div><div class="market-metric-value dim">'+rateText+' PHP/USDT</div></div>';
     html+='</div>';
     
     html+='<div class="market-stats-table-wrap">';
     html+='<table class="market-stats-table">';
     html+='<thead><tr>';
-    html+='<th>#</th>';
+    html+='<th>Item</th>';
+    html+='<th>Qty</th>';
     html+='<th>Price/Chest</th>';
     html+='<th>Converted</th>';
     html+='</tr></thead>';
@@ -1086,17 +1231,40 @@ async function updateMarketStats(forceRefresh=false){
       const l=listings[i];
       const price=currency==='PHP'?l.pricePhp:l.priceUsdt;
       const convertedPrice=currency==='PHP'?l.priceUsdt:l.pricePhp;
-      const priceVar=((price-cheapest)/cheapest)*100;
+      const edgeVsMedian=medianPrice>0?((medianPrice-price)/medianPrice)*100:0;
       const isAlertHit=marketAlertState.enabled&&usdtThreshold!==null&&Number.isFinite(l?.priceUsdt)&&l.priceUsdt<=usdtThreshold;
+      const tagClass=isAlertHit?'alert':(i===0?'floor':(edgeVsMedian>=5?'deal':(edgeVsMedian<0?'high':'')));
+      const tagText=isAlertHit?'Alert':(i===0?'Floor':(edgeVsMedian>=5?'Deal':(edgeVsMedian<0?'High':'Watch')));
       const bgColor=isAlertHit
-        ? 'rgba(48,209,88,.14)'
-        : (priceVar<2?'rgba(48,209,88,.08)':priceVar<5?'transparent':'rgba(255,69,58,.05)');
+        ? 'rgba(48,209,88,.16)'
+        : (i===0?'rgba(48,209,88,.10)':edgeVsMedian>=5?'rgba(255,214,10,.08)':edgeVsMedian<0?'rgba(255,69,58,.06)':'transparent');
+      const rowClass=isAlertHit?'alert':(edgeVsMedian<0?'high':'');
+      const qty=Math.max(1,Number(l.quantity)||1);
+      const rowName=l.itemName||chestInfo.label;
+      const rowImg=l.imageUrl||DEFAULT_CHEST_IMAGE;
+      const usdtApprox=Number.isFinite(l.priceUsdt)?l.priceUsdt*qty:null;
       
       html+='<tr style="background:'+bgColor+';">';
-      html+='<td class="market-cell-rank">'+l.rank+'</td>';
-      html+='<td class="market-cell-price">'+sym+fmtPrice(price)+suf+'</td>';
-      html+='<td class="market-cell-unit">'+(Number.isFinite(convertedPrice)?(convertedSym+fmtConverted(convertedPrice)+convertedSuf):'—')+'</td>';
+      html+='<td><div class="market-list-item">';
+      html+='<img class="market-list-img" src="'+rowImg+'" alt="">';
+      html+='<div><div class="market-list-name">'+rowName+'</div><div class="market-list-sub"><span class="market-row-tag '+tagClass+'">'+tagText+'</span><span class="market-cell-unit">'+(edgeVsMedian>=0?'+':'')+pctText(edgeVsMedian)+' vs median</span></div></div>';
+      html+='</div></td>';
+      html+='<td class="market-cell-price">'+qty+'</td>';
+      html+='<td class="market-cell-price">'+(Number.isFinite(l.pricePhp)?'&#8369;'+fmtPrice(l.pricePhp):'--')+'</td>';
+      html+='<td class="market-cell-unit">'+(Number.isFinite(l.priceUsdt)?'&#8776;'+fmtPrice(l.priceUsdt)+' USDT':'--')+'</td>';
       html+='</tr>';
+      continue;
+
+      html+='<div class="market-list-row '+rowClass+'" style="background:'+bgColor+';">';
+      html+='<div class="market-list-item">';
+      html+='<img class="market-list-img" src="'+rowImg+'" alt="">';
+      html+='<div><div class="market-list-name">'+rowName+'</div><div class="market-list-sub"><span class="market-row-tag '+tagClass+'">'+tagText+'</span><span class="market-cell-unit">'+(edgeVsMedian>=0?'+':'')+pctText(edgeVsMedian)+' vs median</span></div></div>';
+      html+='</div>';
+      html+='<div class="market-list-num">'+qty+'</div>';
+      html+='<div class="market-list-price">'+(Number.isFinite(l.pricePhp)?'â‚±'+fmtPrice(l.pricePhp):'--')+'</div>';
+      html+='<div class="market-list-converted">'+(Number.isFinite(l.priceUsdt)?'â‰ˆ'+fmtPrice(l.priceUsdt)+' USDT':'--')+'</div>';
+      html+='<div class="market-list-total">'+(Number.isFinite(phpTotal)?'â‚±'+fmtPrice(phpTotal):'--')+'</div>';
+      html+='</div>';
     }
     
     html+='</tbody></table></div>';
