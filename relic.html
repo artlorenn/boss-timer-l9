@@ -671,7 +671,13 @@ const DESTRUCTION_ATTACK_TOTALS=(()=>{
 })();
 const LIFE_HP_TOTALS=DESTRUCTION_ATTACK_TOTALS.map(v=>v*10);
 
-const CHESTS={t1:{label:'T1 Chest',pieces:1000},t2:{label:'T2 Chest',pieces:5000},t3:{label:'T3 Chest',pieces:10000},t4:{label:'T4 Chest',pieces:50000},t5:{label:'T5 Chest',pieces:100000}};
+const CHESTS={
+  t1:{label:'T1 Temporal Piece Chest x1,000',pieces:1000},
+  t2:{label:'T2 Temporal Piece Chest x5,000',pieces:5000},
+  t3:{label:'T3 Temporal Piece Chest x10,000',pieces:10000},
+  t4:{label:'T4 Temporal Piece Chest x50,000',pieces:50000},
+  t5:{label:'T5 Temporal Piece Chest x100,000',pieces:100000},
+};
 
 let phpPerPiece=null,usdtPerPiece=null,currency='USDT';
 const cache={};
@@ -1238,11 +1244,9 @@ async function updateMarketStats(forceRefresh=false){
       const bgColor=isAlertHit
         ? 'rgba(48,209,88,.16)'
         : (i===0?'rgba(48,209,88,.10)':edgeVsMedian>=5?'rgba(255,214,10,.08)':edgeVsMedian<0?'rgba(255,69,58,.06)':'transparent');
-      const rowClass=isAlertHit?'alert':(edgeVsMedian<0?'high':'');
       const qty=Math.max(1,Number(l.quantity)||1);
       const rowName=l.itemName||chestInfo.label;
       const rowImg=l.imageUrl||DEFAULT_CHEST_IMAGE;
-      const usdtApprox=Number.isFinite(l.priceUsdt)?l.priceUsdt*qty:null;
       
       html+='<tr style="background:'+bgColor+';">';
       html+='<td><div class="market-list-item">';

@@ -16,7 +16,7 @@ const round2 = (value) => Number.isFinite(value) ? Math.round(value * 100) / 100
 const round6 = (value) => Number.isFinite(value) ? Math.round(value * 1000000) / 1000000 : 0;
 
 // Used only when the live USDT → PHP rate endpoint is unavailable.
-const FALLBACK_USDT_TO_PHP = 56.5;
+const FALLBACK_USDT_TO_PHP = 61.75;
 const EXCHANGE_RATE_URL = 'https://api.coinbase.com/v2/exchange-rates?currency=USDT';
 
 async function getUsdtToPhpRate() {
@@ -96,7 +96,6 @@ export const handler = async (event) => {
     if (!res.ok) throw new Error(`Market API returned ${res.status}`);
 
     const data  = await res.json();
-    const usdtToPhp = await getUsdtToPhpRate();
     const items = (Array.isArray(data.content) ? data.content : [])
       .filter(i => i?.item?.name === chest.keyword && !i?.isOrderInProgress)
       .slice(0, limit);
@@ -105,7 +104,13 @@ export const handler = async (event) => {
       const usdt    = item?.cryptoPriceInfo?.price ?? 0;
       const fiat    = item?.fiatPriceInfo;
       const priceUsdt = round2(usdt);
-      const pricePhp = round2(usdt * usdtToPhp);
+      const fiatPrice = Number(fiat?.price);
+      const pricePhp = round2(
+        fiat?.currencyType === 'PHP' && Number.isFinite(fiatPrice)
+          ? fiatPrice
+          : usdt * FALLBACK_USDT_TO_PHP
+      );
+      const conversionRate = priceUsdt > 0 ? round6(pricePhp / priceUsdt) : FALLBACK_USDT_TO_PHP;
 
       return {
         rank:            idx + 1,
@@ -118,7 +123,7 @@ export const handler = async (event) => {
         unitPriceUsdt:   round6(priceUsdt / chest.pieces),
         unitPricePhp:    round6(pricePhp / chest.pieces),
         fiatCurrency:    fiat?.currencyType ?? 'USD',
-        conversionRate:  round6(usdtToPhp),
+        conversionRate:  conversionRate,
       };
     });
 
@@ -126,6 +131,7 @@ export const handler = async (event) => {
     const singlePriceUsdt = cheapest?.priceUsdt ?? null;
     const singlePricePhp = cheapest?.pricePhp ?? null;
     const singleFiatCurrency = cheapest?.fiatCurrency ?? 'USD';
+    const singleConversionRate = cheapest?.conversionRate ?? FALLBACK_USDT_TO_PHP;
 
     return {
       statusCode: 200,
@@ -143,7 +149,7 @@ export const handler = async (event) => {
                 price: singlePriceUsdt,
                 pricePhp: singlePricePhp,
                 fiatCurrency: singleFiatCurrency,
-                conversionRate: round6(usdtToPhp),
+                conversionRate: singleConversionRate,
                 lastUpdated: Date.now(),
               },
             }
