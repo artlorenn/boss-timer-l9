@@ -65,13 +65,13 @@ html, body {
 #right-panel .right-panel-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 #left-panel::-webkit-scrollbar, #right-panel::-webkit-scrollbar { width: 2px; }
 #left-panel::-webkit-scrollbar-thumb, #right-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); content-visibility: auto; contain-intrinsic-size: 560px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); content-visibility: auto; contain-intrinsic-size: 560px; }
 .section-label { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text4); margin-bottom: 12px; }
 .cur-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-family: inherit; font-size: 12px; font-weight: 500; height: 36px; min-height: 36px; padding: 6px 10px; border-radius: 8px; outline: none; cursor: pointer; transition: border-color .15s; flex-shrink: 0; }
 .cur-select:hover { border-color: rgba(255,255,255,.12); }
 .cur-select option { background: #1c1c1e; }
 .relic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.relic-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .2s; content-visibility: auto; contain-intrinsic-size: 110px; }
+.relic-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; box-shadow: 0 2px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .2s; content-visibility: auto; contain-intrinsic-size: 110px; }
 .relic-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07); }
 .relic-name { font-size: 13px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 10px; }
 .relic-name.red   { color: var(--red);   }
@@ -101,10 +101,73 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
 .tier-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.02); border: 1px solid var(--border2); transition: background .15s; gap: 8px; }
 .tier-row:hover { background: rgba(255,255,255,.04); }
+.tier-row.best-value {
+  background: rgba(48,209,88,.08);
+  border-color: rgba(48,209,88,.28);
+}
+.tier-row.selected-tier {
+  box-shadow: inset 0 0 0 1px rgba(10,132,255,.22);
+}
+.value-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--green);
+  border: 1px solid rgba(48,209,88,.32);
+  background: rgba(48,209,88,.08);
+  border-radius: 6px;
+  padding: 2px 5px;
+  white-space: nowrap;
+}
+.value-tag.selected {
+  color: var(--blue);
+  border-color: rgba(10,132,255,.34);
+  background: rgba(10,132,255,.09);
+}
+.best-value-panel {
+  margin-bottom: 8px;
+  padding: 9px 10px;
+  border: 1px solid rgba(48,209,88,.24);
+  border-radius: var(--radius-sm);
+  background: rgba(48,209,88,.06);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.best-value-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: -.01em;
+}
+.best-value-sub {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.best-value-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(48,209,88,.34);
+  color: var(--green);
+  background: rgba(48,209,88,.08);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.best-value-btn:hover { background: rgba(48,209,88,.13); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin-anim { animation: spin .8s linear infinite; }
 /* CP Reference */
-.cp-ref-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); }
+.cp-ref-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); }
 .cp-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
 .cp-tab { font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text4); letter-spacing: .03em; text-transform: uppercase; transition: all .15s; user-select: none; }
 .cp-tab:hover { color: var(--text3); border-color: var(--border); }
@@ -686,6 +749,7 @@ const CHESTS={
 
 let phpPerPiece=null,usdtPerPiece=null,currency='USDT';
 const cache={};
+const priceRequests={};
 const DEFAULT_CHEST_IMAGE='https://obs-store-prod.line-scdn.net/0hWTQwhi8xCHtsDhaQ6gp3LDZRAgIEYh9uCjwCAx9eCh9fbBQsFRQbdkhdIEIKbRMtDTtESBJlNCAKXylsFhcfdkhvMEodayosGTg-YgJcCTAcbSZRURchTw91ChFJQj8/webp_s100x100';
 
 function setCurrency(cur){
@@ -714,6 +778,60 @@ function fmtDualCur(pieces){
 function fmtDualChestTotal(chests,price){
   if(!price||!chests)return '—';
   return '₱'+(chests*price.php).toFixed(2)+' / '+(chests*price.usdt).toFixed(2)+' USDT';
+}
+
+function fmtDualPrice(price){
+  if(!price)return 'â€”';
+  return 'â‚±'+price.php.toFixed(2)+' / '+price.usdt.toFixed(2)+' USDT';
+}
+function getTierValueRows(){
+  const rows=Object.entries(CHESTS)
+    .map(([tier,chest])=>{
+      const cached=cache[tier];
+      if(!cached)return null;
+      return {
+        tier,
+        chest,
+        price: cached,
+        per1k: {
+          php: cached.php/chest.pieces*1000,
+          usdt: cached.usdt/chest.pieces*1000,
+        },
+      };
+    })
+    .filter(Boolean);
+  rows.sort((a,b)=>a.per1k.usdt-b.per1k.usdt);
+  return rows;
+}
+function getBestValueTier(){
+  return getTierValueRows()[0]||null;
+}
+function selectBestValueTier(){
+  const best=getBestValueTier();
+  if(!best)return;
+  const chestSelect=$('chest-select');
+  const statsSelect=$('stats-tier-select');
+  if(chestSelect)chestSelect.value=best.tier;
+  if(statsSelect)statsSelect.value=best.tier;
+  updateChestAnalysis();
+  fetchLivePrice();
+  updateMarketStats();
+}
+function getTotalTemporal(){
+  return RELICS.reduce((s,r)=>{
+    const f=parseInt($(`${r.id}-current`)?.value)||1;
+    const t=parseInt($(`${r.id}-target`)?.value)||1;
+    return s+(f<t?getCost(f,t,r.id):0);
+  },0);
+}
+
+let recalcFrame=0;
+function scheduleRecalc(){
+  if(recalcFrame)return;
+  recalcFrame=requestAnimationFrame(()=>{
+    recalcFrame=0;
+    recalcAll();
+  });
 }
 
 function renderLivePriceStatus(){
@@ -754,8 +872,8 @@ function buildCards(){
         <span style="font-size:13px;color:var(--text4);">Set levels to calculate</span>
       </div>`;
     grid.appendChild(card);
-    card.querySelector(`#${r.id}-current`).addEventListener('input',recalcAll);
-    card.querySelector(`#${r.id}-target`).addEventListener('input',recalcAll);
+    card.querySelector(`#${r.id}-current`).addEventListener('input',scheduleRecalc);
+    card.querySelector(`#${r.id}-target`).addEventListener('input',scheduleRecalc);
   }
 }
 
@@ -877,56 +995,45 @@ function updateBarGraph(){
   }).join('');
 }
 
-function updateChestAnalysis(gT){
-  if(gT===undefined) gT=RELICS.reduce((s,r)=>{const f=parseInt($(`${r.id}-current`).value)||1,t=parseInt($(`${r.id}-target`).value)||1;return s+(f<t?getCost(f,t,r.id):0);},0);
-  const tier=$('chest-select').value,chest=CHESTS[tier];
-  const needed=gT>0?Math.ceil(gT/chest.pieces):0;
-  $('chest-label').textContent=chest.label;
-  $('chest-label').style.color=chest.color;
-  $('chest-sublabel').textContent=`x${chest.pieces.toLocaleString()} Pieces / Chest`;
-  $('chests-needed').textContent=needed>0?needed.toLocaleString():'0';
-  const cached=cache[tier];
-  if(cached){const price=currency==='PHP'?cached.php:cached.usdt,suf=currency==='PHP'?' PHP':' USDT';$('chest-calc').textContent=needed>0?`${needed} × ${price.toFixed(2)} = ${(needed*price).toFixed(2)}${suf}`:'—';renderLivePriceStatus();}
-  else{$('chest-calc').textContent='—';fetchPrice(tier);}
-}
-function updateTierBreakdown(gT){
-  if(!gT)gT=0;
-  const c=$('tier-breakdown');
-  c.innerHTML=Object.entries(CHESTS).map(([tier,chest])=>{
-    const needed=gT>0?Math.ceil(gT/chest.pieces):0;
-    const cached=cache[tier],price=cached?(currency==='PHP'?cached.php:cached.usdt):null;
-    const total=price&&needed?(needed*price).toFixed(2):null;
-    const sym=currency==='PHP'?'₱':'',suf=currency==='PHP'?'':' USDT';
-    return`<div class="tier-row">
-      <span style="font-size:12px;font-weight:600;color:var(--text2);flex:1;">${chest.label}</span>
-      <span style="font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;">${needed>0?needed.toLocaleString()+' chests':'—'}</span>
-      <span style="font-size:12px;color:var(--green);font-weight:500;font-variant-numeric:tabular-nums;text-align:right;min-width:80px;">${total?sym+total+suf:cached?'—':'…'}</span>
-    </div>`;
-  }).join('');
-}
-
 const PROXY='/.netlify/functions/market-price';
-async function fetchPrice(tier){
-  if(cache[tier]){updateChestAnalysis();return;}
-  let php=null,usdt=null;
-  try{const res=await fetch(`${PROXY}?tier=${tier}`,{signal:AbortSignal.timeout(10000)});if(res.ok){const d=await res.json();const item=d?.data?.[tier.toUpperCase()];if(item){php=item.pricePhp;usdt=item.price;}}}catch(_){}
-  if(php&&usdt){cache[tier]={php,usdt};updateChestAnalysis();updateTierBreakdown();}
+async function fetchPrice(tier,render=true){
+  if(cache[tier])return cache[tier];
+  if(!priceRequests[tier]){
+    priceRequests[tier]=(async()=>{
+      let php=null,usdt=null;
+      try{
+        const res=await fetch(`${PROXY}?tier=${tier}`,{signal:AbortSignal.timeout(10000)});
+        if(res.ok){
+          const d=await res.json();
+          const item=d?.data?.[tier.toUpperCase()];
+          if(item){php=item.pricePhp;usdt=item.price;}
+        }
+      }catch(_){}
+      if(php&&usdt)cache[tier]={php,usdt};
+      return cache[tier]||null;
+    })().finally(()=>{delete priceRequests[tier];});
+  }
+  const result=await priceRequests[tier];
+  if(result&&render){
+    updateChestAnalysis();
+    updateTierBreakdown(getTotalTemporal());
+  }
+  return result;
 }
 async function fetchAllTiers(){
-  await Promise.all(Object.keys(CHESTS).map(fetchPrice));
-  updateTierBreakdown(RELICS.reduce((s,r)=>{const f=parseInt($(`${r.id}-current`).value)||1,t=parseInt($(`${r.id}-target`).value)||1;return s+(f<t?getCost(f,t,r.id):0);},0));
+  await Promise.all(Object.keys(CHESTS).map(tier=>fetchPrice(tier,false)));
+  updateTierBreakdown(getTotalTemporal());
 }
 async function fetchLivePrice(){
   const el=$('price-status-inner'),tier=$('chest-select').value;
-  await fetchPrice(tier);
+  await fetchPrice(tier,false);
   const c=cache[tier];
   if(c){
-    phpPerPiece=cache['t1']?cache['t1'].php/1000:null;
-    usdtPerPiece=cache['t1']?cache['t1'].usdt/1000:null;
-    renderLivePriceStatus();
-    if(!cache['t1'])await fetchPrice('t1');
+    if(!cache['t1'])await fetchPrice('t1',false);
     if(cache['t1']){phpPerPiece=cache['t1'].php/1000;usdtPerPiece=cache['t1'].usdt/1000;}
-    recalcAll();fetchAllTiers();
+    renderLivePriceStatus();
+    recalcAll();
+    fetchAllTiers();
     clearTimeout(window._pt);
     window._pt=setTimeout(()=>{Object.keys(cache).forEach(k=>delete cache[k]);phpPerPiece=null;usdtPerPiece=null;fetchLivePrice();},120000);
   }else{
@@ -951,6 +1058,7 @@ document.addEventListener('change',e=>{
 });
 
 const marketStatsCache={};
+const marketStatsRequests={};
 const marketAlertState={enabled:false,intervalId:null,lastMatchKey:'',beepCooldownUntil:0,thresholdMode:'auto',lastTier:null};
 
 function fmtUsdt(value){
@@ -1127,17 +1235,22 @@ async function refreshMarketStats(){
 async function fetchMarketStatsData(tier,limit,forceRefresh=false){
   const cacheKey=`${tier}_${limit}`;
   if(!forceRefresh&&marketStatsCache[cacheKey])return marketStatsCache[cacheKey];
-  try{
-    const res=await fetch(`/.netlify/functions/market-price?tier=${tier}&limit=${limit}`,{signal:AbortSignal.timeout(10000)});
-    if(res.ok){
-      const d=await res.json();
-      if(d?.listings&&Array.isArray(d.listings)){
-        marketStatsCache[cacheKey]=d;
-        return d;
-      }
-    }
-  }catch(e){console.warn('Market stats fetch error:',e);}
-  return null;
+  if(!marketStatsRequests[cacheKey]){
+    marketStatsRequests[cacheKey]=(async()=>{
+      try{
+        const res=await fetch(`/.netlify/functions/market-price?tier=${tier}&limit=${limit}`,{signal:AbortSignal.timeout(10000)});
+        if(res.ok){
+          const d=await res.json();
+          if(d?.listings&&Array.isArray(d.listings)){
+            marketStatsCache[cacheKey]=d;
+            return d;
+          }
+        }
+      }catch(e){console.warn('Market stats fetch error:',e);}
+      return null;
+    })().finally(()=>{delete marketStatsRequests[cacheKey];});
+  }
+  return marketStatsRequests[cacheKey];
 }
 
 async function updateMarketStats(forceRefresh=false){
@@ -1276,18 +1389,6 @@ async function updateMarketStats(forceRefresh=false){
       html+='<td class="market-cell-unit">'+(Number.isFinite(l.priceUsdt)?'&#8776;'+fmtPrice(l.priceUsdt)+' USDT':'--')+'</td>';
       html+='<td></td>';
       html+='</tr>';
-      continue;
-
-      html+='<div class="market-list-row '+rowClass+'" style="background:'+bgColor+';">';
-      html+='<div class="market-list-item">';
-      html+='<img class="market-list-img" src="'+rowImg+'" alt="">';
-      html+='<div><div class="market-list-name">'+rowName+'</div><div class="market-list-sub"><span class="market-row-tag '+tagClass+'">'+tagText+'</span><span class="market-cell-unit">'+(edgeVsMedian>=0?'+':'')+pctText(edgeVsMedian)+' vs median</span></div></div>';
-      html+='</div>';
-      html+='<div class="market-list-num">'+qty+'</div>';
-      html+='<div class="market-list-price">'+(Number.isFinite(l.pricePhp)?'â‚±'+fmtPrice(l.pricePhp):'--')+'</div>';
-      html+='<div class="market-list-converted">'+(Number.isFinite(l.priceUsdt)?'â‰ˆ'+fmtPrice(l.priceUsdt)+' USDT':'--')+'</div>';
-      html+='<div class="market-list-total">'+(Number.isFinite(phpTotal)?'â‚±'+fmtPrice(phpTotal):'--')+'</div>';
-      html+='</div>';
     }
     
     html+='</tbody></table></div>';
@@ -1308,7 +1409,7 @@ async function updateMarketStats(forceRefresh=false){
 }
 
 function updateChestAnalysis(gT){
-  if(gT===undefined) gT=RELICS.reduce((s,r)=>{const f=parseInt($(`${r.id}-current`).value)||1,t=parseInt($(`${r.id}-target`).value)||1;return s+(f<t?getCost(f,t,r.id):0);},0);
+  if(gT===undefined) gT=getTotalTemporal();
   const tier=$('chest-select').value,chest=CHESTS[tier];
   const needed=gT>0?Math.ceil(gT/chest.pieces):0;
   $('chest-label').textContent=chest.label;
@@ -1322,16 +1423,48 @@ function updateChestAnalysis(gT){
 function updateTierBreakdown(gT){
   if(!gT)gT=0;
   const c=$('tier-breakdown');
-  c.innerHTML=Object.entries(CHESTS).map(([tier,chest])=>{
+  const selectedTier=$('chest-select')?.value||'t1';
+  const valueRows=getTierValueRows();
+  const best=valueRows[0]||null;
+  const selectedValue=valueRows.find(row=>row.tier===selectedTier);
+  let html='';
+  if(best){
+    const isSelectedBest=best.tier===selectedTier;
+    const savings=selectedValue?selectedValue.per1k.usdt-best.per1k.usdt:0;
+    html+=`<div class="best-value-panel">
+      <div>
+        <div class="best-value-title">${isSelectedBest?'Best value selected':`Best value: ${best.tier.toUpperCase()}`}</div>
+        <div class="best-value-sub">${fmtDualPrice(best.per1k)} per 1k pieces${!isSelectedBest&&savings>0?` • saves ${savings.toFixed(2)} USDT per 1k vs selected`:''}</div>
+      </div>
+      ${isSelectedBest?'':`<button class="best-value-btn" type="button" onclick="selectBestValueTier()">View Best</button>`}
+    </div>`;
+  }else{
+    html+=`<div class="best-value-panel">
+      <div>
+        <div class="best-value-title">Checking best value</div>
+        <div class="best-value-sub">Loading tier prices per 1k pieces...</div>
+      </div>
+    </div>`;
+  }
+  html+=Object.entries(CHESTS).map(([tier,chest])=>{
     const needed=gT>0?Math.ceil(gT/chest.pieces):0;
     const cached=cache[tier];
     const total=cached&&needed?fmtDualChestTotal(needed,cached):null;
-    return`<div class="tier-row">
-      <span style="font-size:12px;font-weight:600;color:var(--text2);flex:1;">${chest.label}</span>
+    const isBest=best?.tier===tier;
+    const isSelected=selectedTier===tier;
+    const per1k=cached?fmtDualPrice({php:cached.php/chest.pieces*1000,usdt:cached.usdt/chest.pieces*1000}):'...';
+    return`<div class="tier-row ${isBest?'best-value':''} ${isSelected?'selected-tier':''}">
+      <span style="font-size:12px;font-weight:600;color:var(--text2);flex:1;display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap;">
+        <span>${chest.label}</span>
+        ${isBest?'<span class="value-tag">Best / 1k</span>':''}
+        ${isSelected?'<span class="value-tag selected">Selected</span>':''}
+      </span>
+      <span style="font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;text-align:right;min-width:128px;">${per1k} / 1k</span>
       <span style="font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;">${needed>0?needed.toLocaleString()+' chests':'—'}</span>
       <span style="font-size:12px;color:var(--green);font-weight:500;font-variant-numeric:tabular-nums;text-align:right;min-width:130px;">${total?total:cached?'—':'...'}</span>
     </div>`;
   }).join('');
+  c.innerHTML=html;
 }
 
 setupUsdtAlertInputInteractions();

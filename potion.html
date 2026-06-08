@@ -588,6 +588,8 @@
   <script>
     const $ = id => document.getElementById(id);
     const INPUT_IDS = ['pots-used', 'measure-mins', 'measure-secs', 'total-pots', 'session-mins', 'session-secs'];
+    const presetButtons = Array.from(document.querySelectorAll('.preset-btn'));
+    let calcFrame = 0;
 
     function parseNum(value, fallback = 0) {
       const parsed = parseFloat(value);
@@ -645,10 +647,18 @@
     function syncPresetState() {
       const mins = Math.floor(parseNum($('session-mins').value, 0));
       const secs = Math.floor(parseNum($('session-secs').value, 0));
-      document.querySelectorAll('.preset-btn').forEach(btn => {
+      presetButtons.forEach(btn => {
         const bMins = parseInt(btn.dataset.mins || '0', 10);
         const bSecs = parseInt(btn.dataset.secs || '0', 10);
         btn.classList.toggle('active', mins === bMins && secs === bSecs);
+      });
+    }
+
+    function scheduleCalc() {
+      if (calcFrame) return;
+      calcFrame = requestAnimationFrame(() => {
+        calcFrame = 0;
+        calc();
       });
     }
 
@@ -724,14 +734,14 @@
       input.value = String(Math.round(next));
 
       if (target === 'session-mins' || target === 'session-secs') syncPresetState();
-      calc();
+      scheduleCalc();
     });
 
     INPUT_IDS.forEach(id => {
       const input = $(id);
       input.addEventListener('input', () => {
         if (id === 'session-mins' || id === 'session-secs') syncPresetState();
-        calc();
+        scheduleCalc();
       });
 
       input.addEventListener('change', () => {
@@ -740,16 +750,16 @@
         const clamped = clamp(parseNum(input.value, 0), minAttr, maxAttr);
         input.value = String(Math.round(clamped));
         if (id === 'session-mins' || id === 'session-secs') syncPresetState();
-        calc();
+        scheduleCalc();
       });
     });
 
-    document.querySelectorAll('.preset-btn').forEach(btn => {
+    presetButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         $('session-mins').value = btn.dataset.mins || '0';
         $('session-secs').value = btn.dataset.secs || '0';
         syncPresetState();
-        calc();
+        scheduleCalc();
       });
     });
 
