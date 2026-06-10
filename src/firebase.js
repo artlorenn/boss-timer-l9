@@ -1,12 +1,28 @@
+const firebaseEnv = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {}
+const firebaseDefaults = {
+  VITE_FIREBASE_API_KEY: 'AIzaSyAyotrWoly1Xd8qg8-eq97EJoP2Mx8V1To',
+  VITE_FIREBASE_AUTH_DOMAIN: 'boss-timer2.firebaseapp.com',
+  VITE_FIREBASE_PROJECT_ID: 'boss-timer2',
+  VITE_FIREBASE_STORAGE_BUCKET: 'boss-timer2.firebasestorage.app',
+  VITE_FIREBASE_MESSAGING_SENDER_ID: '1089834357623',
+  VITE_FIREBASE_APP_ID: '1:1089834357623:web:3f66c8bfb8aa208eb98772',
+  VITE_FIREBASE_MEASUREMENT_ID: 'G-70XPG1283P',
+  VITE_FIREBASE_DATABASE_URL: 'https://boss-timer2-default-rtdb.asia-southeast1.firebasedatabase.app',
+}
+
+function firebaseEnvValue(key) {
+  return firebaseEnv[key] || firebaseDefaults[key]
+}
+
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-  databaseURL:       import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  apiKey:            firebaseEnvValue('VITE_FIREBASE_API_KEY'),
+  authDomain:        firebaseEnvValue('VITE_FIREBASE_AUTH_DOMAIN'),
+  projectId:         firebaseEnvValue('VITE_FIREBASE_PROJECT_ID'),
+  storageBucket:     firebaseEnvValue('VITE_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: firebaseEnvValue('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+  appId:             firebaseEnvValue('VITE_FIREBASE_APP_ID'),
+  measurementId:     firebaseEnvValue('VITE_FIREBASE_MEASUREMENT_ID'),
+  databaseURL:       firebaseEnvValue('VITE_FIREBASE_DATABASE_URL'),
 }
 
 let firebaseSdkPromise = null
