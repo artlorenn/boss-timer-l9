@@ -151,3 +151,26 @@ export async function subscribeSchedule(onBosses, onError) {
     if (onError) onError(err)
   })
 }
+
+export async function fetchMarketSnapshot() {
+  const { db, doc, getDoc } = await loadFirebaseSdk()
+  const snap = await getDoc(doc(db, 'marketTemporal', 'latest'))
+  return snap.exists() ? snap.data() : null
+}
+
+export async function saveMarketSnapshot(snapshot) {
+  const { db, doc, setDoc } = await loadFirebaseSdk()
+  await setDoc(doc(db, 'marketTemporal', 'latest'), {
+    ...snapshot,
+    updatedAt: Date.now()
+  })
+}
+
+export async function subscribeMarketSnapshot(onSnapshotData, onError) {
+  const { db, doc, onSnapshot } = await loadFirebaseSdk()
+  return onSnapshot(doc(db, 'marketTemporal', 'latest'), snap => {
+    onSnapshotData(snap.exists() ? snap.data() : null)
+  }, err => {
+    if (onError) onError(err)
+  })
+}

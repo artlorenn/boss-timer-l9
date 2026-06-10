@@ -63,6 +63,7 @@ html, body {
 #left-panel { overflow-y: auto; padding: 20px 10px 20px 16px; display: flex; flex-direction: column; gap: 10px; }
 #right-panel { overflow-y: auto; padding: 20px 16px 20px 10px; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid var(--border2); min-height: 0; }
 #right-panel .right-panel-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+#right-panel .section-label { margin-bottom: 6px; }
 #left-panel::-webkit-scrollbar, #right-panel::-webkit-scrollbar { width: 2px; }
 #left-panel::-webkit-scrollbar-thumb, #right-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06); content-visibility: auto; contain-intrinsic-size: 560px; }
@@ -95,12 +96,35 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .grand-cell { background: rgba(255,255,255,.03); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; }
 .grand-cell-label { font-size: 10px; font-weight: 500; color: var(--text3); margin-bottom: 4px; letter-spacing: .02em; text-transform: uppercase; }
 .grand-cell-val { font-size: 20px; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-.chest-body { background: rgba(255,255,255,.03); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; }
+.chest-body { background: rgba(255,255,255,.03); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
+.chest-body.best-focus {
+  border-color: rgba(48,209,88,.28);
+  background: rgba(48,209,88,.055);
+}
+#chest-label { font-size: 13px !important; }
+#chest-sublabel { margin-bottom: 5px !important; }
+#chests-needed { font-size: 28px !important; }
+#chest-calc { font-size: 10px !important; }
 .live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: var(--green); letter-spacing: .02em; }
 .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
-.tier-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.02); border: 1px solid var(--border2); transition: background .15s; gap: 8px; }
+.tier-row { display: grid; grid-template-columns: minmax(130px, 1fr) 112px 46px 112px; align-items: center; padding: 5px 8px; border-radius: 7px; background: rgba(255,255,255,.018); border: 1px solid var(--border2); transition: background .15s; gap: 7px; min-height: 29px; }
 .tier-row:hover { background: rgba(255,255,255,.04); }
+.tier-row > span { min-width: 0 !important; }
+.tier-row > span:first-child { overflow: hidden; }
+.tier-row > span:first-child > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tier-row > span:nth-child(2),
+.tier-row > span:nth-child(3),
+.tier-row > span:nth-child(4) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right !important;
+}
 .tier-row.best-value {
   background: rgba(48,209,88,.08);
   border-color: rgba(48,209,88,.28);
@@ -109,7 +133,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   box-shadow: inset 0 0 0 1px rgba(10,132,255,.22);
 }
 .value-tag {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: .04em;
   text-transform: uppercase;
@@ -117,7 +141,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   border: 1px solid rgba(48,209,88,.32);
   background: rgba(48,209,88,.08);
   border-radius: 6px;
-  padding: 2px 5px;
+  padding: 1px 4px;
   white-space: nowrap;
 }
 .value-tag.selected {
@@ -126,8 +150,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   background: rgba(10,132,255,.09);
 }
 .best-value-panel {
-  margin-bottom: 8px;
-  padding: 9px 10px;
+  margin-bottom: 5px;
+  padding: 6px 8px;
   border: 1px solid rgba(48,209,88,.24);
   border-radius: var(--radius-sm);
   background: rgba(48,209,88,.06);
@@ -137,21 +161,21 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   align-items: center;
 }
 .best-value-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--green);
   letter-spacing: -.01em;
 }
 .best-value-sub {
   margin-top: 2px;
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text3);
   line-height: 1.35;
   font-variant-numeric: tabular-nums;
 }
 .best-value-btn {
-  height: 28px;
-  padding: 0 10px;
+  height: 22px;
+  padding: 0 8px;
   border-radius: 7px;
   border: 1px solid rgba(48,209,88,.34);
   color: var(--green);
@@ -189,12 +213,12 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 .market-stats-head .section-label { margin-bottom: 0; }
 .stats-refresh-btn {
   width: auto;
-  height: 28px;
+  height: 26px;
   padding: 0 10px;
   background: rgba(255,255,255,.06);
   border: 1px solid var(--border2);
@@ -216,22 +240,34 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .stats-refresh-btn:disabled { opacity: .65; cursor: wait; }
 .market-stats-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
-  gap: 8px;
-  margin-bottom: 4px;
+  grid-template-columns: 1fr 0.9fr 1.2fr;
+  gap: 6px;
+  margin-bottom: 2px;
   align-items: end;
+  padding: 7px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  background: rgba(255,255,255,.02);
+}
+.market-control-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text4);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 3px;
 }
 .market-alert-inline {
   display: flex;
   flex-direction: column;
 }
 .market-alert-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   color: var(--text4);
   text-transform: uppercase;
   letter-spacing: .02em;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 .market-alert-inline-row {
   display: grid;
@@ -241,8 +277,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 }
 .market-alert-input {
   width: 100%;
-  height: 32px;
-  padding: 6px 10px;
+  height: 30px;
+  padding: 5px 9px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface2);
@@ -256,8 +292,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 input.market-alert-input[type=number]::-webkit-outer-spin-button,
 input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appearance: auto; margin: 0; }
 .market-alert-btn {
-  height: 32px;
-  padding: 0 12px;
+  height: 30px;
+  padding: 0 10px;
 }
 .market-alert-btn.active {
   color: var(--green);
@@ -265,24 +301,58 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   background: rgba(48,209,88,.08);
 }
 .market-alert-status {
-  margin-top: -2px;
+  margin-top: -4px;
   font-size: 10px;
   color: var(--text4);
   text-align: right;
 }
 .market-stats-meta {
-  margin-top: 2px;
+  margin-top: -2px;
   font-size: 10px;
   color: var(--text4);
   text-align: right;
+  display: none;
+}
+.deal-radar-display {
+  margin: 0 0 2px;
+}
+.deal-radar-card {
+  border: 1px solid rgba(48,209,88,.22);
+  border-radius: var(--radius-sm);
+  background: rgba(48,209,88,.055);
+  padding: 6px 8px;
+}
+.deal-radar-card.warn {
+  border-color: rgba(255,214,10,.28);
+  background: rgba(255,214,10,.055);
+}
+.deal-radar-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.deal-radar-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing: -.01em;
+}
+.deal-radar-card.warn .deal-radar-title { color: var(--amber); }
+.deal-radar-sub {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 .right-market-stats {
-  margin-top: 16px;
+  margin-top: 10px;
   border-top: 1px solid var(--border2);
-  padding-top: 12px;
+  padding-top: 9px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -296,7 +366,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-stats-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   font-size: 12px;
   flex: 1 1 auto;
   min-height: 0;
@@ -305,12 +375,12 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   border: 1px solid var(--border2);
   border-radius: 8px;
   background: rgba(255,255,255,.04);
-  padding: 10px 12px;
+  padding: 6px 8px;
   min-width: 0;
 }
 .market-metric-label {
   color: var(--text4);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: .03em;
   text-transform: uppercase;
@@ -318,12 +388,12 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-snipe-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px 12px;
+  gap: 6px 10px;
 }
 .market-metric-value {
-  margin-top: 2px;
+  margin-top: 1px;
   color: var(--text2);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -334,14 +404,14 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  height: 20px;
-  padding: 0 7px;
+  min-width: 42px;
+  height: 17px;
+  padding: 0 6px;
   border-radius: 999px;
   border: 1px solid var(--border2);
   color: var(--text3);
   background: rgba(255,255,255,.04);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: .03em;
   text-transform: uppercase;
@@ -369,26 +439,26 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-list-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 .market-list-img {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   object-fit: cover;
   background: rgba(255,255,255,.06);
   flex: 0 0 auto;
 }
 .market-list-name {
   color: var(--green);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.25;
   white-space: normal;
 }
 .market-list-sub {
-  margin-top: 4px;
+  margin-top: 2px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -396,7 +466,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 }
 .market-stats-table-wrap {
   overflow: auto;
-  border-radius: 8px;
+  border-radius: 9px;
   border: 1px solid var(--border2);
   background: rgba(255,255,255,.02);
   flex: 1 1 auto;
@@ -410,14 +480,14 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-stats-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.34); }
 .market-stats-table {
   width: 100%;
-  min-width: 520px;
+  min-width: 500px;
   border-collapse: collapse;
   table-layout: fixed;
 }
 .market-col-item { width: auto; }
-.market-col-price { width: 148px; }
-.market-col-converted { width: 110px; }
-.market-col-spacer { width: 40px; }
+.market-col-price { width: 126px; }
+.market-col-converted { width: 104px; }
+.market-col-spacer { width: 18px; }
 .market-stats-table th,
 .market-stats-table td {
   white-space: nowrap;
@@ -426,7 +496,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   text-overflow: clip;
 }
 .market-stats-table th {
-  padding: 9px 12px;
+  padding: 7px 10px;
   color: var(--text4);
   font-size: 11px;
   font-weight: 500;
@@ -434,9 +504,12 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   letter-spacing: .03em;
   border-bottom: 1px solid var(--border2);
   background: rgba(20,20,24,.96);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .market-stats-table td {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border2);
   font-size: 12px;
 }
@@ -605,7 +678,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
           </div>
         </div>
         <div>
-          <div class="section-label" style="margin-bottom:6px;">All Tiers</div>
+          <div class="section-label" style="margin-bottom:6px;">Tier Value</div>
           <div id="tier-breakdown" style="display:flex;flex-direction:column;gap:4px;"></div>
         </div>
 
@@ -614,9 +687,10 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
             <div class="section-label">Market Statistics</div>
             <button id="stats-refresh-btn" class="stats-refresh-btn" onclick="refreshMarketStats()">Refresh</button>
           </div>
+          <div id="deal-radar-display" class="deal-radar-display"></div>
           <div class="market-stats-controls">
             <div>
-              <div style="font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px;">Chest Type</div>
+              <div class="market-control-label">Chest Type</div>
               <select id="stats-tier-select" class="cur-select" onchange="updateMarketStats()" style="width:100%;font-size:12px;padding:6px 8px;">
                 <option value="t1">T1 — x1,000</option>
                 <option value="t2">T2 — x5,000</option>
@@ -626,7 +700,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
               </select>
             </div>
             <div>
-              <div style="font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px;">Quantity</div>
+              <div class="market-control-label">Quantity</div>
               <select id="stats-qty-select" class="cur-select" onchange="updateMarketStats()" style="width:100%;font-size:12px;padding:6px 8px;">
                 <option value="5">5 Chests</option>
                 <option value="10">10 Chests</option>
@@ -635,7 +709,7 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
               </select>
             </div>
             <div class="market-alert-inline">
-              <div class="market-alert-label">Ping If &lt;= USDT</div>
+              <div class="market-alert-label">Deal Radar Alert</div>
               <div class="market-alert-inline-row">
                 <input id="usdt-alert-threshold" class="market-alert-input" type="number" min="0.01" step="0.01" value="0.20" onchange="onUsdtAlertThresholdChange()">
                 <button id="usdt-alert-toggle" class="stats-refresh-btn market-alert-btn" onclick="toggleUsdtAlert()">Alert Off</button>
@@ -750,6 +824,15 @@ const CHESTS={
 let phpPerPiece=null,usdtPerPiece=null,currency='USDT';
 const cache={};
 const priceRequests={};
+const PRICE_MEMORY_KEY='relic_price_memory_v1';
+let priceMemorySignal=null;
+let sharedMarketSnapshot=null;
+let firebaseMarketApiPromise=null;
+const SHARED_MARKET_LIMIT=10;
+const MARKET_REFRESH_COOLDOWN_MS=10000;
+const MARKET_REFRESH_COOLDOWN_KEY='relic_market_refresh_cooldown_until';
+let lastManualMarketRefresh=0;
+let refreshCooldownTimer=null;
 const DEFAULT_CHEST_IMAGE='https://obs-store-prod.line-scdn.net/0hWTQwhi8xCHtsDhaQ6gp3LDZRAgIEYh9uCjwCAx9eCh9fbBQsFRQbdkhdIEIKbRMtDTtESBJlNCAKXylsFhcfdkhvMEodayosGTg-YgJcCTAcbSZRURchTw91ChFJQj8/webp_s100x100';
 
 function setCurrency(cur){
@@ -805,6 +888,74 @@ function getTierValueRows(){
 }
 function getBestValueTier(){
   return getTierValueRows()[0]||null;
+}
+function readPriceMemory(){
+  try{
+    const raw=localStorage.getItem(PRICE_MEMORY_KEY);
+    const parsed=raw?JSON.parse(raw):null;
+    return parsed&&typeof parsed==='object'?parsed:{tiers:{},lastSignalKey:''};
+  }catch(_){
+    return {tiers:{},lastSignalKey:''};
+  }
+}
+function writePriceMemory(memory){
+  try{localStorage.setItem(PRICE_MEMORY_KEY,JSON.stringify(memory));}catch(_){}
+}
+function median(values){
+  const sorted=values.filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!sorted.length)return null;
+  const mid=Math.floor(sorted.length/2);
+  return sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])/2;
+}
+function analyzePriceMemory(){
+  const rows=getTierValueRows();
+  if(!rows.length)return null;
+  const memory=readPriceMemory();
+  if(!memory.tiers)memory.tiers={};
+  const now=Date.now();
+  let bestSignal=null;
+
+  for(const row of rows){
+    const tier=row.tier;
+    const currentPhp=row.per1k.php;
+    const currentUsdt=row.per1k.usdt;
+    const tierMemory=memory.tiers[tier]||{samples:[]};
+    const previousSamples=(tierMemory.samples||[]).filter(s=>now-(s.at||0)<7*24*60*60*1000);
+    const baselinePhp=median(previousSamples.map(s=>Number(s.php)));
+    const baselineUsdt=median(previousSamples.map(s=>Number(s.usdt)));
+
+    if(baselinePhp&&currentPhp<baselinePhp*0.94){
+      const dropPct=(1-currentPhp/baselinePhp)*100;
+      const signal={
+        tier,
+        label:tier.toUpperCase(),
+        currentPhp,
+        currentUsdt,
+        baselinePhp,
+        baselineUsdt,
+        dropPct,
+        key:`${tier}|${currentPhp.toFixed(2)}|${Math.floor(now/600000)}`,
+      };
+      if(!bestSignal||signal.dropPct>bestSignal.dropPct)bestSignal=signal;
+    }
+
+    previousSamples.push({php:currentPhp,usdt:currentUsdt,at:now});
+    tierMemory.samples=previousSamples.slice(-24);
+    memory.tiers[tier]=tierMemory;
+  }
+
+  priceMemorySignal=bestSignal;
+  if(bestSignal&&memory.lastSignalKey!==bestSignal.key){
+    memory.lastSignalKey=bestSignal.key;
+    const msg=`Memory deal: ${bestSignal.label} is ${bestSignal.dropPct.toFixed(1)}% below usual (${bestSignal.currentPhp.toFixed(2)} PHP / 1k)`;
+    setUsdtAlertStatus(msg,'var(--green)');
+    playUsdtAlertPing();
+    if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+      try{new Notification('Temporal Price Memory',{body:msg,silent:false});}catch(_){}
+    }
+  }
+  writePriceMemory(memory);
+  return bestSignal;
 }
 function selectBestValueTier(){
   const best=getBestValueTier();
@@ -996,48 +1147,89 @@ function updateBarGraph(){
 }
 
 const PROXY='/.netlify/functions/market-price';
+function getFirebaseMarketApi(){
+  if(!firebaseMarketApiPromise)firebaseMarketApiPromise=import('/src/firebase.js');
+  return firebaseMarketApiPromise;
+}
+function applySharedMarketSnapshot(snapshot){
+  sharedMarketSnapshot=snapshot;
+  Object.keys(cache).forEach(k=>delete cache[k]);
+  Object.keys(marketStatsCache).forEach(k=>delete marketStatsCache[k]);
+  const tiers=snapshot?.tiers||{};
+  for(const [tier,data] of Object.entries(tiers)){
+    const listing=(data.listings||[])[0];
+    if(listing&&Number.isFinite(listing.pricePhp)&&Number.isFinite(listing.priceUsdt)){
+      cache[tier]={php:listing.pricePhp,usdt:listing.priceUsdt};
+    }
+    marketStatsCache[`${tier}_${SHARED_MARKET_LIMIT}`]={
+      tier:tier.toUpperCase(),
+      pieces:CHESTS[tier]?.pieces,
+      count:data.listings?.length||0,
+      listings:data.listings||[],
+      lastUpdated:snapshot.updatedAt||Date.now(),
+    };
+  }
+  const best=getBestValueTier();
+  if(best){phpPerPiece=best.price.php/best.chest.pieces;usdtPerPiece=best.price.usdt/best.chest.pieces;}
+  updateDealRadar(false);
+  recalcAll();
+  updateMarketStats(false);
+}
+async function startSharedMarketSnapshot(){
+  const display=$('market-stats-display');
+  if(display)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Loading shared market snapshot...</div>';
+  try{
+    const api=await getFirebaseMarketApi();
+    api.subscribeMarketSnapshot(snapshot=>{
+      if(snapshot)applySharedMarketSnapshot(snapshot);
+      else if(display)display.innerHTML='<div style="color:var(--text4);font-size:12px;">No shared market snapshot yet. Press Refresh.</div>';
+    },err=>{
+      console.warn('Shared market snapshot error:',err);
+      if(display)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Shared market unavailable. Press Refresh to retry.</div>';
+    });
+  }catch(e){
+    console.warn('Firebase market snapshot setup failed:',e);
+    if(display)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Shared market unavailable. Press Refresh to retry.</div>';
+  }
+}
+async function fetchFreshMarketSnapshot(limit=SHARED_MARKET_LIMIT){
+  const entries=await Promise.all(Object.entries(CHESTS).map(async([tier,chest])=>{
+    const res=await fetch(`${PROXY}?tier=${tier}&limit=${limit}`,{signal:AbortSignal.timeout(12000)});
+    if(!res.ok)throw new Error(`${tier.toUpperCase()} market fetch failed`);
+    const data=await res.json();
+    return [tier,{
+      tier,
+      pieces:chest.pieces,
+      label:chest.label,
+      listings:Array.isArray(data.listings)?data.listings:[],
+    }];
+  }));
+  return {
+    version:1,
+    limit,
+    updatedAt:Date.now(),
+    tiers:Object.fromEntries(entries),
+  };
+}
 async function fetchPrice(tier,render=true){
   if(cache[tier])return cache[tier];
-  if(!priceRequests[tier]){
-    priceRequests[tier]=(async()=>{
-      let php=null,usdt=null;
-      try{
-        const res=await fetch(`${PROXY}?tier=${tier}`,{signal:AbortSignal.timeout(10000)});
-        if(res.ok){
-          const d=await res.json();
-          const item=d?.data?.[tier.toUpperCase()];
-          if(item){php=item.pricePhp;usdt=item.price;}
-        }
-      }catch(_){}
-      if(php&&usdt)cache[tier]={php,usdt};
-      return cache[tier]||null;
-    })().finally(()=>{delete priceRequests[tier];});
-  }
-  const result=await priceRequests[tier];
-  if(result&&render){
-    updateChestAnalysis();
-    updateTierBreakdown(getTotalTemporal());
-  }
-  return result;
+  return null;
 }
 async function fetchAllTiers(){
-  await Promise.all(Object.keys(CHESTS).map(tier=>fetchPrice(tier,false)));
+  analyzePriceMemory();
+  renderDealRadar();
+  updateChestAnalysis(getTotalTemporal());
   updateTierBreakdown(getTotalTemporal());
 }
 async function fetchLivePrice(){
   const el=$('price-status-inner'),tier=$('chest-select').value;
-  await fetchPrice(tier,false);
   const c=cache[tier];
   if(c){
-    if(!cache['t1'])await fetchPrice('t1',false);
-    if(cache['t1']){phpPerPiece=cache['t1'].php/1000;usdtPerPiece=cache['t1'].usdt/1000;}
     renderLivePriceStatus();
     recalcAll();
     fetchAllTiers();
-    clearTimeout(window._pt);
-    window._pt=setTimeout(()=>{Object.keys(cache).forEach(k=>delete cache[k]);phpPerPiece=null;usdtPerPiece=null;fetchLivePrice();},120000);
   }else{
-    el.innerHTML=`<span style="font-size:12px;color:var(--text4);">Price unavailable</span><button onclick="fetchLivePrice()" style="font-size:12px;color:var(--blue);background:none;border:none;cursor:pointer;">Retry</button>`;
+    el.innerHTML=`<span style="font-size:12px;color:var(--text4);">Waiting for shared snapshot</span>`;
   }
 }
 
@@ -1059,7 +1251,7 @@ document.addEventListener('change',e=>{
 
 const marketStatsCache={};
 const marketStatsRequests={};
-const marketAlertState={enabled:false,intervalId:null,lastMatchKey:'',beepCooldownUntil:0,thresholdMode:'auto',lastTier:null};
+const marketAlertState={enabled:false,intervalId:null,lastMatchKey:'',lastRadarKey:'',beepCooldownUntil:0,thresholdMode:'auto',lastTier:null};
 
 function fmtUsdt(value){
   if(!Number.isFinite(value)) return '0';
@@ -1150,13 +1342,97 @@ function fireUsdtListingAlert(tier,threshold,bestUsdt,count){
   setUsdtAlertStatus(msg,'var(--green)');
 }
 
+function getTierMemoryBaseline(tier){
+  const memory=readPriceMemory();
+  const samples=memory?.tiers?.[tier]?.samples||[];
+  return {
+    php: median(samples.map(s=>Number(s.php))),
+    usdt: median(samples.map(s=>Number(s.usdt))),
+  };
+}
+
+function scoreRadarDeal(row,index){
+  const baseline=getTierMemoryBaseline(row.tier);
+  const baselinePhp=baseline.php;
+  const memoryDrop=baselinePhp?Math.max(0,(1-row.per1k.php/baselinePhp)*100):0;
+  const bestBonus=index===0?18:0;
+  const t1=cache.t1;
+  const beatsT1=t1?Math.max(0,(1-row.per1k.php/(t1.php/1000))*100):0;
+  return {
+    ...row,
+    baselinePhp,
+    baselineUsdt:baseline.usdt,
+    memoryDrop,
+    beatsT1,
+    score:bestBonus+(memoryDrop*4)+(beatsT1*2),
+  };
+}
+
+function getRadarDeals(){
+  return getTierValueRows()
+    .map(scoreRadarDeal)
+    .sort((a,b)=>b.score-a.score||a.per1k.usdt-b.per1k.usdt);
+}
+
+function renderDealRadar(){
+  const el=$('deal-radar-display');
+  if(!el)return;
+  const deals=getRadarDeals();
+  if(!deals.length){
+    el.innerHTML='<div class="deal-radar-card warn"><div class="deal-radar-title">Deal Radar warming up</div><div class="deal-radar-sub">Loading all tier floor prices and memory baselines...</div></div>';
+    return null;
+  }
+  const best=deals[0];
+  const isSnipe=best.memoryDrop>=6||best.beatsT1>=4;
+  const title=isSnipe?`Snipe candidate: ${best.tier.toUpperCase()}`:`Best radar value: ${best.tier.toUpperCase()}`;
+  const sub=isSnipe
+    ? `${best.per1k.php.toFixed(2)} PHP / 1k is ${best.memoryDrop.toFixed(1)}% below its usual price`
+    : `${best.per1k.php.toFixed(2)} PHP / 1k is currently the best scanned value`;
+  el.innerHTML=`<div class="deal-radar-card ${isSnipe?'warn':''}">
+    <div class="deal-radar-top">
+      <div>
+        <div class="deal-radar-title">${title}</div>
+        <div class="deal-radar-sub">${sub} • score ${best.score.toFixed(0)}</div>
+      </div>
+      <button class="best-value-btn" type="button" onclick="document.getElementById('stats-tier-select').value='${best.tier}';updateMarketStats(false)">View</button>
+    </div>
+  </div>`;
+  return best;
+}
+
+async function updateDealRadar(forceRefresh=false){
+  analyzePriceMemory();
+  const best=renderDealRadar();
+  updateChestAnalysis(getTotalTemporal());
+  updateTierBreakdown(getTotalTemporal());
+  if(marketAlertState.enabled&&best&&(best.memoryDrop>=6||best.beatsT1>=4)){
+    const key=`${best.tier}|${best.per1k.php.toFixed(2)}|${Math.floor(Date.now()/600000)}`;
+    if(key!==marketAlertState.lastRadarKey){
+      marketAlertState.lastRadarKey=key;
+      fireRadarDealAlert(best);
+    }
+  }
+  return best;
+}
+
+function fireRadarDealAlert(deal){
+  const nowMs=Date.now();
+  if(nowMs<marketAlertState.beepCooldownUntil)return;
+  marketAlertState.beepCooldownUntil=nowMs+3000;
+  playUsdtAlertPing();
+  const msg=`${deal.tier.toUpperCase()} radar deal: ${deal.per1k.php.toFixed(2)} PHP / 1k${deal.memoryDrop>=6?` (${deal.memoryDrop.toFixed(1)}% below usual)`:''}`;
+  if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    try{new Notification('Temporal Deal Radar',{body:msg,silent:false});}catch(_){ }
+  }
+  setUsdtAlertStatus(msg,'var(--green)');
+}
+
 function syncUsdtAlertWatcher(){
   if(marketAlertState.intervalId){
     clearInterval(marketAlertState.intervalId);
     marketAlertState.intervalId=null;
   }
   if(!marketAlertState.enabled)return;
-  marketAlertState.intervalId=setInterval(()=>{updateMarketStats(true);},15000);
 }
 
 async function toggleUsdtAlert(){
@@ -1184,10 +1460,11 @@ async function toggleUsdtAlert(){
   if(threshold===null){
     setUsdtAlertStatus('Set a valid USDT threshold', 'var(--red)');
   }else{
-    setUsdtAlertStatus(`Watching for listings <= ${fmtUsdt(threshold)} USDT`, 'var(--amber)');
+    setUsdtAlertStatus(`Deal Radar on • selected tier threshold <= ${fmtUsdt(threshold)} USDT`, 'var(--amber)');
   }
   syncUsdtAlertWatcher();
-  await updateMarketStats(true);
+  await updateDealRadar(false);
+  await updateMarketStats(false);
 }
 
 function onUsdtAlertThresholdChange(){
@@ -1200,8 +1477,9 @@ function onUsdtAlertThresholdChange(){
   marketAlertState.thresholdMode='manual';
   marketAlertState.lastMatchKey='';
   if(marketAlertState.enabled){
-    setUsdtAlertStatus(`Watching for listings <= ${fmtUsdt(n)} USDT`, 'var(--amber)');
-    updateMarketStats(true);
+    setUsdtAlertStatus(`Deal Radar on • selected tier threshold <= ${fmtUsdt(n)} USDT`, 'var(--amber)');
+    updateDealRadar(false);
+    updateMarketStats(false);
   }
 }
 
@@ -1220,37 +1498,89 @@ function setupUsdtAlertInputInteractions(){
 function setStatsRefreshState(isLoading){
   const btn=$('stats-refresh-btn');
   if(!btn)return;
-  btn.disabled=isLoading;
-  btn.textContent=isLoading?'Refreshing...':'Refresh';
+  if(isLoading){
+    btn.disabled=true;
+    btn.textContent='Refreshing...';
+    return;
+  }
+  updateLocalRefreshCooldownButton();
+}
+
+function getLocalRefreshCooldownUntil(){
+  const n=Number(localStorage.getItem(MARKET_REFRESH_COOLDOWN_KEY)||0);
+  return Number.isFinite(n)?n:0;
+}
+
+function setLocalRefreshCooldown(){
+  const until=Date.now()+MARKET_REFRESH_COOLDOWN_MS;
+  lastManualMarketRefresh=Date.now();
+  try{localStorage.setItem(MARKET_REFRESH_COOLDOWN_KEY,String(until));}catch(_){}
+  updateLocalRefreshCooldownButton();
+}
+
+function getLocalRefreshCooldownRemaining(){
+  return Math.max(0,getLocalRefreshCooldownUntil()-Date.now());
+}
+
+function updateLocalRefreshCooldownButton(){
+  const btn=$('stats-refresh-btn');
+  if(!btn)return;
+  if(refreshCooldownTimer){
+    clearTimeout(refreshCooldownTimer);
+    refreshCooldownTimer=null;
+  }
+  const remaining=getLocalRefreshCooldownRemaining();
+  if(remaining<=0){
+    btn.disabled=false;
+    btn.textContent='Refresh';
+    return;
+  }
+  btn.disabled=true;
+  btn.textContent=`Refresh ${Math.ceil(remaining/1000)}s`;
+  refreshCooldownTimer=setTimeout(updateLocalRefreshCooldownButton,250);
 }
 
 async function refreshMarketStats(){
-  const tier=$('stats-tier-select').value;
-  const limit=parseInt($('stats-qty-select').value,10);
-  const cacheKey=`${tier}_${limit}`;
-  delete marketStatsCache[cacheKey];
-  await updateMarketStats(true);
+  const remaining=getLocalRefreshCooldownRemaining();
+  if(remaining>0){
+    setUsdtAlertStatus(`Your refresh cooldown ${Math.ceil(remaining/1000)}s`,'var(--amber)');
+    updateLocalRefreshCooldownButton();
+    return;
+  }
+  setLocalRefreshCooldown();
+  setStatsRefreshState(true);
+  const meta=$('market-stats-meta');
+  if(meta)meta.textContent='Refreshing shared market snapshot...';
+  try{
+    const snapshot=await fetchFreshMarketSnapshot(SHARED_MARKET_LIMIT);
+    const api=await getFirebaseMarketApi();
+    await api.saveMarketSnapshot(snapshot);
+    applySharedMarketSnapshot(snapshot);
+    setUsdtAlertStatus('Shared market updated for everyone','var(--green)');
+  }catch(e){
+    console.warn('Shared market refresh failed:',e);
+    setUsdtAlertStatus('Shared refresh failed','var(--red)');
+  }finally{
+    setStatsRefreshState(false);
+  }
 }
 
 async function fetchMarketStatsData(tier,limit,forceRefresh=false){
   const cacheKey=`${tier}_${limit}`;
-  if(!forceRefresh&&marketStatsCache[cacheKey])return marketStatsCache[cacheKey];
-  if(!marketStatsRequests[cacheKey]){
-    marketStatsRequests[cacheKey]=(async()=>{
-      try{
-        const res=await fetch(`/.netlify/functions/market-price?tier=${tier}&limit=${limit}`,{signal:AbortSignal.timeout(10000)});
-        if(res.ok){
-          const d=await res.json();
-          if(d?.listings&&Array.isArray(d.listings)){
-            marketStatsCache[cacheKey]=d;
-            return d;
-          }
-        }
-      }catch(e){console.warn('Market stats fetch error:',e);}
-      return null;
-    })().finally(()=>{delete marketStatsRequests[cacheKey];});
+  if(marketStatsCache[cacheKey])return marketStatsCache[cacheKey];
+  const listings=sharedMarketSnapshot?.tiers?.[tier]?.listings;
+  if(Array.isArray(listings)){
+    const data={
+      tier:tier.toUpperCase(),
+      pieces:CHESTS[tier]?.pieces,
+      count:listings.length,
+      listings:listings.slice(0,limit),
+      lastUpdated:sharedMarketSnapshot.updatedAt||Date.now(),
+    };
+    marketStatsCache[cacheKey]=data;
+    return data;
   }
-  return marketStatsRequests[cacheKey];
+  return null;
 }
 
 async function updateMarketStats(forceRefresh=false){
@@ -1347,11 +1677,8 @@ async function updateMarketStats(forceRefresh=false){
     
     html+='<div class="market-snipe-metrics">';
     html+='<div><div class="market-metric-label">Floor</div><div class="market-metric-value good">'+moneyText(cheapest)+'</div></div>';
-    html+='<div><div class="market-metric-label">Next Gap</div><div class="market-metric-value '+(nextGapPct>=4?'good':nextGapPct>=2?'warn':'dim')+'">'+pctText(nextGapPct)+'</div></div>';
-    html+='<div><div class="market-metric-label">Median</div><div class="market-metric-value">'+moneyText(medianPrice)+'</div></div>';
-    html+='<div><div class="market-metric-label">Alert Hits</div><div class="market-metric-value '+(thresholdHitCount>0?'good':'dim')+'">'+thresholdHitCount+'/'+listings.length+'</div></div>';
+    html+='<div><div class="market-metric-label">Gap</div><div class="market-metric-value '+(nextGapPct>=4?'good':nextGapPct>=2?'warn':'dim')+'">'+pctText(nextGapPct)+'</div></div>';
     html+='<div><div class="market-metric-label">Under Median</div><div class="market-metric-value '+(floorDiscountPct>=4?'good':floorDiscountPct>=2?'warn':'dim')+'">'+pctText(floorDiscountPct)+'</div></div>';
-    html+='<div><div class="market-metric-label">Rate</div><div class="market-metric-value dim">'+rateText+' PHP/USDT</div></div>';
     html+='</div>';
     
     html+='<div class="market-stats-table-wrap">';
@@ -1410,9 +1737,14 @@ async function updateMarketStats(forceRefresh=false){
 
 function updateChestAnalysis(gT){
   if(gT===undefined) gT=getTotalTemporal();
-  const tier=$('chest-select').value,chest=CHESTS[tier];
+  const selectedTier=$('chest-select').value;
+  const bestTier=getBestValueTier();
+  const tier=bestTier?.tier||selectedTier;
+  const chest=CHESTS[tier];
   const needed=gT>0?Math.ceil(gT/chest.pieces):0;
-  $('chest-label').textContent=chest.label;
+  const body=document.querySelector('.chest-body');
+  if(body)body.classList.toggle('best-focus',Boolean(bestTier));
+  $('chest-label').textContent=bestTier?`${chest.label}  •  Best / 1k`:chest.label;
   $('chest-label').style.color=chest.color;
   $('chest-sublabel').textContent=`x${chest.pieces.toLocaleString()} Pieces / Chest`;
   $('chests-needed').textContent=needed>0?needed.toLocaleString():'0';
@@ -1446,6 +1778,16 @@ function updateTierBreakdown(gT){
       </div>
     </div>`;
   }
+  if(priceMemorySignal){
+    html+=`<div class="best-value-panel" style="border-color:rgba(255,214,10,.28);background:rgba(255,214,10,.06);">
+      <div>
+        <div class="best-value-title" style="color:var(--amber);">Memory deal: ${priceMemorySignal.label}</div>
+        <div class="best-value-sub">${priceMemorySignal.currentPhp.toFixed(2)} PHP / 1k, ${priceMemorySignal.dropPct.toFixed(1)}% below usual ${priceMemorySignal.baselinePhp.toFixed(2)} PHP / 1k</div>
+      </div>
+      <button class="best-value-btn" type="button" onclick="document.getElementById('stats-tier-select').value='${priceMemorySignal.tier}';updateMarketStats(false)" style="border-color:rgba(255,214,10,.34);color:var(--amber);background:rgba(255,214,10,.08);">View</button>
+    </div>`;
+  }
+  html='';
   html+=Object.entries(CHESTS).map(([tier,chest])=>{
     const needed=gT>0?Math.ceil(gT/chest.pieces):0;
     const cached=cache[tier];
@@ -1468,7 +1810,9 @@ function updateTierBreakdown(gT){
 }
 
 setupUsdtAlertInputInteractions();
-buildCards();recalcAll();fetchLivePrice();updateMarketStats(true);
+$('stats-qty-select').value='10';
+updateLocalRefreshCooldownButton();
+buildCards();recalcAll();startSharedMarketSnapshot();
 </script>
 </body>
 </html>
