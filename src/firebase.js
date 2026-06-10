@@ -26,13 +26,14 @@ const firebaseConfig = {
 }
 
 let firebaseSdkPromise = null
+const firebaseModuleBase = 'https://www.gstatic.com/firebasejs/10.12.0'
 
 async function loadFirebaseSdk() {
   if (!firebaseSdkPromise) {
     firebaseSdkPromise = Promise.all([
-      import('firebase/app'),
-      import('firebase/firestore'),
-      import('firebase/database'),
+      import(`${firebaseModuleBase}/firebase-app.js`),
+      import(`${firebaseModuleBase}/firebase-firestore.js`),
+      import(`${firebaseModuleBase}/firebase-database.js`),
     ]).then(([appMod, firestoreMod, databaseMod]) => {
       const app = appMod.initializeApp(firebaseConfig)
       return {
