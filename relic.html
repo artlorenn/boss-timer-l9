@@ -1185,17 +1185,23 @@ async function startSharedMarketSnapshot(){
       else if(display)display.innerHTML='<div style="color:var(--text4);font-size:12px;">No shared market snapshot yet. Press Refresh.</div>';
     },err=>{
       console.warn('Shared market snapshot error:',err);
+      setUsdtAlertStatus(`Shared read failed: ${formatRefreshError(err)}`,'var(--red)');
       if(display)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Shared market unavailable. Press Refresh to retry.</div>';
     });
   }catch(e){
     console.warn('Firebase market snapshot setup failed:',e);
+    setUsdtAlertStatus(`Firebase setup failed: ${formatRefreshError(e)}`,'var(--red)');
     if(display)display.innerHTML='<div style="color:var(--text4);font-size:12px;">Shared market unavailable. Press Refresh to retry.</div>';
   }
 }
 async function fetchFreshMarketSnapshot(limit=SHARED_MARKET_LIMIT){
-  const entries=await Promise.all(Object.entries(CHESTS).map(async([tier,chest])=>{
+  const results=await Promise.allSettled(Object.entries(CHESTS).map(async([tier,chest])=>{
     const res=await fetch(`${PROXY}?tier=${tier}&limit=${limit}`,{signal:AbortSignal.timeout(12000)});
-    if(!res.ok)throw new Error(`${tier.toUpperCase()} market fetch failed`);
+    if(!res.ok){
+      let detail='';
+      try{detail=(await res.json())?.error||'';}catch(_){}
+      throw new Error(`${tier.toUpperCase()} market fetch failed (${res.status}${detail?`: ${detail}`:''})`);
+    }
     const data=await res.json();
     return [tier,{
       tier,
@@ -1204,11 +1210,19 @@ async function fetchFreshMarketSnapshot(limit=SHARED_MARKET_LIMIT){
       listings:Array.isArray(data.listings)?data.listings:[],
     }];
   }));
+  const entries=results
+    .filter(r=>r.status==='fulfilled')
+    .map(r=>r.value);
+  const failed=results
+    .filter(r=>r.status==='rejected')
+    .map(r=>formatRefreshError(r.reason));
+  if(!entries.length)throw new Error(failed[0]||'All market fetches failed');
   return {
     version:1,
     limit,
     updatedAt:Date.now(),
     tiers:Object.fromEntries(entries),
+    errors:failed,
   };
 }
 async function fetchPrice(tier,render=true){
@@ -1294,6 +1308,12 @@ function setUsdtAlertStatus(text,color='var(--text4)'){
   if(!el)return;
   el.textContent=text;
   el.style.color=color;
+  el.title=text;
+}
+
+function formatRefreshError(error){
+  const raw=error?.code||error?.message||String(error||'Unknown error');
+  return raw.replace(/^FirebaseError:\s*/,'').slice(0,120);
 }
 
 function updateUsdtAlertButton(){
@@ -1553,13 +1573,19 @@ async function refreshMarketStats(){
   if(meta)meta.textContent='Refreshing shared market snapshot...';
   try{
     const snapshot=await fetchFreshMarketSnapshot(SHARED_MARKET_LIMIT);
-    const api=await getFirebaseMarketApi();
-    await api.saveMarketSnapshot(snapshot);
     applySharedMarketSnapshot(snapshot);
-    setUsdtAlertStatus('Shared market updated for everyone','var(--green)');
+    const api=await getFirebaseMarketApi();
+    try{
+      await api.saveMarketSnapshot(snapshot);
+      const skipped=snapshot.errors?.length?` (${snapshot.errors.length} tier issue${snapshot.errors.length>1?'s':''})`:'';
+      setUsdtAlertStatus(`Shared market updated for everyone${skipped}`,'var(--green)');
+    }catch(saveError){
+      console.warn('Shared market save failed:',saveError);
+      setUsdtAlertStatus(`Prices loaded locally; Firebase save failed: ${formatRefreshError(saveError)}`,'var(--red)');
+    }
   }catch(e){
     console.warn('Shared market refresh failed:',e);
-    setUsdtAlertStatus('Shared refresh failed','var(--red)');
+    setUsdtAlertStatus(`Refresh failed: ${formatRefreshError(e)}`,'var(--red)');
   }finally{
     setStatsRefreshState(false);
   }
