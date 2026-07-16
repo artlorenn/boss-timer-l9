@@ -36,6 +36,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main:   resolve(__dirname, 'index.html'),
+        elite:  resolve(__dirname, 'elite.html'),
         relic:  resolve(__dirname, 'relic.html'),
         class:  resolve(__dirname, 'class.html'),
         potion: resolve(__dirname, 'potion.html'),

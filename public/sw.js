@@ -1,7 +1,8 @@
-const CACHE_NAME = 'boss-timer-v4';
+const CACHE_NAME = 'boss-timer-v5';
 const ASSETS = [
   './',
   './index.html',
+  './elite.html',
   './relic.html',
   './potion.html',
   './class.html',

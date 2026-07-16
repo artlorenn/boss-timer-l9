@@ -255,12 +255,17 @@ function renderAbilityCard(entry) {
         <p class="skill-text">${entry.skill}</p>
       </section>
 
+      <button class="ms-toggle" type="button" aria-expanded="false">
+        Milestones
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
       <section class="milestone-grid">${milestones}</section>
     </article>
   `
 }
 
 function renderHiddenClasses() {
+
   const grid = document.getElementById("ability-grid")
   const count = document.getElementById("ability-count")
 
@@ -274,9 +279,21 @@ function renderHiddenClasses() {
 
   grid.innerHTML = HIDDEN_CLASSES.map(renderAbilityCard).join("")
   count.textContent = String(HIDDEN_CLASSES.length)
+  setupMilestoneToggles()
 }
 
 renderHiddenClasses()
+
+function setupMilestoneToggles() {
+  document.querySelectorAll(".ms-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const grid = btn.nextElementSibling
+      const open = grid.classList.toggle("open")
+      btn.classList.toggle("open", open)
+      btn.setAttribute("aria-expanded", String(open))
+    })
+  })
+}
 
 trackClassVisitor((count) => {
   const el = document.getElementById('visitor-count')
