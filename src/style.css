@@ -143,6 +143,33 @@ html, body {
 .tb-filter:focus { border-color: rgba(255,255,255,.15); }
 .tb-filter::placeholder { color: var(--text4); }
 
+/* ── REGION TOGGLES ── */
+.region-toggle-bar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  max-width: min(100%, 420px);
+}
+.region-toggle {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  color: var(--text3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all .15s;
+}
+.region-toggle:hover { background: rgba(255,255,255,.07); color: var(--text2); }
+.region-toggle.active { background: rgba(10,132,255,.15); color: var(--text); border-color: rgba(10,132,255,.28); }
+.drawer-toggle-bar { justify-content: flex-end; max-width: 100%; }
+
+
 /* ── HAMBURGER DRAWER ── */
 #hamburger-drawer {
   display: none;                    /* shown only on mobile */
@@ -218,6 +245,25 @@ html, body {
   content-visibility: auto;
   contain-intrinsic-size: 360px;
 }
+.region-wrap { padding: 0; }
+.area-wrap { margin-top: 12px; }
+.area-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+.area-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: none;
+  color: var(--text2);
+}
+.area-count { font-size: 10px; color: var(--text4); }
+.area-grid { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+@media (max-width: 640px) { .area-grid { grid-template-columns: 1fr; } }
 
 /* ── BOSS GRID ── */
 .boss-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 6px; }

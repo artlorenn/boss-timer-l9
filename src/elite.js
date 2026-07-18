@@ -12,10 +12,22 @@ const timelineSec = $('timeline-section')
 
 const STORAGE_KEY = 'elite_timers_v1'
 const TRIGGERED_KEY = 'elite_alarm_triggered_v1'
-const fmtName = str => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+const fmtName = str => (str || '')
+  .toLowerCase()
+  .replace(/(^|[\s-])([a-z])/g, (_, prefix, letter) => prefix + letter.toUpperCase())
 const getInitial = name => (name || '?').charAt(0).toUpperCase()
+const fmtLevel = level => Number.isFinite(level) ? String(level) : '—'
+const REGION_ORDER = ['Dien', 'Lindris', 'Ulan', 'Serbis', 'Dungeons']
+const AREA_ORDER = {
+  Ulan: ['Desert of the Screaming', "Protector's Ruins", 'Ulan Canyon', 'Lower Tomb of Tyriosa 1F', 'Lower Tomb of Tyriosa 2F', 'Lower Tomb of Tyriosa 3F'],
+  Serbis: ['Land of Glory', 'Battlefield of Templar', 'Plateau of Revolution', 'Ruins of the War', 'Silvergrass Land', 'Barbas', "Deadman's Land District 1F", "Deadman's Land District 2F", "Deadman's Land District 3F"],
+}
+const HIDDEN_REGIONS_KEY = 'eliteHiddenRegions'
+const REGION_BUTTONS = REGION_ORDER
 
-let layout = localStorage.getItem('eliteLayout') || 'compact'
+let hiddenRegions = new Set(JSON.parse(localStorage.getItem(HIDDEN_REGIONS_KEY) || '[]'))
+
+let layout = 'compact'
 let alarmLeadMin = parseInt(localStorage.getItem('alarmLeadMin') || '5', 10)
 let showTimeline = localStorage.getItem('eliteTimeline') === 'true'
 let filterText = ''
@@ -68,8 +80,9 @@ function getVisibleElites() {
   return ELITE_MONSTERS
     .map(getEliteState)
     .filter(elite => {
+      if (hiddenRegions.has(elite.region)) return false
       if (!q) return true
-      return [elite.name, elite.area, elite.region, String(elite.level)].some(v => v.toLowerCase().includes(q))
+      return [elite.name, elite.area, elite.region, String(elite.level ?? '')].some(v => v.toLowerCase().includes(q))
     })
 }
 
@@ -117,7 +130,7 @@ function buildCompactCard(elite) {
     <div class="boss-initial${cdClass ? ' ' + cdClass : ''}">${getInitial(elite.name)}</div>
     <div class="boss-info">
       <div class="boss-name">${fmtName(elite.name)}</div>
-      <div class="boss-meta">Lv. ${elite.level} · ${elite.area} · ${fmtRespawn(elite.respawnMs)}</div>
+      <div class="boss-meta">Lv. ${fmtLevel(elite.level)} · ${elite.area} · ${fmtRespawn(elite.respawnMs)}</div>
       <div class="boss-countdown${cdClass ? ' ' + cdClass : ''}">${elite.nextSpawnMs ? fmtCountdown(elite.nextSpawnMs) : 'Ready'}</div>
     </div>
     <div class="boss-actions">
@@ -139,7 +152,7 @@ function buildDeckCard(elite) {
   card.innerHTML = `
     <div class="deck-initial${cdClass ? ' ' + cdClass : ''}">${getInitial(elite.name)}</div>
     <div class="deck-name">${fmtName(elite.name)}</div>
-    <div class="deck-loc">Lv. ${elite.level} · ${elite.area}</div>
+    <div class="deck-loc">Lv. ${fmtLevel(elite.level)} · ${elite.area}</div>
     <div class="deck-time">${elite.nextSpawnMs ? fmtTime(elite.nextSpawnMs) : fmtRespawn(elite.respawnMs)}</div>
     <div class="deck-cd${cdClass ? ' ' + cdClass : ''}">${elite.nextSpawnMs ? fmtCountdown(elite.nextSpawnMs) : 'Ready'}</div>
     <div class="deck-btns">
@@ -181,6 +194,71 @@ function appendSection(label, items) {
   sectionsEl.appendChild(section)
 }
 
+function appendRegionSection(region, items) {
+  if (!items.length) return
+  const section = document.createElement('div')
+  section.className = 'section-wrap region-wrap'
+  const header = document.createElement('div')
+  header.className = 'section-header region-header'
+  header.innerHTML = `<span class="section-label">${region}</span><span class="section-count">${items.length}</span>`
+  section.appendChild(header)
+
+  const areaMap = new Map()
+  for (const elite of items) {
+    const area = elite.area || 'Unknown'
+    if (!areaMap.has(area)) areaMap.set(area, [])
+    areaMap.get(area).push(elite)
+  }
+
+  const areaOrder = AREA_ORDER[region] || []
+  const orderedAreas = [...areaOrder, ...[...areaMap.keys()].filter(area => !areaOrder.includes(area)).sort((a, b) => a.localeCompare(b))]
+
+  for (const area of orderedAreas) {
+    const areaItems = areaMap.get(area)
+    if (!areaItems?.length) continue
+    const areaWrap = document.createElement('div')
+    areaWrap.className = 'area-wrap'
+    const areaHeader = document.createElement('div')
+    areaHeader.className = 'area-header'
+    areaHeader.innerHTML = `<span class="area-label">${area}</span><span class="area-count">${areaItems.length}</span>`
+    areaWrap.appendChild(areaHeader)
+
+    const grid = document.createElement('div')
+    grid.className = 'boss-grid area-grid'
+    for (const elite of areaItems) grid.appendChild(buildCompactCard(elite))
+    areaWrap.appendChild(grid)
+    section.appendChild(areaWrap)
+  }
+
+  sectionsEl.appendChild(section)
+}
+
+function buildRegionToggleBar(containerId) {
+  const container = $(containerId)
+  if (!container || container.childElementCount) return
+  for (const region of REGION_BUTTONS) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'region-toggle active'
+    button.textContent = region
+    button.setAttribute('data-region-toggle', region)
+    button.setAttribute('aria-pressed', 'true')
+    button.title = `Hide ${region}`
+    button.addEventListener('click', () => toggleRegion(region))
+    container.appendChild(button)
+  }
+}
+
+function updateRegionToggleUI() {
+  for (const button of document.querySelectorAll('[data-region-toggle]')) {
+    const region = button.getAttribute('data-region-toggle')
+    const hidden = hiddenRegions.has(region)
+    button.classList.toggle('active', !hidden)
+    button.setAttribute('aria-pressed', hidden ? 'false' : 'true')
+    button.title = hidden ? `Show ${region}` : `Hide ${region}`
+  }
+}
+
 function render() {
   sectionsEl.innerHTML = ''
   summaryEl.innerHTML = ''
@@ -188,38 +266,28 @@ function render() {
 
   const visible = getVisibleElites()
   const active = visible.filter(elite => elite.nextSpawnMs).sort((a, b) => a.nextSpawnMs - b.nextSpawnMs)
-  const ready = visible.filter(elite => !elite.nextSpawnMs).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+  const ready = visible.filter(elite => !elite.nextSpawnMs)
   const next = active[0]
 
   summaryEl.innerHTML = `<span>${visible.length} elite${visible.length === 1 ? '' : 's'}${filterText ? ' (filtered)' : ''}</span>${next ? `<span>· Next: <strong style="color:var(--text2);font-weight:600;">${fmtName(next.name)}</strong> in ${fmtCountdown(next.nextSpawnMs)}</span>` : '<span>· All ready</span>'}`
   setPill(active.length ? `${active.length} active` : 'All ready', active.length ? 'positive' : '')
   appendSection('Active Timers', active)
 
-  // Group ready by region
-  const readyByRegion = {}
+  const readyByRegion = new Map()
   for (const elite of ready) {
     const reg = elite.region || 'Unknown'
-    if (!readyByRegion[reg]) readyByRegion[reg] = []
-    readyByRegion[reg].push(elite)
+    if (!readyByRegion.has(reg)) readyByRegion.set(reg, [])
+    readyByRegion.get(reg).push(elite)
   }
 
-  // Consistent region sort order
-  const regionOrder = ['Dien', 'Lindris', 'Ulan', 'Serbis']
-  for (const reg of regionOrder) {
-    const items = readyByRegion[reg] || []
-    if (items.length) {
-      appendSection(`Ready · ${reg}`, items)
-    }
-  }
-
-  // Fallback for any other regions not in the order
-  for (const [reg, items] of Object.entries(readyByRegion)) {
-    if (!regionOrder.includes(reg) && items.length) {
-      appendSection(`Ready · ${reg}`, items)
-    }
+  const orderedRegions = [...REGION_ORDER, ...[...readyByRegion.keys()].filter(reg => !REGION_ORDER.includes(reg)).sort((a, b) => a.localeCompare(b))]
+  for (const reg of orderedRegions) {
+    const items = readyByRegion.get(reg)
+    if (items?.length) appendRegionSection(reg, items)
   }
 
   renderTimeline(active)
+  updateRegionToggleUI()
 }
 
 function renderTimeline(active) {
@@ -393,12 +461,14 @@ function startTicker() {
 }
 
 function setLayout(mode) {
-  layout = mode
-  localStorage.setItem('eliteLayout', mode)
-  const sel = $('layout-mode')
-  const selM = $('layout-mode-m')
-  if (sel) sel.value = mode
-  if (selM) selM.value = mode
+  layout = mode === 'deck' ? 'compact' : 'compact'
+  render()
+}
+
+function toggleRegion(region) {
+  if (hiddenRegions.has(region)) hiddenRegions.delete(region)
+  else hiddenRegions.add(region)
+  localStorage.setItem(HIDDEN_REGIONS_KEY, JSON.stringify([...hiddenRegions]))
   render()
 }
 
@@ -431,7 +501,6 @@ document.addEventListener('click', e => {
   if (hamburgerDrawer && !hamburgerDrawer.contains(e.target) && e.target !== hamburgerBtn) toggleDrawer(false)
 })
 
-const layoutModeSel = $('layout-mode')
 const alarmLeadSel = $('alarm-lead')
 const alarmVolumeSlider = $('alarm-volume')
 const alarmVolumeLabel = $('alarm-volume-label')
@@ -440,7 +509,9 @@ const eliteFilter = $('elite-filter')
 const timelineBtn = $('toggle-timeline')
 const muteBtn = $('toggle-mute')
 
-if (layoutModeSel) { layoutModeSel.value = layout; layoutModeSel.addEventListener('change', () => setLayout(layoutModeSel.value)) }
+buildRegionToggleBar('region-toggle-bar')
+buildRegionToggleBar('region-toggle-bar-m')
+
 if (alarmLeadSel) {
   alarmLeadSel.value = String(alarmLeadMin)
   alarmLeadSel.addEventListener('change', () => {
@@ -477,13 +548,11 @@ timelineBtn?.addEventListener('click', () => { showTimeline = !showTimeline; loc
 muteBtn?.addEventListener('click', () => { setMuted(!getMuted()); updateMuteUI(); showToast(getMuted() ? 'Sounds muted' : 'Sounds unmuted') })
 eliteFilter?.addEventListener('input', () => { filterText = eliteFilter.value.trim(); render() })
 
-const layoutModeSelM = $('layout-mode-m')
 const alarmLeadSelM = $('alarm-lead-m')
 const alarmVolumeSliderM = $('alarm-volume-m')
 const alarmVolumeLabelM = $('alarm-volume-label-m')
 const presetSelM = $('sound-preset-m')
 
-if (layoutModeSelM) { layoutModeSelM.value = layout; layoutModeSelM.addEventListener('change', () => setLayout(layoutModeSelM.value)) }
 if (alarmLeadSelM) {
   alarmLeadSelM.value = String(alarmLeadMin)
   alarmLeadSelM.addEventListener('change', () => {
@@ -516,7 +585,6 @@ $('toggle-timeline-m')?.addEventListener('click', () => { showTimeline = !showTi
 $('toggle-mute-m')?.addEventListener('click', () => { setMuted(!getMuted()); updateMuteUI(); showToast(getMuted() ? 'Sounds muted' : 'Sounds unmuted') })
 
 updateMuteUI()
-setLayout(layout)
 render()
 ensureNotificationPermission()
 startTicker()

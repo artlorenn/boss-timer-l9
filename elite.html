@@ -100,10 +100,7 @@
     <div class="tb-sep tb-desktop"></div>
     <div class="controls-left">
       <input id="elite-filter" type="text" placeholder="Filter elites..." autocomplete="off" class="tb-filter" />
-      <select id="layout-mode" class="glass-select tb-desktop">
-        <option value="compact">Compact</option>
-        <option value="deck">Deck</option>
-      </select>
+      <div id="region-toggle-bar" class="region-toggle-bar tb-desktop" aria-label="Region visibility toggles"></div>
       <select id="alarm-lead" class="glass-select tb-desktop">
         <option value="3">3m</option>
         <option value="5" selected>5m</option>
@@ -150,11 +147,8 @@
 
   <aside id="hamburger-drawer" aria-label="Mobile menu">
     <div class="drawer-row">
-      <span class="drawer-label">Layout</span>
-      <select id="layout-mode-m" class="glass-select">
-        <option value="compact">Compact</option>
-        <option value="deck">Deck</option>
-      </select>
+      <span class="drawer-label">Regions</span>
+      <div id="region-toggle-bar-m" class="region-toggle-bar drawer-toggle-bar" aria-label="Region visibility toggles"></div>
     </div>
     <div class="drawer-divider"></div>
     <div class="drawer-row">
