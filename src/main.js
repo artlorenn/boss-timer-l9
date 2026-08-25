@@ -315,14 +315,38 @@ function buildDeckCard(ev, label) {
 }
 
 // ── Render ──
+function buildEmptyState(title, sub) {
+  const wrap = document.createElement('div')
+  wrap.className = 'empty-state'
+  const t = document.createElement('div')
+  t.className = 'empty-state-title'
+  t.textContent = title
+  wrap.appendChild(t)
+  if (sub) {
+    const s = document.createElement('div')
+    s.className = 'empty-state-sub'
+    s.textContent = sub
+    wrap.appendChild(s)
+  }
+  return wrap
+}
+
 function render(events) {
   sectionsEl.innerHTML = ''; summaryEl.innerHTML = ''
   countdownRegistry.clear()
   visibleEventCount = 0
-  if (!events.length) { setPill('No events', 'negative'); renderTimeline(events); return }
+  if (!events.length) {
+    setPill('No events', 'negative'); renderTimeline(events)
+    sectionsEl.appendChild(buildEmptyState('No scheduled bosses', 'New schedules will appear here automatically.'))
+    return
+  }
   const filtered = events.filter(matchesFilter)
   visibleEventCount = filtered.length
-  if (!filtered.length) { setPill('No matches', 'negative'); renderTimeline(events); return }
+  if (!filtered.length) {
+    setPill('No matches', 'negative'); renderTimeline(events)
+    sectionsEl.appendChild(buildEmptyState(`No bosses match “${filterText}”`, 'Try a different name or clear the filter.'))
+    return
+  }
   const todayKey = localDateKey(new Date())
   const tmrwKey = localDateKey(new Date(Date.now() + 864e5))
   const buckets = { Today: [], Tomorrow: [], Later: [] }

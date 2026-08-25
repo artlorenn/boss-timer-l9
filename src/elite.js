@@ -165,6 +165,22 @@ function buildDeckCard(elite) {
   return card
 }
 
+function buildEmptyState(title, sub) {
+  const wrap = document.createElement('div')
+  wrap.className = 'empty-state'
+  const t = document.createElement('div')
+  t.className = 'empty-state-title'
+  t.textContent = title
+  wrap.appendChild(t)
+  if (sub) {
+    const s = document.createElement('div')
+    s.className = 'empty-state-sub'
+    s.textContent = sub
+    wrap.appendChild(s)
+  }
+  return wrap
+}
+
 function appendSection(label, items) {
   if (!items.length) return
   const section = document.createElement('div')
@@ -288,6 +304,13 @@ function render() {
 
   renderTimeline(active)
   updateRegionToggleUI()
+
+  if (!sectionsEl.childElementCount) {
+    sectionsEl.appendChild(buildEmptyState(
+      visible.length ? 'No elites match your filters' : 'No elites available',
+      visible.length ? 'Adjust the region toggles or the search filter to see more.' : 'Elite timers will appear here when you kill an elite.'
+    ))
+  }
 }
 
 function renderTimeline(active) {

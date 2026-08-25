@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MiniCorp - Potion Calculator</title>
+  <link rel="stylesheet" href="/src/style.css" />
   <style>
     :root {
       --bg: #000000;
@@ -13,9 +14,9 @@
       --border: rgba(255,255,255,0.07);
       --border2: rgba(255,255,255,0.04);
       --text: #ffffff;
-      --text2: rgba(255,255,255,0.55);
-      --text3: rgba(255,255,255,0.28);
-      --text4: rgba(255,255,255,0.10);
+      --text2: rgba(255,255,255,0.62);
+      --text3: rgba(255,255,255,0.36);
+      --text4: rgba(255,255,255,0.15);
       --blue: #0a84ff;
       --green: #30d158;
       --amber: #ffd60a;
@@ -49,109 +50,7 @@
       flex-direction: column;
     }
 
-    #topbar {
-      flex-shrink: 0;
-      height: 64px;
-      min-height: 64px;
-      display: flex;
-      align-items: center;
-      padding: 12px 18px;
-      gap: 10px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(18,18,20,0.94), rgba(11,11,13,0.86));
-      backdrop-filter: blur(var(--blur));
-      -webkit-backdrop-filter: blur(var(--blur));
-      overflow-x: auto;
-      overflow-y: hidden;
-      scrollbar-width: none;
-    }
-
-    #topbar::-webkit-scrollbar { display: none; }
-
-    .tb-brand {
-      font-size: 16px;
-      font-weight: 650;
-      letter-spacing: -0.02em;
-      color: var(--text);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .tb-nav {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px;
-      border-radius: 8px;
-      border: 1px solid var(--border2);
-      background: rgba(255,255,255,0.02);
-      flex-shrink: 0;
-    }
-
-    .nav-link {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text3);
-      text-decoration: none;
-      letter-spacing: 0.01em;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      padding: 7px 12px;
-      transition: all .15s ease;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .nav-link:hover {
-      color: var(--text2);
-      background: rgba(255,255,255,0.05);
-    }
-
-    .nav-link[aria-current="page"] {
-      color: var(--text);
-      background: rgba(10,132,255,0.14);
-      border-color: rgba(10,132,255,0.34);
-    }
-
-    .spacer { flex: 1; min-width: 10px; }
-
-    .tb-stat {
-      display: inline-flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 7px;
-      justify-content: space-between;
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 6px 10px;
-      min-height: 36px;
-      background: rgba(255,255,255,0.02);
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-
-    .tb-stat-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text4);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      line-height: 1;
-    }
-
-    .tb-stat-val {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      color: var(--text2);
-      white-space: nowrap;
-      line-height: 1;
-    }
+    /* Topbar, nav & stat styles are shared from /src/style.css */
 
     #main {
       flex: 1;

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relic Calculator</title>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="stylesheet" href="/src/style.css" />
 <style>
 :root {
   --bg:        #000000;
@@ -14,9 +15,9 @@
   --border:    rgba(255,255,255,0.07);
   --border2:   rgba(255,255,255,0.04);
   --text:      #ffffff;
-  --text2:     rgba(255,255,255,0.55);
-  --text3:     rgba(255,255,255,0.28);
-  --text4:     rgba(255,255,255,0.10);
+  --text2:     rgba(255,255,255,0.62);
+  --text3:     rgba(255,255,255,0.36);
+  --text4:     rgba(255,255,255,0.15);
   --red:       #ff453a;
   --blue:      #0a84ff;
   --green:     #30d158;
@@ -40,26 +41,9 @@ html, body {
   box-shadow: 0 0 0 1px rgba(0,0,0,1), 0 40px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.05);
   overflow: hidden; display: flex; flex-direction: column;
 }
-#topbar {
-  flex-shrink: 0; height: 64px; min-height: 64px; display: flex; align-items: center;
-  padding: 12px 18px; gap: 10px; border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(18,18,20,0.94), rgba(11,11,13,0.86)); backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur)); overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
-}
-#topbar::-webkit-scrollbar { display: none; }
-.tb-brand { font-size: 16px; font-weight: 650; letter-spacing: -0.02em; color: var(--text); white-space: nowrap; flex-shrink: 0; }
-.tb-nav { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 8px; border: 1px solid var(--border2); background: rgba(255,255,255,0.02); flex-shrink: 0; }
-.nav-link { font-size: 12px; font-weight: 600; color: var(--text3); text-decoration: none; letter-spacing: 0.01em; border-radius: 8px; border: 1px solid transparent; padding: 7px 12px; transition: all .15s ease; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
-.nav-link:hover { color: var(--text2); background: rgba(255,255,255,0.05); }
-.nav-link[aria-current="page"] { color: var(--text); background: rgba(10,132,255,0.14); border-color: rgba(10,132,255,0.34); }
-.tb-sep { width: 1px; height: 22px; background: var(--border2); flex-shrink: 0; }
-.spacer { flex: 1; min-width: 10px; }
-.tb-stat { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; justify-content: space-between; border: 1px solid var(--border2); border-radius: 8px; padding: 6px 10px; min-height: 36px; background: rgba(255,255,255,0.02); flex-shrink: 0; white-space: nowrap; }
-.tb-stat-visitors,
-.tb-stat-online { min-width: 94px; }
-.tb-stat-label { font-size: 10px; font-weight: 600; color: var(--text4); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; line-height: 1; }
-.tb-stat-val { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; color: var(--text2); white-space: nowrap; line-height: 1; }
-#body { flex: 1; display: grid; grid-template-columns: 1fr 740px; overflow: hidden; min-height: 0; }
+/* Topbar, nav & stat styles are shared from /src/style.css */
+
+#body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 740px; overflow: hidden; min-height: 0; }
 #left-panel { overflow-y: auto; padding: 20px 10px 20px 16px; display: flex; flex-direction: column; gap: 10px; }
 #right-panel { overflow-y: auto; padding: 20px 16px 20px 10px; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid var(--border2); min-height: 0; }
 #right-panel .right-panel-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
@@ -71,7 +55,7 @@ html, body {
 .cur-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-family: inherit; font-size: 12px; font-weight: 500; height: 36px; min-height: 36px; padding: 6px 10px; border-radius: 8px; outline: none; cursor: pointer; transition: border-color .15s; flex-shrink: 0; }
 .cur-select:hover { border-color: rgba(255,255,255,.12); }
 .cur-select option { background: #1c1c1e; }
-.relic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.relic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .relic-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; box-shadow: 0 2px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .2s; content-visibility: auto; contain-intrinsic-size: 110px; }
 .relic-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07); }
 .relic-name { font-size: 13px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 10px; }
@@ -79,7 +63,7 @@ html, body {
 .relic-name.blue  { color: var(--blue);  }
 .relic-name.green { color: var(--green); }
 .relic-name.amber { color: var(--amber); }
-.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.input-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
 .input-label { font-size: 12px; font-weight: 500; color: var(--text3); margin-bottom: 4px; letter-spacing: -.01em; }
 .num-wrap { display: flex; align-items: center; }
 .num-btn { width: 28px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; font-size: 16px; font-weight: 400; color: var(--text3); background: rgba(255,255,255,.04); border: 1px solid var(--border); transition: all .15s; flex-shrink: 0; }
@@ -96,6 +80,9 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .grand-cell { background: rgba(255,255,255,.03); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; }
 .grand-cell-label { font-size: 10px; font-weight: 500; color: var(--text3); margin-bottom: 4px; letter-spacing: .02em; text-transform: uppercase; }
 .grand-cell-val { font-size: 20px; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.grand-total-cost { margin-top: 8px; background: rgba(48,209,88,.05); border: 1px solid rgba(48,209,88,.22); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.grand-total-cost .grand-cell-label { margin-bottom: 0; }
+.grand-total-cost-val { font-size: 18px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; color: var(--green); white-space: nowrap; }
 .chest-body { background: rgba(255,255,255,.03); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
 .chest-body.best-focus {
   border-color: rgba(48,209,88,.28);
@@ -525,11 +512,11 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
 .market-cell-rank { color: var(--text3); font-weight: 400; }
 .market-cell-price { color: rgba(255,255,255,0.50); font-weight: 400; font-variant-numeric: tabular-nums; }
 .market-cell-unit { color: var(--text3); font-size: 11px; font-variant-numeric: tabular-nums; }
-@media (max-width: 1040px) { #body { grid-template-columns: 1fr 590px; } }
+@media (max-width: 1040px) { #body { grid-template-columns: minmax(0, 1fr) 590px; } }
 @media (max-width: 768px) {
   #frame { inset: 6px; border-radius: 18px; }
   #topbar { height: 56px; min-height: 56px; padding: 10px 12px; gap: 8px; }
-  #body { grid-template-columns: 1fr; overflow-y: auto; overflow-x: hidden; }
+  #body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; overflow-x: hidden; }
   #left-panel { overflow-y: visible; padding: 14px 10px 0; min-height: unset; }
   #right-panel { overflow-y: visible; padding: 10px 10px 16px; border-left: none; border-top: 1px solid var(--border2); }
   #right-panel .right-panel-main { min-height: unset; }
@@ -545,6 +532,37 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
   .result-strip { padding: 8px 10px; }
 }
 @media (max-width: 400px) { .relic-grid { grid-template-columns: 1fr; } .grand-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+/* ---- Mobile (phones) ---- */
+@media (max-width: 640px) {
+  #frame { inset: 0; border-radius: 0; padding-bottom: env(safe-area-inset-bottom, 0); }
+  #topbar { height: 52px; min-height: 52px; padding: 8px 8px; gap: 5px; }
+  .tb-brand { font-size: 13px; }
+  .tb-nav { gap: 2px; }
+  .nav-link { padding: 6px 8px; font-size: 11px; }
+  .spacer { min-width: 4px; }
+  .cur-select { font-size: 11px; padding: 4px 8px; height: 32px; }
+  .tb-sep { display: none; }
+  .tb-stat { display: none !important; }
+  .relic-grid { grid-template-columns: minmax(0, 1fr); }
+  .grand-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .grand-total-cost { flex-direction: column; align-items: stretch; gap: 3px; }
+  .grand-total-cost-val { font-size: 15px; white-space: normal; word-break: break-word; }
+  #bar-graph > div > div:first-child { flex-wrap: wrap; row-gap: 2px; }
+  #bar-graph > div > div:first-child > span:last-child { font-size: 11px; }
+  .tier-row { grid-template-columns: 1fr 1fr 1fr; row-gap: 3px; padding: 7px 8px; }
+  .tier-row > span:first-child { grid-column: 1 / -1; }
+  .tier-row > span:nth-child(2),
+  .tier-row > span:nth-child(3),
+  .tier-row > span:nth-child(4) { min-width: 0 !important; font-size: 11px; text-align: left !important; }
+  #chests-needed { font-size: 24px !important; }
+  .chest-body { padding: 10px; }
+  .best-value-panel { grid-template-columns: 1fr; }
+  .best-value-btn { justify-self: start; }
+  .market-snipe-metrics { grid-template-columns: 1fr 1fr; }
+  .market-stats-controls { grid-template-columns: 1fr; }
+  .market-alert-inline-row { grid-template-columns: 1fr auto; }
+}
 </style>
 </head>
 <body>
@@ -572,16 +590,20 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
       <div class="relic-grid" id="relic-grid"></div>
 
       <div class="card">
-        <div class="section-label">Cost Breakdown</div>
-        <div id="bar-graph" style="display:flex;flex-direction:column;gap:7px;"></div>
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border2);">
+        <div style="margin-bottom:14px;">
           <div class="section-label" style="margin-bottom:8px;">Grand Total</div>
           <div class="grand-grid">
             <div class="grand-cell"><div class="grand-cell-label">Pieces</div><div class="grand-cell-val" id="grand-temporal">0</div></div>
             <div class="grand-cell"><div class="grand-cell-label">Upgrades</div><div class="grand-cell-val" id="grand-upgrades">0</div></div>
             <div class="grand-cell"><div class="grand-cell-label">Combat Power</div><div class="grand-cell-val" id="grand-cp" style="color:var(--amber);">+0</div></div>
           </div>
+          <div class="grand-total-cost">
+            <div class="grand-cell-label">Total Cost • Best / 1k tier</div>
+            <div class="grand-total-cost-val" id="grand-cost">—</div>
+          </div>
         </div>
+        <div class="section-label">Cost Breakdown</div>
+        <div id="bar-graph" style="display:flex;flex-direction:column;gap:7px;"></div>
       </div>
 
       <!-- CP Reference -->
@@ -660,22 +682,22 @@ input.market-alert-input[type=number]::-webkit-inner-spin-button { -webkit-appea
           </select>
         </div>
         <div class="chest-body">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-            <div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
+            <div style="min-width:0;">
               <div style="font-size:15px;font-weight:600;letter-spacing:-.02em;margin-bottom:3px;" id="chest-label">T1 Chest</div>
-              <div style="font-size:11px;color:var(--text3);margin-bottom:8px;" id="chest-sublabel">x1,000 Pieces / Chest</div>
-              <div id="price-status-inner" style="display:flex;align-items:center;gap:6px;">
-                <svg class="spin-anim" style="width:11px;height:11px;color:var(--text4);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                <span style="font-size:11px;color:var(--text4);">Fetching price…</span>
-              </div>
+              <div style="font-size:11px;color:var(--text3);" id="chest-sublabel">x1,000 Pieces / Chest</div>
             </div>
-            <div style="text-align:right;flex-shrink:0;">
-              <div style="display:flex;align-items:baseline;gap:5px;justify-content:flex-end;">
-                <span id="chests-needed" style="font-size:34px;font-weight:700;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--text);">0</span>
-                <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Chests</span>
-              </div>
-              <div id="chest-calc" style="font-size:11px;color:var(--green);letter-spacing:-.01em;font-variant-numeric:tabular-nums;">—</div>
+            <div style="display:flex;align-items:baseline;gap:5px;justify-content:flex-end;flex-shrink:0;">
+              <span id="chests-needed" style="font-size:34px;font-weight:700;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--text);">0</span>
+              <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Chests</span>
             </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <div id="price-status-inner" style="display:flex;align-items:center;gap:6px;min-width:0;">
+              <svg class="spin-anim" style="width:11px;height:11px;color:var(--text4);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <span style="font-size:11px;color:var(--text4);">Fetching price…</span>
+            </div>
+            <div id="chest-calc" style="font-size:11px;color:var(--green);letter-spacing:-.01em;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;">—</div>
           </div>
         </div>
         <div>
@@ -823,6 +845,7 @@ const CHESTS={
 };
 
 let phpPerPiece=null,usdtPerPiece=null,currency='USDT';
+let bestChest=null; // { pieces, php, usdt } per chest of the best-value tier (used for whole-chest cost)
 const cache={};
 const priceRequests={};
 const PRICE_MEMORY_KEY='relic_price_memory_v1';
@@ -852,11 +875,14 @@ function fmtCur(val){
   return (currency==='PHP'?'₱':'')+val.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+(currency==='USDT'?' USDT':'');
 }
 function fmtDualCur(pieces){
-  const php=phpPerPiece!==null?pieces*phpPerPiece:null;
-  const usdt=usdtPerPiece!==null?pieces*usdtPerPiece:null;
-  if(php===null&&usdt===null)return '—';
-  const phpText=php!==null?'₱'+php.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
-  const usdtText=usdt!==null?usdt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' USDT':'—';
+  // Match the Chest Market card: cost is whole chests (rounded up) of the
+  // best-value tier at that tier's per-chest price, never fractional pieces.
+  if(!bestChest)return '—';
+  const chests=Math.ceil(pieces/bestChest.pieces);
+  const php=chests*bestChest.php;
+  const usdt=chests*bestChest.usdt;
+  const phpText='₱'+php.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const usdtText=usdt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' USDT';
   return phpText+' / '+usdtText;
 }
 function fmtDualChestTotal(chests,price){
@@ -986,10 +1012,19 @@ function scheduleRecalc(){
   });
 }
 
+// The Chest Market card always highlights the best-value tier; keep every part
+// of that card (label, chests needed, and the live per-chest price) on the SAME
+// tier so the numbers stay consistent with each other.
+function getDisplayTier(){
+  const best=getBestValueTier();
+  if(best)return best.tier;
+  return $('chest-select')?.value||'t1';
+}
+
 function renderLivePriceStatus(){
   const el=$('price-status-inner');
   if(!el)return;
-  const tier=$('chest-select')?.value||'t1';
+  const tier=getDisplayTier();
   const c=cache[tier];
   if(!c)return;
   const price=currency==='PHP'?c.php:c.usdt;
@@ -1122,6 +1157,7 @@ function recalcAll(){
   $('grand-temporal').textContent=gT.toLocaleString();
   $('grand-cp').textContent=`+${gCP.toLocaleString()}`;
   $('grand-upgrades').textContent=gU;
+  $('grand-cost').textContent=gT>0?fmtDualCur(gT):'—';
   updateBarGraph();updateChestAnalysis(gT);updateTierBreakdown(gT);
 }
 
@@ -1171,7 +1207,13 @@ function applySharedMarketSnapshot(snapshot){
     };
   }
   const best=getBestValueTier();
-  if(best){phpPerPiece=best.price.php/best.chest.pieces;usdtPerPiece=best.price.usdt/best.chest.pieces;}
+  if(best){
+    phpPerPiece=best.price.php/best.chest.pieces;
+    usdtPerPiece=best.price.usdt/best.chest.pieces;
+    bestChest={pieces:best.chest.pieces,php:best.price.php,usdt:best.price.usdt};
+  }else{
+    bestChest=null;
+  }
   updateDealRadar(false);
   recalcAll();
   updateMarketStats(false);
@@ -1196,34 +1238,33 @@ async function startSharedMarketSnapshot(){
   }
 }
 async function fetchFreshMarketSnapshot(limit=SHARED_MARKET_LIMIT){
-  const results=await Promise.allSettled(Object.entries(CHESTS).map(async([tier,chest])=>{
-    const res=await fetch(`${PROXY}?tier=${tier}&limit=${limit}`,{signal:AbortSignal.timeout(12000)});
-    if(!res.ok){
-      let detail='';
-      try{detail=(await res.json())?.error||'';}catch(_){}
-      throw new Error(`${tier.toUpperCase()} market fetch failed (${res.status}${detail?`: ${detail}`:''})`);
-    }
-    const data=await res.json();
-    return [tier,{
+  // market-price returns every tier (T1–T5) in one response under `data`.
+  const res=await fetch(`${PROXY}?limit=${limit}`,{signal:AbortSignal.timeout(15000)});
+  if(!res.ok){
+    let detail='';
+    try{detail=(await res.json())?.error||'';}catch(_){}
+    throw new Error(`Market fetch failed (${res.status}${detail?`: ${detail}`:''})`);
+  }
+  const data=await res.json();
+  const tiers={};
+  const tierMap=data?.data||{};
+  for(const [tierKey,info] of Object.entries(tierMap)){
+    const tier=tierKey.toLowerCase();
+    if(!CHESTS[tier])continue;
+    tiers[tier]={
       tier,
-      pieces:chest.pieces,
-      label:chest.label,
-      listings:Array.isArray(data.listings)?data.listings:[],
-    }];
-  }));
-  const entries=results
-    .filter(r=>r.status==='fulfilled')
-    .map(r=>r.value);
-  const failed=results
-    .filter(r=>r.status==='rejected')
-    .map(r=>formatRefreshError(r.reason));
-  if(!entries.length)throw new Error(failed[0]||'All market fetches failed');
+      pieces:CHESTS[tier].pieces,
+      label:CHESTS[tier].label,
+      listings:Array.isArray(info.listings)?info.listings:[],
+    };
+  }
+  if(!Object.keys(tiers).length)throw new Error('No market data returned');
   return {
     version:1,
     limit,
     updatedAt:Date.now(),
-    tiers:Object.fromEntries(entries),
-    errors:failed,
+    tiers,
+    errors:Array.isArray(data.errors)?data.errors:[],
   };
 }
 async function fetchPrice(tier,render=true){
@@ -1237,7 +1278,7 @@ async function fetchAllTiers(){
   updateTierBreakdown(getTotalTemporal());
 }
 async function fetchLivePrice(){
-  const el=$('price-status-inner'),tier=$('chest-select').value;
+  const el=$('price-status-inner'),tier=getDisplayTier();
   const c=cache[tier];
   if(c){
     renderLivePriceStatus();
@@ -1764,9 +1805,8 @@ async function updateMarketStats(forceRefresh=false){
 
 function updateChestAnalysis(gT){
   if(gT===undefined) gT=getTotalTemporal();
-  const selectedTier=$('chest-select').value;
   const bestTier=getBestValueTier();
-  const tier=bestTier?.tier||selectedTier;
+  const tier=getDisplayTier();
   const chest=CHESTS[tier];
   const needed=gT>0?Math.ceil(gT/chest.pieces):0;
   const body=document.querySelector('.chest-body');
