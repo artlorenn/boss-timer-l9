@@ -5,6 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
+  timeout = 15
 
 [dev]
   command = "npm run dev"
